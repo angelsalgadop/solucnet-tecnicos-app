@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Configuración para permitir conexiones a cliente.solucnet.com -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">cliente.solucnet.com</domain>
+        <trust-anchors>
+            <!-- Confiar en certificados del sistema -->
+            <certificates src="system" />
+            <!-- Confiar en certificados autofirmados -->
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Configuración base para debug -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
