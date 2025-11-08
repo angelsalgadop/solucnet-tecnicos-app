@@ -26,7 +26,7 @@ public class MainActivity extends BridgeActivity {
         super.onStart();
 
         // Aplicar WebViewClient personalizado que acepta certificados SSL
-        getBridge().getWebView().setWebViewClient(new SSLWebViewClient());
+        getBridge().getWebView().setWebViewClient(new SSLWebViewClient(getBridge()));
     }
 
     @Override

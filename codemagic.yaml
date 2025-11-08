@@ -18,8 +18,12 @@ workflows:
       - name: Copy web assets to Android
         script: |
           echo "Copiando archivos web a Android..."
-          npx cap copy android
-          echo "✅ Archivos copiados"
+          npx cap sync android --deployment
+          echo "✅ Archivos sincronizados"
+          echo "Verificando archivos copiados..."
+          ls -la android/app/src/main/assets/public/ || echo "No existe directorio assets"
+          echo "Verificando capacitor.config.json..."
+          cat android/app/src/main/assets/capacitor.config.json || echo "No existe config en assets"
       - name: Set Android SDK location
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
