@@ -407,27 +407,6 @@
         // IMPORTANTE: Probar primero con HTTP para descartar problemas SSL
         const API_BASE_URL = 'https://cliente.solucnet.com:3000';
 
-        // Función helper para fetch con timeout
-        async function fetchWithTimeout(url, options = {}, timeout = 10000) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-            try {
-                const response = await fetch(url, {
-                    ...options,
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-                return response;
-            } catch (error) {
-                clearTimeout(timeoutId);
-                if (error.name === 'AbortError') {
-                    throw new Error('Timeout: El servidor tardó demasiado en responder');
-                }
-                throw error;
-            }
-        }
-
         const loginForm = document.getElementById('loginForm');
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
@@ -476,13 +455,13 @@
             setLoading(true);
 
             try {
-                const response = await fetchWithTimeout(API_BASE_URL + '/api/login-tecnicos', {
+                const response = await fetch(API_BASE_URL + '/api/login-tecnicos', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ username, password })
-                }, 10000);
+                });
 
                 const data = await response.json();
 
@@ -525,54 +504,48 @@
             }
         });
 
-        // Probar conexión al cargar (NO bloqueante)
+        // Probar conexión al cargar
         async function testConnection() {
             try {
                 console.log('🔍 Probando conexión a:', API_BASE_URL);
-                const response = await fetchWithTimeout(API_BASE_URL + '/api/session', {
+                const response = await fetch(API_BASE_URL + '/api/session', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
                     }
-                }, 5000); // Solo 5 segundos de timeout
+                });
                 console.log('✅ Conexión exitosa. Status:', response.status);
-                return true;
             } catch (error) {
-                console.error('❌ Error de conexión:', error.message || error);
+                console.error('❌ Error de conexión:', error);
                 console.error('URL probada:', API_BASE_URL);
-                // Mostrar advertencia visual pero NO bloquear la UI
-                showAlert('Advertencia: No se pudo conectar al servidor. Verifica tu conexión.', 'warning');
-                return false;
             }
         }
 
         // Verificar si ya hay una sesión activa
-        window.addEventListener('DOMContentLoaded', async () => {
-            // Probar conexión primero (NO bloqueante)
+        window.addEventListener('DOMContentLoaded', () => {
+            // Probar conexión primero
             testConnection();
 
             const token = localStorage.getItem('token_tecnico');
             const remember = localStorage.getItem('remember_tecnico');
 
             if (token && remember === 'true') {
-                // Verificar si el token sigue siendo válido (con timeout)
-                try {
-                    const response = await fetchWithTimeout(API_BASE_URL + '/api/session', {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    }, 5000);
-
-                    const data = await response.json();
-
+                // Verificar si el token sigue siendo válido
+                fetch(API_BASE_URL + '/api/session', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
                     if (data.success && data.user && data.user.rol === 'tecnico') {
                         // Redirigir automáticamente si la sesión es válida
                         window.location.href = 'tecnicos_visitas.html';
                     }
-                } catch (error) {
-                    console.error('Error verificando sesión:', error.message || error);
-                    // No hacer nada, dejar que el usuario haga login manual
-                }
+                })
+                .catch(error => {
+                    console.error('Error verificando sesión:', error);
+                });
             }
         });
 
