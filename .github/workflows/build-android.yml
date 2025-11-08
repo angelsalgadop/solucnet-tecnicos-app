@@ -51,6 +51,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Sync Capacitor (Copy web assets and update native projects)
+        run: |
+          echo "Sincronizando Capacitor con Android..."
+          npx cap copy android
+          echo "✅ Capacitor sincronizado"
+
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
