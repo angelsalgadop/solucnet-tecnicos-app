@@ -1226,7 +1226,7 @@ async function cargarPdfsVisita(visitaId) {
                         <span class="small">${archivo.nombre_original}</span>
                         <small class="text-muted ms-2">(${(archivo.tamaño / 1024).toFixed(1)} KB)</small>
                     </div>
-                    <a href="/uploads/pdfs_visitas/${archivo.nombre_archivo}"
+                    <a href="${API_BASE_URL}/uploads/pdfs_visitas/${archivo.nombre_archivo}"
                        target="_blank"
                        class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-download"></i>
