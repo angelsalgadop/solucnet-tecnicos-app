@@ -3,6 +3,9 @@
  * Usa BarcodeDetector API NATIVA (ULTRA RÁPIDA - como apps nativas)
  */
 
+// Configuración del servidor
+const API_BASE_URL = 'https://cliente.solucnet.com:3000';
+
 // Log para verificar versión
 console.log('🔧 serial_scanner_native.js CARGADO - Versión: 1761679244 - CON SELECTOR TV BOX/MODEM');
 
@@ -442,7 +445,7 @@ async function verificarSerialEnBD(serial) {
 
     try {
         const token = localStorage.getItem('token_tecnico');
-        const response = await fetch('/api/verificar-serial', {
+        const response = await fetch(API_BASE_URL + '/api/verificar-serial', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -583,7 +586,7 @@ function cerrarEscanerSerial() {
 async function asignarEquipoAlCompletar(visitaId, serialEquipo) {
     try {
         const token = localStorage.getItem('token_tecnico');
-        const response = await fetch('/api/asignar-equipo', {
+        const response = await fetch(API_BASE_URL + '/api/asignar-equipo', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

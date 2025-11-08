@@ -1,3 +1,6 @@
+// Configuración del servidor
+const API_BASE_URL = 'https://cliente.solucnet.com:3000';
+
 // Variables globales
 let visitasAsignadas = [];
 let visitasSinFiltrar = []; // Copia sin filtrar para los filtros
@@ -96,7 +99,7 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             `;
         }
 
-        const response = await fetch('/api/mis-visitas', {
+        const response = await fetch(API_BASE_URL + '/api/mis-visitas', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -369,7 +372,7 @@ async function confirmarInicioVisita() {
     try {
         const visitaId = document.getElementById('visitaIniciarId').value;
 
-        const response = await fetch(`/api/visitas-tecnicas/${visitaId}/iniciar`, {
+        const response = await fetch(API_BASE_URL + `/api/visitas-tecnicas/${visitaId}/iniciar`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -908,7 +911,7 @@ async function guardarReporteVisita() {
         }
 
         // Enviar reporte
-        const response = await fetch('/api/reportes-visitas', {
+        const response = await fetch(API_BASE_URL + '/api/reportes-visitas', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -984,7 +987,7 @@ async function subirFotosReporte(reporteId) {
             formData.append('fotos', fotosSeleccionadas[i]);
         }
 
-        const response = await fetch('/api/reportes-fotos', {
+        const response = await fetch(API_BASE_URL + '/api/reportes-fotos', {
             method: 'POST',
             body: formData
         });
@@ -1212,7 +1215,7 @@ async function cargarPdfsVisita(visitaId) {
         iconoBoton.className = 'fas fa-spinner fa-spin';
         botonActualizar.disabled = true;
 
-        const response = await fetch(`/api/visitas/${visitaId}/archivos-pdf`);
+        const response = await fetch(API_BASE_URL + `/api/visitas/${visitaId}/archivos-pdf`);
         const resultado = await response.json();
 
         if (resultado.success && resultado.archivos.length > 0) {
@@ -1368,7 +1371,7 @@ async function notificarClienteLlegada(visitaId) {
 
     try {
         // Enviar notificación de llegada
-        const response = await fetch('/api/notificar-llegada-cliente', {
+        const response = await fetch(API_BASE_URL + '/api/notificar-llegada-cliente', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1477,7 +1480,7 @@ async function cancelarVisitaPorFaltaContacto(visitaId) {
     if (!visita) return;
 
     try {
-        const response = await fetch('/api/cancelar-visita-sin-contacto', {
+        const response = await fetch(API_BASE_URL + '/api/cancelar-visita-sin-contacto', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1681,7 +1684,7 @@ async function enviarUbicacionTecnico() {
                 console.log('📍 [CLIENTE] Enviando ubicación al servidor...');
 
                 // Enviar ubicación al servidor
-                const response = await fetch('/api/tecnicos/ubicacion', {
+                const response = await fetch(API_BASE_URL + '/api/tecnicos/ubicacion', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2009,7 +2012,7 @@ async function cargarUbicacionesClientes() {
         }
 
         // Obtener ubicaciones de clientes desde el servidor
-        const response = await fetch('/api/ubicaciones-clientes-asignados', {
+        const response = await fetch(API_BASE_URL + '/api/ubicaciones-clientes-asignados', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -2161,7 +2164,7 @@ async function verificarPermisoAgregarNaps() {
         const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
         console.log('🔍 [NAP] Token encontrado:', token ? 'Sí' : 'No');
 
-        const response = await fetch('/api/usuario-actual', {
+        const response = await fetch(API_BASE_URL + '/api/usuario-actual', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -2491,7 +2494,7 @@ async function guardarNuevaNap() {
     try {
         const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
 
-        const response = await fetch('/api/cajas-nap', {
+        const response = await fetch(API_BASE_URL + '/api/cajas-nap', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2551,7 +2554,7 @@ async function asignarEquipoAlCompletar(visitaId, serialEquipo, costoEquipo = 18
 
         const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
 
-        const response = await fetch('/api/asignar-equipo', {
+        const response = await fetch(API_BASE_URL + '/api/asignar-equipo', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -9,6 +9,9 @@
  * - Cola de operaciones pendientes
  */
 
+// Configuración del servidor
+const API_BASE_URL = 'https://cliente.solucnet.com:3000';
+
 class OfflineManager {
     constructor() {
         this.db = null;
@@ -348,7 +351,7 @@ class OfflineManager {
 
         for (const reporte of reportes) {
             try {
-                const response = await fetch('/api/reportes-visitas', {
+                const response = await fetch(API_BASE_URL + '/api/reportes-visitas', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(reporte)
@@ -401,7 +404,7 @@ class OfflineManager {
                     formData.append('fotos', blob, foto.nombre);
                 }
 
-                const response = await fetch('/api/reportes-fotos', {
+                const response = await fetch(API_BASE_URL + '/api/reportes-fotos', {
                     method: 'POST',
                     body: formData
                 });
