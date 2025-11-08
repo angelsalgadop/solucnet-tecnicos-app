@@ -2,9 +2,6 @@
 	"appId": "com.solucnet.tecnicos",
 	"appName": "SolucNet Técnicos",
 	"webDir": "public",
-	"server": {
-		"androidScheme": "https"
-	},
 	"android": {
 		"allowMixedContent": true,
 		"backgroundColor": "#28a745"
