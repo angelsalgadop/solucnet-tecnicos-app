@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Técnicos - Visitas Asignadas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Leaflet CSS for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);
+            border: none;
+        }
+        .status-asignada { background-color: #dbeafe; color: #1e40af; }
+        .status-en_progreso { background-color: #fed7aa; color: #c2410c; }
+        .visita-card {
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+            transition: all 0.3s;
+        }
+        .visita-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .cliente-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .photo-preview {
+            max-width: 150px;
+            max-height: 150px;
+            border-radius: 8px;
+            margin: 5px;
+        }
+        .file-upload-area {
+            border: 2px dashed #28a745;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .file-upload-area:hover {
+            border-color: #20c997;
+            background-color: #f8f9fa;
+        }
+        .file-upload-area.dragover {
+            border-color: #17a2b8;
+            background-color: #e7f3ff;
+        }
+
+        /* Estilo para observaciones urgentes */
+        .observacion-urgente {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            animation: pulseGlow 2s infinite;
+            border-left: 5px solid #ff4757;
+        }
+
+        .observacion-urgente h6 {
+            color: white;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .observacion-urgente p {
+            color: white;
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3); }
+            50% { box-shadow: 0 4px 25px rgba(255, 107, 107, 0.6); }
+            100% { box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3); }
+        }
+
+        /* Estilos para el mapa de clientes */
+        #mapaClientes {
+            height: 600px;
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .custom-marker-cliente {
+            background-color: transparent;
+            border: none;
+        }
+
+        .custom-marker-cliente div {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            border: 2px solid white;
+        }
+
+        /* =================================== */
+        /* ESTILOS RESPONSIVOS PARA MÓVILES */
+        /* =================================== */
+
+        /* Media query para dispositivos móviles y tablets pequeñas */
+        @media (max-width: 768px) {
+
+            /* Navbar más compacta */
+            .navbar {
+                padding: 0.25rem 0.5rem;
+            }
+
+            .navbar-brand {
+                font-size: 1rem;
+            }
+
+            .navbar-nav .nav-link {
+                font-size: 0.85rem;
+                padding: 0.25rem 0.5rem;
+            }
+
+            /* Container principal más compacto */
+            .container {
+                padding: 0.5rem;
+            }
+
+            /* Cards más compactas */
+            .card {
+                margin-bottom: 1rem;
+                border-radius: 0.5rem;
+            }
+
+            .card-header {
+                padding: 0.75rem;
+                font-size: 0.9rem;
+            }
+
+            .card-body {
+                padding: 0.75rem;
+            }
+
+            /* Visitas cards más compactas */
+            .visita-card {
+                margin-bottom: 1rem;
+                border-radius: 0.5rem;
+                border-left-width: 3px;
+            }
+
+            .visita-card .card-body {
+                padding: 0.75rem;
+            }
+
+            .visita-card .card-title {
+                font-size: 1rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .visita-card .card-text {
+                font-size: 0.8rem;
+                margin-bottom: 0.25rem;
+            }
+
+            /* Cliente info más compacto */
+            .cliente-info {
+                padding: 0.75rem;
+                border-radius: 0.5rem;
+                margin-bottom: 0.75rem;
+                font-size: 0.85rem;
+            }
+
+            /* Botones más compactos */
+            .btn {
+                padding: 0.375rem 0.5rem;
+                font-size: 0.8rem;
+                border-radius: 0.375rem;
+            }
+
+            .btn-sm {
+                padding: 0.25rem 0.375rem;
+                font-size: 0.75rem;
+            }
+
+            /* Formularios más compactos */
+            .form-control, .form-select {
+                padding: 0.375rem 0.5rem;
+                font-size: 0.85rem;
+                border-radius: 0.375rem;
+            }
+
+            .form-label {
+                font-size: 0.8rem;
+                margin-bottom: 0.25rem;
+                font-weight: 600;
+            }
+
+            /* Grid más compacto para móviles */
+            .row {
+                margin-left: -0.5rem;
+                margin-right: -0.5rem;
+            }
+
+            .col, .col-1, .col-2, .col-3, .col-4, .col-5, .col-6,
+            .col-7, .col-8, .col-9, .col-10, .col-11, .col-12,
+            .col-md-1, .col-md-2, .col-md-3, .col-md-4, .col-md-5, .col-md-6,
+            .col-md-7, .col-md-8, .col-md-9, .col-md-10, .col-md-11, .col-md-12 {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+
+            /* Modales optimizados para móvil */
+            .modal-dialog {
+                margin: 0.5rem;
+                max-width: calc(100% - 1rem);
+            }
+
+            .modal-content {
+                border-radius: 0.5rem;
+            }
+
+            .modal-header {
+                padding: 0.75rem;
+                border-bottom: 1px solid #dee2e6;
+            }
+
+            .modal-body {
+                padding: 0.75rem;
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+
+            .modal-footer {
+                padding: 0.75rem;
+                border-top: 1px solid #dee2e6;
+            }
+
+            /* File upload area más compacta */
+            .file-upload-area {
+                padding: 1rem;
+                border-radius: 0.5rem;
+                font-size: 0.85rem;
+            }
+
+            .file-upload-area i {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+            }
+
+            /* Photo preview más pequeño */
+            .photo-preview {
+                max-width: 100px;
+                max-height: 100px;
+                border-radius: 0.5rem;
+                margin: 0.25rem;
+            }
+
+            /* Badges más compactos */
+            .badge {
+                font-size: 0.7rem;
+                padding: 0.3rem 0.5rem;
+                border-radius: 0.375rem;
+            }
+
+            /* Alertas más compactas */
+            .alert {
+                padding: 0.5rem 0.75rem;
+                margin-bottom: 0.75rem;
+                border-radius: 0.375rem;
+                font-size: 0.8rem;
+            }
+
+            /* Observación urgente más compacta */
+            .observacion-urgente {
+                padding: 0.75rem;
+                margin: 0.75rem 0;
+                border-radius: 0.5rem;
+                border-left-width: 4px;
+            }
+
+            .observacion-urgente h6 {
+                font-size: 0.9rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .observacion-urgente p {
+                font-size: 0.8rem;
+            }
+
+            /* Dropdown menus más compactos */
+            .dropdown-menu {
+                font-size: 0.8rem;
+                border-radius: 0.375rem;
+                box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.1);
+            }
+
+            .dropdown-item {
+                padding: 0.375rem 0.75rem;
+            }
+
+            /* Optimización de espacios */
+            .mb-3 {
+                margin-bottom: 0.75rem !important;
+            }
+
+            .mb-4 {
+                margin-bottom: 1rem !important;
+            }
+
+            .mt-4 {
+                margin-top: 1rem !important;
+            }
+
+            .p-3 {
+                padding: 0.75rem !important;
+            }
+
+            .p-4 {
+                padding: 1rem !important;
+            }
+
+            /* Texto más pequeño en móviles */
+            .text-muted {
+                font-size: 0.75rem;
+            }
+
+            /* Headers de sección más compactos */
+            h5 {
+                font-size: 1rem;
+                margin-bottom: 0.5rem;
+            }
+
+            h6 {
+                font-size: 0.85rem;
+                margin-bottom: 0.375rem;
+            }
+
+            /* Inputs de fecha y hora más compactos */
+            input[type="date"], input[type="datetime-local"], input[type="time"] {
+                font-size: 0.8rem;
+                padding: 0.375rem 0.5rem;
+            }
+
+            /* Textarea más compacto */
+            textarea.form-control {
+                min-height: 80px;
+                font-size: 0.85rem;
+            }
+
+            /* Lista de archivos más compacta */
+            .list-group-item {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Media query para móviles muy pequeños */
+        @media (max-width: 480px) {
+
+            /* Navegación más compacta */
+            .navbar-brand {
+                font-size: 0.9rem;
+            }
+
+            .navbar-nav .nav-link {
+                font-size: 0.8rem;
+                padding: 0.25rem;
+            }
+
+            /* Formularios en una sola columna */
+            .row .col-md-6,
+            .row .col-md-4,
+            .row .col-md-3 {
+                margin-bottom: 0.5rem;
+            }
+
+            /* Botones más grandes para tocar fácilmente */
+            .btn {
+                min-height: 2.25rem;
+                border-radius: 0.5rem;
+                font-size: 0.85rem;
+            }
+
+            .btn-sm {
+                min-height: 2rem;
+                font-size: 0.8rem;
+            }
+
+            /* Cards ocupan más espacio vertical */
+            .visita-card {
+                margin-bottom: 0.75rem;
+            }
+
+            /* Modales ocupan toda la pantalla */
+            .modal-dialog {
+                margin: 0;
+                max-width: 100%;
+                height: 100vh;
+            }
+
+            .modal-content {
+                height: 100%;
+                border-radius: 0;
+                border: none;
+            }
+
+            .modal-body {
+                max-height: calc(100vh - 120px);
+                overflow-y: auto;
+            }
+
+            /* File upload más grande */
+            .file-upload-area {
+                padding: 1.5rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .file-upload-area i {
+                font-size: 2.5rem;
+                margin-bottom: 0.75rem;
+            }
+
+            /* Photo previews en grid más compacto */
+            .photo-preview {
+                max-width: 80px;
+                max-height: 80px;
+                margin: 0.125rem;
+            }
+
+            /* Texto de estado más grande */
+            .badge {
+                font-size: 0.75rem;
+                padding: 0.375rem 0.6rem;
+                min-width: 60px;
+                text-align: center;
+            }
+
+            /* Cliente info con menos padding */
+            .cliente-info {
+                padding: 0.5rem;
+                font-size: 0.8rem;
+            }
+
+            /* Headers más prominentes en móvil */
+            .card-header h5 {
+                font-size: 0.95rem;
+                margin-bottom: 0;
+            }
+
+            /* Observación urgente más prominente */
+            .observacion-urgente {
+                padding: 1rem;
+                margin: 1rem 0;
+                font-size: 0.85rem;
+            }
+
+            .observacion-urgente h6 {
+                font-size: 1rem;
+                margin-bottom: 0.75rem;
+            }
+
+            /* Mejor espaciado para botones de acción */
+            .btn-group .btn {
+                margin-bottom: 0.25rem;
+            }
+
+            /* Inputs más altos para mejor usabilidad táctil */
+            .form-control, .form-select {
+                min-height: 2.5rem;
+                font-size: 0.9rem;
+            }
+
+            /* Textarea más alto */
+            textarea.form-control {
+                min-height: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fas fa-tools"></i> SolucNet - Panel Técnico</a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-link text-light" id="nombreTecnico">Cargando...</span>
+                <a class="nav-link" href="#" id="btnCerrarSesion"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Mis Visitas Asignadas</h5>
+                            <small class="text-white-50" id="ultimaActualizacionTexto">
+                                <i class="fas fa-circle-notch fa-spin"></i> Cargando...
+                            </small>
+                        </div>
+                        <div>
+                            <button class="btn btn-info btn-sm me-2" onclick="abrirMapaClientes()" data-bs-toggle="modal" data-bs-target="#modalMapaClientes">
+                                <i class="fas fa-map-marked-alt"></i> Ubicar Clientes
+                            </button>
+                            <button class="btn btn-success btn-sm me-2" id="btnNuevaNap" style="display: none;" data-bs-toggle="modal" data-bs-target="#modalNuevaNap">
+                                <i class="fas fa-plus-circle"></i> Nueva Caja NAP
+                            </button>
+                            <button class="btn btn-light btn-sm" onclick="cargarVisitasTecnico()">
+                                <i class="fas fa-sync"></i> Actualizar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Filtros -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Filtrar por Localidad</label>
+                                <select class="form-select form-select-sm" id="filtroLocalidad" onchange="aplicarFiltros()">
+                                    <option value="">Todas las Localidades</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select form-select-sm" id="filtroEstado" onchange="aplicarFiltros()">
+                                    <option value="">Todos los estados</option>
+                                    <option value="asignada">Asignada</option>
+                                    <option value="en_progreso">En progreso</option>
+                                    <option value="programada">Programada</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="visitasAsignadas">
+                            <div class="text-center">
+                                <div class="spinner-border text-success" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Cargando visitas asignadas...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para completar visita -->
+    <div class="modal fade" id="modalCompletarVisita" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-clipboard-check"></i> Completar Visita Técnica</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Información del cliente -->
+                    <div class="cliente-info" id="infoCliente">
+                        <h6><i class="fas fa-user"></i> Información del Cliente</h6>
+                        <div id="datosCliente"></div>
+                    </div>
+
+                    <form id="formCompletarVisita">
+                        <input type="hidden" id="visitaId">
+                        <input type="hidden" id="tecnicoId">
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Problemas encontrados *</label>
+                                    <textarea class="form-control" id="problemasEncontrados" rows="4"
+                                              placeholder="Describe los problemas que encontraste..." required></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Solución aplicada *</label>
+                                    <textarea class="form-control" id="solucionAplicada" rows="4"
+                                              placeholder="Describe la solución que aplicaste..." required></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Materiales utilizados</label>
+                            <textarea class="form-control" id="materialesUtilizados" rows="3"
+                                      placeholder="Lista los materiales que usaste (opcional)..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">¿Cliente satisfecho? *</label>
+                            <select class="form-select" id="clienteSatisfecho" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="si">Sí, totalmente satisfecho</option>
+                                <option value="parcial">Parcialmente satisfecho</option>
+                                <option value="no">No satisfecho</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="requiereSeguimiento">
+                                <label class="form-check-label" for="requiereSeguimiento">
+                                    Requiere visita de seguimiento
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notas adicionales</label>
+                            <textarea class="form-control" id="notasAdicionales" rows="3"
+                                      placeholder="Observaciones adicionales (opcional)..."></textarea>
+                        </div>
+
+                        <!-- Sección de coordenadas GPS (OBLIGATORIO PARA TODAS LAS VISITAS) -->
+                        <div id="seccionCoordenadas" class="mb-3">
+                            <div class="card border-danger">
+                                <div class="card-header bg-danger text-white">
+                                    <h6 class="mb-0"><i class="fas fa-map-marker-alt"></i> Coordenadas GPS * (OBLIGATORIO)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> <strong>OBLIGATORIO:</strong> Debes capturar las coordenadas GPS con precisión de 9 metros o menor antes de completar la visita.
+                                    </div>
+
+                                    <div class="d-grid gap-2 mb-3">
+                                        <button type="button" class="btn btn-primary btn-lg" id="btnTomarCoordenadas" onclick="capturarCoordenadasManual()">
+                                            <i class="fas fa-crosshairs"></i> Tomar Coordenadas GPS
+                                        </button>
+                                    </div>
+
+                                    <!-- Estado de las coordenadas -->
+                                    <div id="estadoCoordenadas" class="d-none">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <label class="form-label"><strong>Latitud:</strong></label>
+                                                <input type="text" class="form-control" id="latitudCapturada" readonly>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label"><strong>Longitud:</strong></label>
+                                                <input type="text" class="form-control" id="longitudCapturada" readonly>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label"><strong>Precisión:</strong></label>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="precisionCapturada" readonly>
+                                                    <span class="input-group-text">metros</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2" id="estadoPrecision"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Área de subida de fotos -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-camera text-danger"></i> Fotos del trabajo realizado * (OBLIGATORIO)
+                                <span class="badge bg-danger ms-2">Mínimo 1 foto requerida</span>
+                            </label>
+
+                            <!-- Botones para tomar foto o subir desde galería -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-primary w-100" onclick="document.getElementById('fotosCamara').click()">
+                                        <i class="fas fa-camera"></i><br>
+                                        <small>Tomar Foto</small>
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-success w-100" onclick="document.getElementById('fotosGaleria').click()">
+                                        <i class="fas fa-images"></i><br>
+                                        <small>Subir de Galería</small>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Input oculto para tomar foto con cámara -->
+                            <input type="file" id="fotosCamara" class="d-none" accept="image/*" capture="environment" onchange="agregarFotosSeleccionadas(this)">
+
+                            <!-- Input oculto para subir desde galería (múltiple) -->
+                            <input type="file" id="fotosGaleria" class="d-none" multiple accept="image/*" onchange="agregarFotosSeleccionadas(this)">
+
+                            <!-- Input oculto que almacena todas las fotos acumuladas -->
+                            <input type="file" id="fotosReporte" class="d-none" multiple>
+
+                            <div class="alert alert-info py-2 px-3">
+                                <small>
+                                    <i class="fas fa-info-circle"></i>
+                                    Puedes agregar hasta 10 fotos. Formatos: JPG, PNG, WebP (máx. 5MB cada una)
+                                </small>
+                            </div>
+
+                            <!-- Vista previa de fotos -->
+                            <div id="previsualizacionFotos" class="mt-3"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" onclick="guardarReporteVisita()">
+                        <i class="fas fa-check-circle"></i> Completar Visita
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para iniciar visita -->
+    <div class="modal fade" id="modalIniciarVisita" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-play"></i> Iniciar Visita</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <i class="fas fa-map-marker-alt fa-3x text-primary mb-3"></i>
+                        <h6>¿Confirmas que has llegado al sitio del cliente?</h6>
+                        <p class="text-muted">Esto marcará la visita como "En progreso"</p>
+                    </div>
+                    <input type="hidden" id="visitaIniciarId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmarInicioVisita()">
+                        <i class="fas fa-play"></i> Iniciar Visita
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mapa de Clientes -->
+    <div class="modal fade" id="modalMapaClientes" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-map-marked-alt"></i> Ubicación de Clientes - Visitas Asignadas
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Mapa en tiempo real:</strong> Los puntos azules representan la ubicación de tus clientes asignados.
+                        Se actualizan automáticamente y desaparecen cuando completas la visita.
+                    </div>
+
+                    <!-- Mapa de clientes -->
+                    <div id="mapaClientes"></div>
+
+                    <!-- Leyenda -->
+                    <div class="mt-3">
+                        <strong>Leyenda:</strong>
+                        <span class="badge bg-primary ms-2">
+                            <i class="fas fa-map-marker-alt"></i> Cliente Pendiente
+                        </span>
+                        <span class="badge bg-warning ms-2">
+                            <i class="fas fa-clock"></i> En Progreso
+                        </span>
+                        <span class="badge bg-success ms-2">
+                            <i class="fas fa-check"></i> Última Actualización: <span id="horaActualizacionMapa">--:--</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-info" onclick="actualizarMapaClientes()">
+                        <i class="fas fa-sync"></i> Actualizar Mapa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Caja NAP -->
+    <div class="modal fade" id="modalNuevaNap" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle"></i> Agregar Nueva Caja NAP
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Zona *</strong></label>
+                        <select class="form-select" id="zonaNap" required>
+                            <option value="">Seleccionar zona...</option>
+                            <option value="192.168.99.50">Reposo</option>
+                            <option value="192.168.99.11">Churido</option>
+                            <option value="192.168.99.2">Rio Grande</option>
+                        </select>
+                        <small class="text-muted">La última zona seleccionada se recordará</small>
+                    </div>
+
+                    <!-- Campo descripción oculto - se genera automáticamente -->
+                    <input type="hidden" id="descripcionNap">
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Número de Puertos *</strong></label>
+                        <input type="range" class="form-range" id="puertosNap" min="8" max="16" value="8" oninput="actualizarValorPuertos(this.value)">
+                        <div class="text-center mt-2">
+                            <span class="badge bg-primary" style="font-size: 1.1rem;" id="valorPuertos">8 puertos</span>
+                        </div>
+                    </div>
+
+                    <!-- Campo ubicación oculto - se carga automáticamente -->
+                    <input type="hidden" id="ubicacionNap">
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Detalles</strong></label>
+                        <textarea class="form-control" id="detallesNap" rows="2" placeholder="Información adicional (opcional)"></textarea>
+                    </div>
+
+                    <!-- Sección de coordenadas GPS (OBLIGATORIO) -->
+                    <div id="seccionCoordenadasNap" class="mb-3">
+                        <div class="card border-danger">
+                            <div class="card-header bg-danger text-white">
+                                <h6 class="mb-0"><i class="fas fa-map-marker-alt"></i> Coordenadas GPS * (OBLIGATORIO)</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> <strong>OBLIGATORIO:</strong> Debes capturar las coordenadas GPS con precisión de 9 metros o menor.
+                                </div>
+
+                                <div class="d-grid gap-2 mb-3">
+                                    <button type="button" class="btn btn-primary btn-lg" id="btnTomarCoordenadasNap" onclick="capturarCoordenadasNap()">
+                                        <i class="fas fa-crosshairs"></i> Tomar Coordenadas GPS
+                                    </button>
+                                </div>
+
+                                <!-- Estado de las coordenadas -->
+                                <div id="estadoCoordenadasNap" class="d-none">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <label class="form-label"><strong>Latitud:</strong></label>
+                                            <input type="text" class="form-control" id="latitudNapMostrar" readonly>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label"><strong>Longitud:</strong></label>
+                                            <input type="text" class="form-control" id="longitudNapMostrar" readonly>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label"><strong>Precisión:</strong></label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="precisionNapMostrar" readonly>
+                                                <span class="input-group-text">metros</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2" id="estadoPrecisionNap"></div>
+                                </div>
+
+                                <!-- Hidden fields para almacenar valores -->
+                                <input type="hidden" id="latitudNap">
+                                <input type="hidden" id="longitudNap">
+                                <input type="hidden" id="precisionNap">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" onclick="guardarNuevaNap()">
+                        <i class="fas fa-save"></i> Guardar Caja NAP
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Sistema de Gestión Offline para App Móvil -->
+    <script src="/offline-manager.js?v=1.0.0"></script>
+
+    <!-- Script para captura de seriales con BarcodeDetector NATIVO (INSTANTÁNEO) -->
+    <script src="/serial_scanner_native.js?v=1761679244"></script>
+    <script>
+        // Verificar autenticación antes de cargar cualquier contenido
+        (async function verificarAutenticacion() {
+            const token = localStorage.getItem('token_tecnico');
+
+            if (!token) {
+                // No hay token, redirigir al login
+                window.location.href = '/login_tecnicos.html';
+                return;
+            }
+
+            try {
+                // Verificar que el token sea válido
+                const response = await fetch('/api/session', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!data.success || !data.user) {
+                    // Token inválido o expirado
+                    localStorage.removeItem('token_tecnico');
+                    localStorage.removeItem('user_tecnico');
+                    localStorage.removeItem('remember_tecnico');
+                    sessionStorage.removeItem('user_tecnico');
+                    window.location.href = '/login_tecnicos.html';
+                    return;
+                }
+
+                // Verificar que sea un técnico
+                if (data.user.rol !== 'tecnico') {
+                    // No es técnico, redirigir al login
+                    localStorage.removeItem('token_tecnico');
+                    localStorage.removeItem('user_tecnico');
+                    localStorage.removeItem('remember_tecnico');
+                    sessionStorage.removeItem('user_tecnico');
+                    alert('Acceso denegado. Solo usuarios técnicos pueden acceder a esta página.');
+                    window.location.href = '/login_tecnicos.html';
+                    return;
+                }
+
+                // Todo OK, usuario autenticado correctamente
+                console.log('Usuario autenticado:', data.user.nombre);
+
+            } catch (error) {
+                console.error('Error verificando autenticación:', error);
+                // Error en la verificación, redirigir al login
+                localStorage.removeItem('token_tecnico');
+                localStorage.removeItem('user_tecnico');
+                localStorage.removeItem('remember_tecnico');
+                sessionStorage.removeItem('user_tecnico');
+                window.location.href = '/login_tecnicos.html';
+            }
+        })();
+    </script>
+    <script src="/tecnicos_visitas.js?v=1761679244"></script>
+</body>
+</html>

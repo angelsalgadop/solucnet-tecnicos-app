@@ -1,0 +1,65 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Capacitor
+.capacitor/
+
+# Android
+android/app/build/
+android/build/
+android/.gradle/
+android/.idea/
+android/local.properties
+android/*.iml
+android/.DS_Store
+android/captures/
+
+# Gradle
+.gradle/
+build/
+*.class
+*.log
+
+# Android Studio
+.idea/
+*.iml
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+
+# APK
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Keystore (NUNCA commitear!)
+*.keystore
+*.jks
+release.properties
+keystore.properties
+
+# Secrets
+.env
+.env.local
+secrets.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log

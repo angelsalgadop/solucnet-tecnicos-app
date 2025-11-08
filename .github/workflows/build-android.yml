@@ -1,0 +1,92 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate app icons
+        run: node generate-icons.js
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Build Android APK (Debug)
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Build Android APK (Release - Unsigned)
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: solucnet-tecnicos-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload Release APK (Unsigned)
+        uses: actions/upload-artifact@v4
+        with:
+          name: solucnet-tecnicos-release-unsigned
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: Create Release (if tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/release/app-release-unsigned.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Send build notification
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Build exitoso! APK generado correctamente."
+          else
+            echo "❌ Build falló. Revisa los logs."
+          fi

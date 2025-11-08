@@ -1,0 +1,25 @@
+{
+  "name": "solucnet-tecnicos-app",
+  "version": "1.0.0",
+  "description": "Aplicación móvil Android para técnicos de SolucNet con modo offline completo",
+  "author": "SolucNet",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build:icons": "node generate-icons.js",
+    "build:apk:debug": "./build-apk.sh debug",
+    "build:apk:release": "./build-apk.sh release"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/app": "^7.1.0",
+    "@capacitor/camera": "^7.0.2",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/filesystem": "^7.1.4",
+    "@capacitor/geolocation": "^7.1.5",
+    "@capacitor/network": "^7.0.2"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
+  }
+}
