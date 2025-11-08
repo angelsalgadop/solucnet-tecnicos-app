@@ -17,7 +17,8 @@
     "@capacitor/core": "^7.4.4",
     "@capacitor/filesystem": "^7.1.4",
     "@capacitor/geolocation": "^7.1.5",
-    "@capacitor/network": "^7.0.2"
+    "@capacitor/network": "^7.0.2",
+    "@capacitor/push-notifications": "^7.0.3"
   },
   "devDependencies": {
     "sharp": "^0.33.5"

@@ -15,7 +15,17 @@ const visitasContainer = document.getElementById('visitasAsignadas');
 const nombreTecnico = document.getElementById('nombreTecnico');
 
 // Inicializar al cargar la página
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Solicitar permisos al iniciar (ubicación, cámara, notificaciones)
+    if (typeof solicitarPermisosIniciales === 'function') {
+        await solicitarPermisosIniciales();
+    }
+
+    // Configurar notificaciones push
+    if (typeof configurarNotificaciones === 'function') {
+        await configurarNotificaciones();
+    }
+
     inicializarSistema();
     configurarEventListeners();
     iniciarActualizacionAutomatica(); // Iniciar actualización automática cada 10 segundos
