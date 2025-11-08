@@ -4,88 +4,130 @@
 async function solicitarPermisosIniciales() {
     console.log('📱 Solicitando permisos de la aplicación...');
 
+    // Solo ejecutar en plataforma nativa (Android/iOS)
+    if (typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) {
+        console.log('⚠️ No estamos en plataforma nativa, omitiendo permisos');
+        return true; // Permitir continuar en web
+    }
+
     const permisosFaltantes = [];
+    let todosOtorgados = true;
 
     try {
-        // 1. Permiso de Ubicación (GPS)
-        if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+        // PASO 1: Verificar permisos actuales PRIMERO
+        console.log('🔍 PASO 1: Verificando permisos actuales...');
+
+        const { Geolocation } = await import('@capacitor/geolocation');
+        const { Camera } = await import('@capacitor/camera');
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+
+        const permisoUbicacionActual = await Geolocation.checkPermissions();
+        const permisoCamaraActual = await Camera.checkPermissions();
+        const permisoNotificacionesActual = await PushNotifications.checkPermissions();
+
+        console.log('📊 Estado actual de permisos:', {
+            ubicacion: permisoUbicacionActual.location,
+            camara: permisoCamaraActual.camera,
+            fotos: permisoCamaraActual.photos,
+            notificaciones: permisoNotificacionesActual.receive
+        });
+
+        // PASO 2: Solicitar permisos UNO POR UNO con delay
+        console.log('🔔 PASO 2: Solicitando permisos faltantes...');
+
+        // Permiso 1: Ubicación
+        if (permisoUbicacionActual.location !== 'granted') {
+            console.log('📍 Solicitando permiso de ubicación...');
             try {
-                console.log('📍 Solicitando permiso de ubicación...');
-                const { Geolocation } = await import('@capacitor/geolocation');
-                let permisoUbicacion = await Geolocation.checkPermissions();
+                const resultado = await Geolocation.requestPermissions();
+                console.log('📍 Resultado ubicación:', resultado.location);
 
-                if (permisoUbicacion.location !== 'granted') {
-                    permisoUbicacion = await Geolocation.requestPermissions();
-                }
-
-                if (permisoUbicacion.location !== 'granted') {
+                if (resultado.location !== 'granted') {
                     permisosFaltantes.push('📍 Ubicación (GPS)');
-                    console.log('❌ Permiso de ubicación DENEGADO');
-                } else {
-                    console.log('✅ Permiso de ubicación OK');
+                    todosOtorgados = false;
                 }
             } catch (error) {
-                console.error('❌ Error solicitando permiso de ubicación:', error);
+                console.error('❌ Error solicitando ubicación:', error);
                 permisosFaltantes.push('📍 Ubicación (GPS)');
+                todosOtorgados = false;
             }
 
-            // 2. Permiso de Cámara
+            // Delay de 500ms entre permisos
+            await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+            console.log('✅ Ubicación ya otorgada');
+        }
+
+        // Permiso 2: Cámara
+        if (permisoCamaraActual.camera !== 'granted' || permisoCamaraActual.photos !== 'granted') {
+            console.log('📷 Solicitando permiso de cámara...');
             try {
-                console.log('📷 Solicitando permiso de cámara...');
-                const { Camera } = await import('@capacitor/camera');
-                let permisoCamara = await Camera.checkPermissions();
+                const resultado = await Camera.requestPermissions();
+                console.log('📷 Resultado cámara:', resultado);
 
-                if (permisoCamara.camera !== 'granted' || permisoCamara.photos !== 'granted') {
-                    permisoCamara = await Camera.requestPermissions();
-                }
-
-                if (permisoCamara.camera !== 'granted' || permisoCamara.photos !== 'granted') {
+                if (resultado.camera !== 'granted' || resultado.photos !== 'granted') {
                     permisosFaltantes.push('📷 Cámara y Fotos');
-                    console.log('❌ Permiso de cámara DENEGADO');
-                } else {
-                    console.log('✅ Permiso de cámara OK');
+                    todosOtorgados = false;
                 }
             } catch (error) {
-                console.error('❌ Error solicitando permiso de cámara:', error);
+                console.error('❌ Error solicitando cámara:', error);
                 permisosFaltantes.push('📷 Cámara y Fotos');
+                todosOtorgados = false;
             }
 
-            // 3. Permiso de Notificaciones Push
+            // Delay de 500ms entre permisos
+            await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+            console.log('✅ Cámara ya otorgada');
+        }
+
+        // Permiso 3: Notificaciones
+        if (permisoNotificacionesActual.receive !== 'granted') {
+            console.log('🔔 Solicitando permiso de notificaciones...');
             try {
-                console.log('🔔 Solicitando permiso de notificaciones...');
-                const { PushNotifications } = await import('@capacitor/push-notifications');
+                const resultado = await PushNotifications.requestPermissions();
+                console.log('🔔 Resultado notificaciones:', resultado.receive);
 
-                let permisoNotificaciones = await PushNotifications.checkPermissions();
-
-                if (permisoNotificaciones.receive !== 'granted') {
-                    permisoNotificaciones = await PushNotifications.requestPermissions();
-                }
-
-                if (permisoNotificaciones.receive === 'granted') {
+                if (resultado.receive === 'granted') {
                     // Registrar para recibir notificaciones
                     await PushNotifications.register();
-                    console.log('✅ Notificaciones habilitadas');
+                    console.log('✅ Notificaciones registradas');
                 } else {
                     permisosFaltantes.push('🔔 Notificaciones');
-                    console.log('❌ Permiso de notificaciones DENEGADO');
+                    todosOtorgados = false;
                 }
             } catch (error) {
-                console.error('❌ Error configurando notificaciones:', error);
+                console.error('❌ Error solicitando notificaciones:', error);
                 permisosFaltantes.push('🔔 Notificaciones');
+                todosOtorgados = false;
+            }
+        } else {
+            console.log('✅ Notificaciones ya otorgadas');
+
+            // Si ya está otorgado, registrar de todos modos
+            try {
+                await PushNotifications.register();
+                console.log('✅ Notificaciones re-registradas');
+            } catch (e) {
+                console.log('⚠️ Error re-registrando notificaciones:', e);
             }
         }
 
-        // Si faltan permisos, mostrar mensaje y bloquear app
+        // PASO 3: Verificar resultado final
         if (permisosFaltantes.length > 0) {
+            console.log('❌ Faltan permisos:', permisosFaltantes);
             mostrarMensajePermisosFaltantes(permisosFaltantes);
             return false;
         }
 
         console.log('✅ Todos los permisos otorgados correctamente');
         return true;
+
     } catch (error) {
         console.error('❌ Error general solicitando permisos:', error);
-        return false;
+        // En caso de error, no bloquear la app, solo advertir
+        console.log('⚠️ Continuando sin verificar permisos debido a error');
+        return true; // Permitir continuar a pesar del error
     }
 }
 
