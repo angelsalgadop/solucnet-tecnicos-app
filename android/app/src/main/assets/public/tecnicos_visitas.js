@@ -122,6 +122,7 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
     try {
         const token = localStorage.getItem('token_tecnico');
         if (!token) {
+            // SOLO redirigir al login si NO hay token (usuario cerró sesión)
             window.location.href = 'index.html';
             return;
         }
@@ -137,6 +138,57 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                 </div>
             `;
         }
+
+        // VERIFICAR SI ESTAMOS OFFLINE PRIMERO
+        const enLinea = navigator.onLine;
+        console.log(`📡 Estado de conexión: ${enLinea ? 'ONLINE' : 'OFFLINE'}`);
+
+        if (!enLinea) {
+            // MODO OFFLINE: Cargar visitas desde IndexedDB
+            console.log('📴 MODO OFFLINE: Cargando visitas desde IndexedDB...');
+
+            if (typeof window.offlineManager !== 'undefined' && window.offlineManager.loadVisitasOffline) {
+                const visitasOffline = await window.offlineManager.loadVisitasOffline(tecnicoActual?.id);
+
+                if (visitasOffline && visitasOffline.length > 0) {
+                    console.log(`✅ ${visitasOffline.length} visitas cargadas desde offline`);
+                    visitasAsignadas = visitasOffline;
+                    visitasSinFiltrar = [...visitasOffline];
+                    llenarFiltroLocalidades();
+                    mostrarVisitasAsignadas();
+
+                    // Actualizar indicador
+                    ultimaActualizacion = Date.now();
+                    actualizarIndicadorActualizacion();
+
+                    // Mostrar banner de modo offline
+                    const bannerOffline = document.createElement('div');
+                    bannerOffline.className = 'alert alert-warning mb-3';
+                    bannerOffline.innerHTML = `
+                        <i class="fas fa-wifi-slash"></i>
+                        <strong>Modo Offline:</strong> Mostrando ${visitasOffline.length} visitas guardadas.
+                        Conéctate a internet para sincronizar cambios.
+                    `;
+                    visitasContainer.insertBefore(bannerOffline, visitasContainer.firstChild);
+
+                    return; // Salir, no intentar fetch
+                } else {
+                    console.log('⚠️ No hay visitas guardadas offline');
+                    visitasContainer.innerHTML = `
+                        <div class="alert alert-warning text-center">
+                            <i class="fas fa-wifi-slash fa-2x mb-3"></i>
+                            <h5>Sin conexión</h5>
+                            <p class="mb-3">No hay visitas guardadas offline. Conéctate a internet para cargar tus visitas asignadas.</p>
+                        </div>
+                    `;
+                    actualizarIndicadorActualizacion();
+                    return;
+                }
+            }
+        }
+
+        // MODO ONLINE: Cargar desde servidor
+        console.log('🌐 MODO ONLINE: Cargando visitas desde servidor...');
 
         // TIMEOUT de 10 segundos para cargar visitas
         const controller = new AbortController();
@@ -156,8 +208,9 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
         const resultado = await response.json();
 
         if (!response.ok || !resultado.success) {
-            // Token inválido o error de autorización
+            // Token inválido o error de autorización - SOLO AQUÍ redirigir al login
             if (response.status === 401 || response.status === 403) {
+                console.log('❌ Token inválido o expirado, redirigiendo al login...');
                 localStorage.removeItem('token_tecnico');
                 localStorage.removeItem('user_tecnico');
                 localStorage.removeItem('remember_tecnico');
@@ -171,6 +224,12 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
         if (resultado.tecnico) {
             tecnicoActual = resultado.tecnico;
             nombreTecnico.textContent = resultado.tecnico.nombre;
+        }
+
+        // GUARDAR VISITAS OFFLINE para uso futuro
+        if (typeof window.offlineManager !== 'undefined' && window.offlineManager.saveVisitasOffline) {
+            await window.offlineManager.saveVisitasOffline(resultado.visitas, resultado.tecnico?.id);
+            console.log('💾 Visitas guardadas offline para uso futuro');
         }
 
         // Calcular hash de los datos nuevos
@@ -201,7 +260,39 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
     } catch (error) {
         console.error('Error cargando visitas:', error);
 
-        // Mensaje más específico para timeout con botón de reintentar
+        // NO REDIRIGIR AL LOGIN POR ERRORES DE RED - mantener sesión activa
+        console.log('⚠️ Error de red detectado, pero manteniendo sesión activa');
+
+        // Intentar cargar visitas offline como fallback
+        if (typeof window.offlineManager !== 'undefined' && window.offlineManager.loadVisitasOffline) {
+            console.log('📴 Intentando cargar visitas desde offline como fallback...');
+            const visitasOffline = await window.offlineManager.loadVisitasOffline(tecnicoActual?.id);
+
+            if (visitasOffline && visitasOffline.length > 0) {
+                console.log(`✅ ${visitasOffline.length} visitas cargadas desde offline (fallback)`);
+                visitasAsignadas = visitasOffline;
+                visitasSinFiltrar = [...visitasOffline];
+                llenarFiltroLocalidades();
+                mostrarVisitasAsignadas();
+
+                // Mostrar mensaje de error pero con visitas offline
+                const bannerError = document.createElement('div');
+                bannerError.className = 'alert alert-warning mb-3';
+                bannerError.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Sin conexión al servidor:</strong> Mostrando ${visitasOffline.length} visitas guardadas offline.
+                    <button class="btn btn-sm btn-success ms-2" onclick="cargarVisitasTecnico()">
+                        <i class="fas fa-sync"></i> Reintentar
+                    </button>
+                `;
+                visitasContainer.insertBefore(bannerError, visitasContainer.firstChild);
+
+                actualizarIndicadorActualizacion();
+                return;
+            }
+        }
+
+        // Si llegamos aquí, no hay visitas offline tampoco
         let mensajeError = 'Error cargando visitas asignadas';
         let detalleError = 'Ocurrió un error desconocido';
 
@@ -219,7 +310,7 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                     <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
                     <h5>${mensajeError}</h5>
                     <p class="mb-3">${detalleError}</p>
-                    <button class="btn btn-success" onclick="location.reload()">
+                    <button class="btn btn-success" onclick="cargarVisitasTecnico()">
                         <i class="fas fa-sync-alt"></i> Reintentar
                     </button>
                     <hr class="my-3">

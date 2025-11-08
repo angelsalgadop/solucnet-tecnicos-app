@@ -459,6 +459,77 @@ class OfflineManager {
 
         console.log('🧹 [OFFLINE MANAGER] Datos antiguos limpiados');
     }
+
+    // Guardar reporte offline (cuando no hay conexión)
+    async guardarReporteOffline(reporteData) {
+        try {
+            if (!this.db) {
+                console.error('❌ [OFFLINE MANAGER] Base de datos no inicializada');
+                return { success: false, message: 'Base de datos no disponible' };
+            }
+
+            const localId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            const reporteOffline = {
+                localId: localId,
+                ...reporteData,
+                sincronizado: false,
+                timestamp: Date.now()
+            };
+
+            const tx = this.db.transaction(['offline-reportes'], 'readwrite');
+            const store = tx.objectStore('offline-reportes');
+            await store.add(reporteOffline);
+
+            console.log(`📴 [OFFLINE MANAGER] Reporte guardado offline con ID: ${localId}`);
+            console.log('📋 [OFFLINE MANAGER] Datos del reporte:', reporteOffline);
+
+            // Guardar fotos si existen
+            if (reporteData.fotos && reporteData.fotos.length > 0) {
+                await this.guardarFotosOffline(localId, reporteData.fotos);
+            }
+
+            return { success: true, localId: localId };
+
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error guardando reporte offline:', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    // Guardar fotos offline
+    async guardarFotosOffline(reporteLocalId, fotos) {
+        try {
+            if (!this.db) return;
+
+            const tx = this.db.transaction(['offline-fotos'], 'readwrite');
+            const store = tx.objectStore('offline-fotos');
+
+            for (let i = 0; i < fotos.length; i++) {
+                const foto = fotos[i];
+
+                // Convertir File a base64 para almacenar
+                const reader = new FileReader();
+                const base64 = await new Promise((resolve, reject) => {
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(foto);
+                });
+
+                await store.add({
+                    reporteLocalId: reporteLocalId,
+                    fotoData: base64,
+                    nombre: foto.name || `foto_${i}.jpg`,
+                    timestamp: Date.now()
+                });
+            }
+
+            console.log(`📸 [OFFLINE MANAGER] ${fotos.length} fotos guardadas offline`);
+
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error guardando fotos offline:', error);
+        }
+    }
 }
 
 // Instancia global del Offline Manager
