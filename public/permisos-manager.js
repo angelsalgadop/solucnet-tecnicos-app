@@ -4,34 +4,50 @@
 async function solicitarPermisosIniciales() {
     console.log('📱 Solicitando permisos de la aplicación...');
 
+    const permisosFaltantes = [];
+
     try {
         // 1. Permiso de Ubicación (GPS)
         if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
             try {
                 console.log('📍 Solicitando permiso de ubicación...');
                 const { Geolocation } = await import('@capacitor/geolocation');
-                const permisoUbicacion = await Geolocation.checkPermissions();
+                let permisoUbicacion = await Geolocation.checkPermissions();
 
                 if (permisoUbicacion.location !== 'granted') {
-                    await Geolocation.requestPermissions();
-                    console.log('✅ Permiso de ubicación solicitado');
+                    permisoUbicacion = await Geolocation.requestPermissions();
+                }
+
+                if (permisoUbicacion.location !== 'granted') {
+                    permisosFaltantes.push('📍 Ubicación (GPS)');
+                    console.log('❌ Permiso de ubicación DENEGADO');
+                } else {
+                    console.log('✅ Permiso de ubicación OK');
                 }
             } catch (error) {
                 console.error('❌ Error solicitando permiso de ubicación:', error);
+                permisosFaltantes.push('📍 Ubicación (GPS)');
             }
 
             // 2. Permiso de Cámara
             try {
                 console.log('📷 Solicitando permiso de cámara...');
                 const { Camera } = await import('@capacitor/camera');
-                const permisoCamara = await Camera.checkPermissions();
+                let permisoCamara = await Camera.checkPermissions();
 
                 if (permisoCamara.camera !== 'granted' || permisoCamara.photos !== 'granted') {
-                    await Camera.requestPermissions();
-                    console.log('✅ Permiso de cámara solicitado');
+                    permisoCamara = await Camera.requestPermissions();
+                }
+
+                if (permisoCamara.camera !== 'granted' || permisoCamara.photos !== 'granted') {
+                    permisosFaltantes.push('📷 Cámara y Fotos');
+                    console.log('❌ Permiso de cámara DENEGADO');
+                } else {
+                    console.log('✅ Permiso de cámara OK');
                 }
             } catch (error) {
                 console.error('❌ Error solicitando permiso de cámara:', error);
+                permisosFaltantes.push('📷 Cámara y Fotos');
             }
 
             // 3. Permiso de Notificaciones Push
@@ -49,18 +65,54 @@ async function solicitarPermisosIniciales() {
                     // Registrar para recibir notificaciones
                     await PushNotifications.register();
                     console.log('✅ Notificaciones habilitadas');
+                } else {
+                    permisosFaltantes.push('🔔 Notificaciones');
+                    console.log('❌ Permiso de notificaciones DENEGADO');
                 }
             } catch (error) {
                 console.error('❌ Error configurando notificaciones:', error);
+                permisosFaltantes.push('🔔 Notificaciones');
             }
         }
 
-        console.log('✅ Permisos solicitados correctamente');
+        // Si faltan permisos, mostrar mensaje y bloquear app
+        if (permisosFaltantes.length > 0) {
+            mostrarMensajePermisosFaltantes(permisosFaltantes);
+            return false;
+        }
+
+        console.log('✅ Todos los permisos otorgados correctamente');
         return true;
     } catch (error) {
         console.error('❌ Error general solicitando permisos:', error);
         return false;
     }
+}
+
+// Función para mostrar mensaje de permisos faltantes y bloquear la app
+function mostrarMensajePermisosFaltantes(permisosFaltantes) {
+    const mensajeHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+            <div style="background: white; border-radius: 15px; padding: 30px; max-width: 400px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                <i class="fas fa-shield-exclamation" style="font-size: 60px; color: #dc3545; margin-bottom: 20px;"></i>
+                <h3 style="color: #333; margin-bottom: 15px;">⚠️ Permisos Requeridos</h3>
+                <p style="color: #666; margin-bottom: 20px;">
+                    La aplicación <strong>SolucNet Técnicos</strong> requiere los siguientes permisos para funcionar correctamente:
+                </p>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: left;">
+                    ${permisosFaltantes.map(p => `<div style="padding: 5px 0; color: #dc3545;"><i class="fas fa-times-circle"></i> ${p}</div>`).join('')}
+                </div>
+                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                    Por favor, ve a <strong>Configuración → Aplicaciones → SolucNet Técnicos → Permisos</strong> y habilita todos los permisos necesarios.
+                </p>
+                <button onclick="location.reload()" style="background: #28a745; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-size: 16px; cursor: pointer; box-shadow: 0 4px 15px rgba(40,167,69,0.3);">
+                    <i class="fas fa-sync-alt"></i> Reintentar
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', mensajeHTML);
 }
 
 // Función para configurar listeners de notificaciones

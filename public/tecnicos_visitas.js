@@ -71,7 +71,22 @@ function configurarEventListeners() {
 // Inicializar sistema
 async function inicializarSistema() {
     try {
-        // Mostrar nombre del técnico desde localStorage inmediatamente
+        // 1. SOLICITAR PERMISOS NECESARIOS (ubicación, cámara, notificaciones)
+        if (typeof window.solicitarPermisosIniciales === 'function') {
+            const permisosOK = await window.solicitarPermisosIniciales();
+            if (!permisosOK) {
+                // Si faltan permisos, la función ya mostró el mensaje de bloqueo
+                console.log('⚠️ Permisos faltantes - App bloqueada');
+                return; // No continuar sin permisos
+            }
+        }
+
+        // 2. CONFIGURAR LISTENERS DE NOTIFICACIONES
+        if (typeof window.configurarNotificaciones === 'function') {
+            await window.configurarNotificaciones();
+        }
+
+        // 3. Mostrar nombre del técnico desde localStorage inmediatamente
         const userTecnico = localStorage.getItem('user_tecnico') || sessionStorage.getItem('user_tecnico');
         if (userTecnico) {
             try {
@@ -85,7 +100,7 @@ async function inicializarSistema() {
             }
         }
 
-        // El usuario ya está autenticado (verificado en el HTML)
+        // 4. El usuario ya está autenticado (verificado en el HTML)
         // Verificar permisos para agregar cajas NAP
         await verificarPermisoAgregarNaps();
         // Cargar visitas asignadas directamente
