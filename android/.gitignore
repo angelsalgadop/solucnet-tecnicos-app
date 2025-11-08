@@ -93,9 +93,11 @@ lint/tmp/
 capacitor-cordova-android-plugins
 
 # Copied web assets
-app/src/main/assets/public
+# NOTA: NO ignorar assets/public para que se incluyan en el repo
+# app/src/main/assets/public
 
 # Generated Config files
-app/src/main/assets/capacitor.config.json
-app/src/main/assets/capacitor.plugins.json
+# NOTA: Estos se generan dinámicamente, mantenerlos en repo
+# app/src/main/assets/capacitor.config.json
+# app/src/main/assets/capacitor.plugins.json
 app/src/main/res/xml/config.xml
