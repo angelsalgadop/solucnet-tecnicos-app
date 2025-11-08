@@ -2,14 +2,6 @@
   "appId": "com.solucnet.tecnicos",
   "appName": "SolucNet Técnicos",
   "webDir": "public",
-  "server": {
-    "url": "https://cliente.solucnet.com:3000",
-    "cleartext": true,
-    "allowNavigation": [
-      "cliente.solucnet.com",
-      "*.solucnet.com"
-    ]
-  },
   "android": {
     "buildOptions": {
       "keystorePath": "android/release.keystore",
