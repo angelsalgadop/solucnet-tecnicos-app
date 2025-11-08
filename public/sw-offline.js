@@ -71,15 +71,23 @@ self.addEventListener('fetch', (event) => {
             event.respondWith(networkFirst(request));
         }
     } else {
-        // POST/PUT/DELETE: Intentar primero online, si falla guardar para sync
+        // POST/PUT/DELETE: Intentar primero online con timeout, si falla guardar para sync
         event.respondWith(
-            fetch(request.clone())
-                .then(response => {
-                    // Envío exitoso
+            (async () => {
+                try {
+                    // Crear AbortController para timeout
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos timeout
+
+                    const response = await fetch(request.clone(), {
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeoutId);
                     return response;
-                })
-                .catch(async (error) => {
+                } catch (error) {
                     console.log('[SW] Request falló, guardando para sync:', request.url);
+                    console.log('[SW] Error:', error.name, error.message);
 
                     // Guardar request en IndexedDB para sincronización posterior
                     const requestData = {
@@ -109,7 +117,8 @@ self.addEventListener('fetch', (event) => {
                             headers: { 'Content-Type': 'application/json' }
                         }
                     );
-                })
+                }
+            })()
         );
     }
 });
@@ -123,7 +132,7 @@ self.addEventListener('sync', (event) => {
     }
 });
 
-// Estrategia Cache-First
+// Estrategia Cache-First con timeout
 async function cacheFirst(request) {
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
@@ -131,7 +140,16 @@ async function cacheFirst(request) {
     }
 
     try {
-        const networkResponse = await fetch(request);
+        // Crear AbortController para timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos timeout
+
+        const networkResponse = await fetch(request, {
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
         const cache = await caches.open(CACHE_NAME);
         cache.put(request, networkResponse.clone());
         return networkResponse;
@@ -141,15 +159,26 @@ async function cacheFirst(request) {
     }
 }
 
-// Estrategia Network-First
+// Estrategia Network-First con timeout
 async function networkFirst(request) {
     try {
-        const networkResponse = await fetch(request);
+        // Crear AbortController para timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos timeout
+
+        const networkResponse = await fetch(request, {
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
         const cache = await caches.open(CACHE_NAME);
         cache.put(request, networkResponse.clone());
         return networkResponse;
     } catch (error) {
         console.log('[SW] Network falló, usando caché:', request.url);
+        console.log('[SW] Error:', error.name, error.message);
+
         const cachedResponse = await caches.match(request);
         if (cachedResponse) {
             return cachedResponse;
