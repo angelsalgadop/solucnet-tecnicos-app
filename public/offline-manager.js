@@ -10,7 +10,9 @@
  */
 
 // Configuración del servidor
-const API_BASE_URL = 'https://cliente.solucnet.com:3000';
+// API_BASE_URL se declara en el HTML para evitar redeclaración
+window.API_BASE_URL = window.API_BASE_URL || 'https://cliente.solucnet.com:3000';
+const API_BASE_URL = window.API_BASE_URL;
 
 class OfflineManager {
     constructor() {

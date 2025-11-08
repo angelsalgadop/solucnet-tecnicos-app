@@ -127,7 +127,7 @@ async function configurarNotificaciones() {
 // Función para enviar token al servidor (backend)
 async function enviarTokenAlServidor(token) {
     try {
-        const API_BASE_URL = 'https://cliente.solucnet.com:3000';
+        const API_BASE_URL = window.API_BASE_URL || 'https://cliente.solucnet.com:3000';
         const tokenTecnico = localStorage.getItem('token_tecnico');
 
         if (!tokenTecnico) return;
