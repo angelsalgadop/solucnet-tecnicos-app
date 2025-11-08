@@ -487,15 +487,22 @@
                     showAlert(data.message || 'Credenciales inválidas', 'danger');
                 }
             } catch (error) {
-                console.error('Error en login:', error);
-                console.error('Intentando conectar a:', API_BASE_URL + '/api/login-tecnicos');
+                console.error('❌ Error en login:', error);
+                console.error('URL:', API_BASE_URL + '/api/login-tecnicos');
+                console.error('Tipo de error:', error.name);
+                console.error('Mensaje:', error.message);
 
                 // Mostrar error más detallado
-                let errorMsg = 'Error de conexión. ';
-                if (error.message) {
-                    errorMsg += error.message;
-                } else {
-                    errorMsg += 'No se pudo conectar al servidor. Verifica tu conexión a internet.';
+                let errorMsg = 'Error de conexión';
+
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    errorMsg = 'No se pudo conectar al servidor. Posibles causas:<br>' +
+                               '• El servidor no está disponible<br>' +
+                               '• Problema con certificado SSL<br>' +
+                               '• Sin conexión a internet<br><br>' +
+                               'Servidor: ' + API_BASE_URL;
+                } else if (error.message) {
+                    errorMsg += ': ' + error.message;
                 }
 
                 showAlert(errorMsg, 'danger');
