@@ -89,15 +89,11 @@ async function solicitarPermisosIniciales() {
                 const resultado = await PushNotifications.requestPermissions();
                 console.log('🔔 Resultado notificaciones:', resultado.receive);
 
-                if (resultado.receive === 'granted') {
-                    // Registrar para recibir notificaciones
-                    console.log('🔔 Registrando notificaciones...');
-                    await PushNotifications.register();
-                    console.log('✅ Notificaciones registradas exitosamente');
-                } else {
+                if (resultado.receive !== 'granted') {
                     permisosFaltantes.push('🔔 Notificaciones');
                     todosOtorgados = false;
                 }
+                // NO registrar aquí - se hace después en configurarNotificaciones()
             } catch (error) {
                 console.error('❌ Error solicitando notificaciones:', error);
                 permisosFaltantes.push('🔔 Notificaciones');
@@ -105,15 +101,7 @@ async function solicitarPermisosIniciales() {
             }
         } else {
             console.log('✅ Notificaciones ya otorgadas');
-
-            // Si ya está otorgado, registrar de todos modos
-            try {
-                console.log('🔔 Re-registrando notificaciones...');
-                await PushNotifications.register();
-                console.log('✅ Notificaciones re-registradas exitosamente');
-            } catch (e) {
-                console.error('⚠️ Error re-registrando notificaciones:', e);
-            }
+            // NO registrar aquí - se hace después en configurarNotificaciones()
         }
 
         // PASO 3: Verificar resultado final
@@ -170,16 +158,19 @@ async function configurarNotificaciones() {
     }
 
     try {
+        console.log('🔔 [CONFIG] Configurando listeners de notificaciones...');
         const { PushNotifications } = Capacitor.Plugins;
 
         // Listener: Registro exitoso
         await PushNotifications.addListener('registration', (token) => {
-            console.log('✅ Token de notificación:', token.value);
+            console.log('✅ Token de notificación recibido:', token.value);
             // Guardar el token para enviar al servidor
             localStorage.setItem('push_token', token.value);
 
             // OPCIONAL: Enviar token al servidor para poder enviar notificaciones
-            enviarTokenAlServidor(token.value);
+            enviarTokenAlServidor(token.value).catch(err => {
+                console.error('❌ Error enviando token al servidor:', err);
+            });
         });
 
         // Listener: Error en registro
@@ -217,9 +208,28 @@ async function configurarNotificaciones() {
             }
         });
 
-        console.log('✅ Listeners de notificaciones configurados');
+        console.log('✅ [CONFIG] Listeners configurados exitosamente');
+
+        // AHORA SÍ: Registrar para recibir notificaciones (después de configurar listeners)
+        // Usar setTimeout para hacerlo asíncrono y no bloqueante
+        console.log('🔔 [CONFIG] Programando registro de notificaciones...');
+        setTimeout(async () => {
+            try {
+                console.log('🔔 [REGISTER] Iniciando registro de notificaciones...');
+                await PushNotifications.register();
+                console.log('✅ [REGISTER] Notificaciones registradas exitosamente');
+            } catch (registerError) {
+                console.error('❌ [REGISTER] Error al registrar notificaciones:', registerError);
+                console.error('❌ [REGISTER] Stack:', registerError.stack);
+                // NO lanzar error - continuar sin notificaciones push
+            }
+        }, 1000); // Esperar 1 segundo después de que la app esté completamente cargada
+
+        console.log('✅ [CONFIG] Configuración de notificaciones completada');
     } catch (error) {
-        console.error('❌ Error configurando notificaciones:', error);
+        console.error('❌ [CONFIG] Error configurando notificaciones:', error);
+        console.error('❌ [CONFIG] Stack:', error.stack);
+        // NO lanzar error - continuar sin notificaciones
     }
 }
 
