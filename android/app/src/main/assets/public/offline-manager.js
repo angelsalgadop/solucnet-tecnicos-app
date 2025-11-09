@@ -410,6 +410,15 @@ class OfflineManager {
             // Actualizar UI
             this.updateUIConnectionStatus(true);
 
+            // IMPORTANTE: Recargar visitas después de sincronizar para aplicar filtros
+            // Esto asegura que las visitas completadas se envíen al servidor pero no aparezcan en la vista
+            if (typeof window.cargarVisitasTecnico === 'function') {
+                console.log('🔄 [OFFLINE MANAGER] Recargando visitas después de sincronización...');
+                setTimeout(() => {
+                    window.cargarVisitasTecnico(false); // Sin spinner
+                }, 1000); // Esperar 1 segundo para que el servidor procese
+            }
+
         } catch (error) {
             console.error('❌ [OFFLINE MANAGER] Error durante sincronización:', error);
         } finally {
