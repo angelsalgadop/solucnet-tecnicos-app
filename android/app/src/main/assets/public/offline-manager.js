@@ -231,16 +231,19 @@ class OfflineManager {
 
             if (!this.db) return false;
 
+            // Convertir tecnicoId a número
+            const tecnicoIdNumero = typeof tecnicoId === 'string' ? parseInt(tecnicoId, 10) : tecnicoId;
+
             const tx = this.db.transaction('offline-visitas', 'readwrite');
             const store = tx.objectStore('offline-visitas');
 
             for (const visita of visitas) {
-                visita.tecnico_id = tecnicoId;
+                visita.tecnico_id = tecnicoIdNumero;
                 visita.timestamp = Date.now();
                 await store.put(visita);
             }
 
-            console.log(`✅ [OFFLINE MANAGER] ${visitas.length} visitas guardadas offline`);
+            console.log(`✅ [OFFLINE MANAGER] ${visitas.length} visitas guardadas offline para técnico ${tecnicoIdNumero}`);
             return true;
         } catch (error) {
             console.error('❌ [OFFLINE MANAGER] Error guardando visitas offline:', error);
@@ -262,13 +265,21 @@ class OfflineManager {
                 return [];
             }
 
-            // Validar que tecnicoId sea un número válido
-            if (!tecnicoId || typeof tecnicoId !== 'number') {
-                console.error(`❌ [OFFLINE MANAGER] tecnicoId inválido: ${tecnicoId} (tipo: ${typeof tecnicoId})`);
+            // Validar y convertir tecnicoId
+            if (!tecnicoId) {
+                console.error('❌ [OFFLINE MANAGER] tecnicoId es null o undefined');
                 return [];
             }
 
-            console.log(`🔍 [OFFLINE MANAGER] Buscando visitas para técnico ID: ${tecnicoId}`);
+            // Convertir a número si viene como string
+            const tecnicoIdNumero = typeof tecnicoId === 'string' ? parseInt(tecnicoId, 10) : tecnicoId;
+
+            if (isNaN(tecnicoIdNumero)) {
+                console.error(`❌ [OFFLINE MANAGER] tecnicoId no es un número válido: ${tecnicoId}`);
+                return [];
+            }
+
+            console.log(`🔍 [OFFLINE MANAGER] Buscando visitas para técnico ID: ${tecnicoIdNumero} (tipo original: ${typeof tecnicoId})`);
 
             const tx = this.db.transaction('offline-visitas', 'readonly');
             const store = tx.objectStore('offline-visitas');
@@ -276,7 +287,7 @@ class OfflineManager {
 
             // Usar promesa explícita para getAll()
             const visitas = await new Promise((resolve, reject) => {
-                const request = index.getAll(tecnicoId);
+                const request = index.getAll(tecnicoIdNumero);
                 request.onsuccess = () => resolve(request.result || []);
                 request.onerror = () => reject(request.error);
             });
