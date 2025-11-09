@@ -664,19 +664,56 @@ class OfflineManager {
 
             console.log(`📴 [OFFLINE MANAGER] Guardando reporte offline con ID: ${localId}, visita_id: ${reporteOffline.visita_id}`);
 
-            const tx = this.db.transaction(['offline-reportes'], 'readwrite');
-            const store = tx.objectStore('offline-reportes');
-            await store.add(reporteOffline);
+            // CREAR UNA SOLA TRANSACCIÓN PARA AMBAS STORES (reportes y fotos)
+            const tx = this.db.transaction(['offline-reportes', 'offline-fotos'], 'readwrite');
+            const reportesStore = tx.objectStore('offline-reportes');
+            const fotosStore = tx.objectStore('offline-fotos');
 
+            // Guardar reporte
+            await reportesStore.add(reporteOffline);
             console.log(`✅ [OFFLINE MANAGER] Reporte guardado offline con ID: ${localId}`);
 
-            // Guardar fotos si existen
+            // Guardar fotos en la misma transacción
             if (fotosAGuardar && fotosAGuardar.length > 0) {
-                console.log(`📸 [OFFLINE MANAGER] Iniciando guardado de ${fotosAGuardar.length} fotos para reporte ${localId}...`);
-                await this.guardarFotosOffline(localId, fotosAGuardar);
+                console.log(`📸 [OFFLINE MANAGER] Guardando ${fotosAGuardar.length} fotos offline para reporte ${localId} (en misma transacción)...`);
+
+                for (let i = 0; i < fotosAGuardar.length; i++) {
+                    const foto = fotosAGuardar[i];
+                    console.log(`📸 [OFFLINE MANAGER] Procesando foto ${i + 1}/${fotosAGuardar.length}: ${foto.name}, tipo: ${foto.type}, tamaño: ${foto.size} bytes`);
+
+                    // Convertir File a base64
+                    const reader = new FileReader();
+                    const base64 = await new Promise((resolve, reject) => {
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(foto);
+                    });
+
+                    const fotoData = {
+                        reporte_id: localId,
+                        data: base64,
+                        nombre: foto.name || `foto_${i}.jpg`,
+                        sincronizado: false,
+                        timestamp: Date.now()
+                    };
+
+                    await fotosStore.add(fotoData);
+                    console.log(`✅ [OFFLINE MANAGER] Foto ${i + 1} guardada en IndexedDB: ${fotoData.nombre}`);
+                }
+
+                console.log(`✅ [OFFLINE MANAGER] ${fotosAGuardar.length} fotos guardadas offline para ${localId}`);
             } else {
                 console.warn(`⚠️ [OFFLINE MANAGER] No hay fotos para guardar con el reporte ${localId}`);
             }
+
+            // Esperar a que la transacción se complete
+            await new Promise((resolve, reject) => {
+                tx.oncomplete = () => {
+                    console.log(`✅ [OFFLINE MANAGER] Transacción completada para reporte ${localId} y sus fotos`);
+                    resolve();
+                };
+                tx.onerror = () => reject(tx.error);
+            });
 
             return { success: true, localId: localId };
 
@@ -795,12 +832,16 @@ class OfflineManager {
 
             const tx = this.db.transaction(['offline-inicios-visita'], 'readwrite');
             const store = tx.objectStore('offline-inicios-visita');
-            const index = store.index('sincronizado');
 
-            // Obtener todos los inicios NO sincronizados
+            // Obtener todos los inicios y filtrar los NO sincronizados
             const iniciosPendientes = await new Promise((resolve, reject) => {
-                const request = index.getAll(IDBKeyRange.only(false));
-                request.onsuccess = () => resolve(request.result || []);
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    const results = request.result || [];
+                    // Filtrar solo los no sincronizados
+                    const pendientes = results.filter(inicio => inicio.sincronizado === false || !inicio.sincronizado);
+                    resolve(pendientes);
+                };
                 request.onerror = () => reject(request.error);
             });
 
