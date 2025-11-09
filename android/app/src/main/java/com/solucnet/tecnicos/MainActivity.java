@@ -67,6 +67,24 @@ public class MainActivity extends BridgeActivity {
 
         // Configurar modo de cache (sin usar métodos deprecados)
         webSettings.setCacheMode(android.webkit.WebSettings.LOAD_DEFAULT);
+
+        // CRÍTICO: Habilitar mixed content (HTTP + HTTPS)
+        webSettings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+
+        // Habilitar JavaScript (necesario para la app)
+        webSettings.setJavaScriptEnabled(true);
+
+        // Permitir acceso a archivos (para fotos offline)
+        webSettings.setAllowFileAccess(true);
+        webSettings.setAllowContentAccess(true);
+
+        // Habilitar zoom (útil para debugging)
+        webSettings.setBuiltInZoomControls(false);
+        webSettings.setDisplayZoomControls(false);
+
+        // User Agent (opcional - para identificar la app)
+        String userAgent = webSettings.getUserAgentString();
+        webSettings.setUserAgentString(userAgent + " SolucNetTecnicos/1.0");
     }
 
     @Override
