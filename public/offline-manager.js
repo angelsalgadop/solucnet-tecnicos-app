@@ -664,22 +664,15 @@ class OfflineManager {
 
             console.log(`📴 [OFFLINE MANAGER] Guardando reporte offline con ID: ${localId}, visita_id: ${reporteOffline.visita_id}`);
 
-            // CREAR UNA SOLA TRANSACCIÓN PARA AMBAS STORES (reportes y fotos)
-            const tx = this.db.transaction(['offline-reportes', 'offline-fotos'], 'readwrite');
-            const reportesStore = tx.objectStore('offline-reportes');
-            const fotosStore = tx.objectStore('offline-fotos');
-
-            // Guardar reporte
-            await reportesStore.add(reporteOffline);
-            console.log(`✅ [OFFLINE MANAGER] Reporte guardado offline con ID: ${localId}`);
-
-            // Guardar fotos en la misma transacción
+            // IMPORTANTE: Convertir TODAS las fotos a base64 ANTES de abrir la transacción
+            // Esto previene que la transacción se cierre por inactividad durante FileReader
+            const fotosConvertidas = [];
             if (fotosAGuardar && fotosAGuardar.length > 0) {
-                console.log(`📸 [OFFLINE MANAGER] Guardando ${fotosAGuardar.length} fotos offline para reporte ${localId} (en misma transacción)...`);
+                console.log(`📸 [OFFLINE MANAGER] Convirtiendo ${fotosAGuardar.length} fotos a base64...`);
 
                 for (let i = 0; i < fotosAGuardar.length; i++) {
                     const foto = fotosAGuardar[i];
-                    console.log(`📸 [OFFLINE MANAGER] Procesando foto ${i + 1}/${fotosAGuardar.length}: ${foto.name}, tipo: ${foto.type}, tamaño: ${foto.size} bytes`);
+                    console.log(`📸 [OFFLINE MANAGER] Convirtiendo foto ${i + 1}/${fotosAGuardar.length}: ${foto.name}, tamaño: ${foto.size} bytes`);
 
                     // Convertir File a base64
                     const reader = new FileReader();
@@ -689,27 +682,40 @@ class OfflineManager {
                         reader.readAsDataURL(foto);
                     });
 
-                    const fotoData = {
+                    fotosConvertidas.push({
                         reporte_id: localId,
                         data: base64,
                         nombre: foto.name || `foto_${i}.jpg`,
                         sincronizado: false,
                         timestamp: Date.now()
-                    };
+                    });
 
-                    await fotosStore.add(fotoData);
-                    console.log(`✅ [OFFLINE MANAGER] Foto ${i + 1} guardada en IndexedDB: ${fotoData.nombre}`);
+                    console.log(`✅ [OFFLINE MANAGER] Foto ${i + 1} convertida a base64`);
                 }
 
-                console.log(`✅ [OFFLINE MANAGER] ${fotosAGuardar.length} fotos guardadas offline para ${localId}`);
-            } else {
-                console.warn(`⚠️ [OFFLINE MANAGER] No hay fotos para guardar con el reporte ${localId}`);
+                console.log(`✅ [OFFLINE MANAGER] Todas las ${fotosConvertidas.length} fotos convertidas a base64`);
+            }
+
+            // AHORA crear la transacción (con todas las fotos ya convertidas)
+            console.log(`📝 [OFFLINE MANAGER] Creando transacción para guardar reporte y ${fotosConvertidas.length} fotos...`);
+            const tx = this.db.transaction(['offline-reportes', 'offline-fotos'], 'readwrite');
+            const reportesStore = tx.objectStore('offline-reportes');
+            const fotosStore = tx.objectStore('offline-fotos');
+
+            // Guardar reporte
+            await reportesStore.add(reporteOffline);
+            console.log(`✅ [OFFLINE MANAGER] Reporte guardado offline con ID: ${localId}`);
+
+            // Guardar fotos ya convertidas (RÁPIDO, sin operaciones asíncronas)
+            for (let i = 0; i < fotosConvertidas.length; i++) {
+                await fotosStore.add(fotosConvertidas[i]);
+                console.log(`✅ [OFFLINE MANAGER] Foto ${i + 1}/${fotosConvertidas.length} guardada en IndexedDB: ${fotosConvertidas[i].nombre}`);
             }
 
             // Esperar a que la transacción se complete
             await new Promise((resolve, reject) => {
                 tx.oncomplete = () => {
-                    console.log(`✅ [OFFLINE MANAGER] Transacción completada para reporte ${localId} y sus fotos`);
+                    console.log(`✅ [OFFLINE MANAGER] Transacción completada para reporte ${localId} y ${fotosConvertidas.length} fotos`);
                     resolve();
                 };
                 tx.onerror = () => reject(tx.error);
