@@ -611,9 +611,10 @@ class OfflineManager {
                 });
 
                 await store.add({
-                    reporteLocalId: reporteLocalId,
-                    fotoData: base64,
+                    reporte_id: reporteLocalId,  // Cambiar de reporteLocalId a reporte_id
+                    data: base64,                 // Cambiar de fotoData a data
                     nombre: foto.name || `foto_${i}.jpg`,
+                    sincronizado: false,          // Agregar flag de sincronización
                     timestamp: Date.now()
                 });
             }

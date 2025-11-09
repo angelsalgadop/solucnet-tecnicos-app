@@ -38,6 +38,20 @@ public class MainActivity extends BridgeActivity {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
             android.webkit.WebView.setWebContentsDebuggingEnabled(true);
         }
+
+        // CRÍTICO: Configurar WebView para persistir localStorage
+        // Sin esto, localStorage se borra al cerrar la app
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            android.webkit.WebSettings webSettings = getBridge().getWebView().getSettings();
+            webSettings.setDomStorageEnabled(true);
+            webSettings.setDatabaseEnabled(true);
+
+            // Configurar directorio de datos persistente
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+                String databasePath = getApplicationContext().getDir("database", MODE_PRIVATE).getPath();
+                webSettings.setDatabasePath(databasePath);
+            }
+        }
     }
 
 
