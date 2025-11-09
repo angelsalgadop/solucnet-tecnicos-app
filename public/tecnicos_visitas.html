@@ -705,7 +705,7 @@
                             <!-- Botones para tomar foto o subir desde galería -->
                             <div class="row g-2 mb-3">
                                 <div class="col-6">
-                                    <button type="button" class="btn btn-primary w-100" onclick="document.getElementById('fotosCamara').click()">
+                                    <button type="button" class="btn btn-primary w-100" onclick="tomarFotoConCamaraTrasera()">
                                         <i class="fas fa-camera"></i><br>
                                         <small>Tomar Foto</small>
                                     </button>
@@ -718,8 +718,8 @@
                                 </div>
                             </div>
 
-                            <!-- Input oculto para tomar foto con cámara -->
-                            <input type="file" id="fotosCamara" class="d-none" accept="image/*" capture="environment" onchange="agregarFotosSeleccionadas(this)">
+                            <!-- Input oculto para tomar foto con cámara (FALLBACK) -->
+                            <input type="file" id="fotosCamara" class="d-none" accept="image/*" capture="user" onchange="agregarFotosSeleccionadas(this)">
 
                             <!-- Input oculto para subir desde galería (múltiple) -->
                             <input type="file" id="fotosGaleria" class="d-none" multiple accept="image/*" onchange="agregarFotosSeleccionadas(this)">

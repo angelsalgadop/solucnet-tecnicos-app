@@ -441,6 +441,33 @@ async function confirmarSerialEquipo() {
  */
 async function verificarSerialEnBD(serial) {
     const div = document.getElementById('estadoVerificacion');
+
+    // VERIFICAR SI ESTÁ OFFLINE - Omitir validación en modo offline
+    const estaOffline = !navigator.onLine || (window.offlineManager && !window.offlineManager.isOnline);
+
+    if (estaOffline) {
+        console.log('📴 [OFFLINE] Omitiendo verificación de serial - Modo offline');
+        div.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-wifi-slash"></i> <strong>MODO OFFLINE</strong>
+                <br>
+                <small>Verificación omitida. El serial se validará al sincronizar.</small>
+            </div>
+        `;
+
+        // Permitir continuar con el serial capturado
+        window.serialEquipoCapturado = serial;
+        const btn = document.getElementById('btnConfirmarSerial');
+        btn.disabled = false;
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-warning'); // Color amarillo para indicar que no se verificó
+        btn.textContent = 'Guardar (Sin Verificar)';
+        btn.onclick = guardarSerialYContinuar;
+
+        console.log(`⚠️ SERIAL NO VERIFICADO (OFFLINE): ${serial} - Se guardará sin validación`);
+        return;
+    }
+
     div.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Verificando...</div>';
 
     try {
@@ -533,7 +560,26 @@ async function verificarSerialEnBD(serial) {
             console.log(`✅ SERIAL APROBADO: ${serial} disponible para asignar`);
         }
     } catch (error) {
-        div.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Error verificando</div>';
+        console.error('❌ Error verificando serial:', error);
+
+        // Si falla la verificación, asumir modo offline y permitir continuar
+        console.log('⚠️ [FALLBACK] Error en verificación, asumiendo modo offline');
+        div.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> <strong>Error de conexión</strong>
+                <br>
+                <small>No se pudo verificar el serial. Puedes continuar en modo offline.</small>
+            </div>
+        `;
+
+        // Permitir continuar con el serial capturado
+        window.serialEquipoCapturado = serial;
+        const btn = document.getElementById('btnConfirmarSerial');
+        btn.disabled = false;
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-warning');
+        btn.textContent = 'Guardar (Sin Verificar)';
+        btn.onclick = guardarSerialYContinuar;
     }
 }
 

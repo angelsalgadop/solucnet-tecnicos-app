@@ -922,6 +922,64 @@ function completarVisita(visitaId) {
     }, { once: true });
 }
 
+// Tomar foto con cámara trasera usando Capacitor Camera
+async function tomarFotoConCamaraTrasera() {
+    try {
+        // Verificar si Capacitor Camera está disponible
+        if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform() && Capacitor.Plugins.Camera) {
+            console.log('📸 Usando Capacitor Camera para cámara trasera');
+
+            const { Camera } = Capacitor.Plugins;
+            const photo = await Camera.getPhoto({
+                quality: 90,
+                allowEditing: false,
+                resultType: 'base64',  // Obtener base64 directamente
+                source: 'camera',      // Forzar usar cámara (no galería)
+                direction: 'rear'      // FORZAR CÁMARA TRASERA
+            });
+
+            // Convertir base64 a File object
+            const blob = await fetch(`data:image/jpeg;base64,${photo.base64String}`).then(res => res.blob());
+            const file = new File([blob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+            // Agregar al input principal
+            const fotosReporte = document.getElementById('fotosReporte');
+            const dt = new DataTransfer();
+
+            // Mantener fotos existentes
+            for (let i = 0; i < fotosReporte.files.length; i++) {
+                dt.items.add(fotosReporte.files[i]);
+            }
+
+            // Verificar límite de 10 fotos
+            if (dt.files.length >= 10) {
+                mostrarAlerta('⚠️ Máximo 10 fotos permitidas', 'warning');
+                return;
+            }
+
+            // Agregar nueva foto
+            dt.items.add(file);
+            fotosReporte.files = dt.files;
+
+            // Actualizar previsualización
+            previsualizarFotos();
+
+            console.log('✅ Foto tomada con cámara trasera');
+        } else {
+            // Fallback: usar input file estándar
+            console.log('📱 Fallback a input file estándar');
+            document.getElementById('fotosCamara').click();
+        }
+    } catch (error) {
+        console.error('❌ Error tomando foto:', error);
+
+        // Si el usuario cancela o hay error, intentar fallback
+        if (error.message !== 'User cancelled photos app') {
+            mostrarAlerta('Error al abrir la cámara. Intenta con la galería.', 'warning');
+        }
+    }
+}
+
 // Nueva función para agregar fotos desde los inputs de cámara o galería
 function agregarFotosSeleccionadas(sourceInput) {
     const fotosReporte = document.getElementById('fotosReporte');
