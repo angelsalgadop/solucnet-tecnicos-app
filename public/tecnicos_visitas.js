@@ -1344,6 +1344,13 @@ async function guardarReporteVisita() {
             // Guardar reporte offline usando offline-manager
             if (typeof window.offlineManager !== 'undefined' && typeof window.offlineManager.guardarReporteOffline === 'function') {
                 try {
+                    console.log(`📴 [GUARDAR REPORTE OFFLINE] Fotos seleccionadas antes de guardar: ${fotosSeleccionadas.length}`);
+
+                    // Log detallado de cada foto
+                    fotosSeleccionadas.forEach((foto, index) => {
+                        console.log(`📸 [GUARDAR REPORTE OFFLINE] Foto ${index + 1}: ${foto.name}, tipo: ${foto.type}, tamaño: ${foto.size} bytes`);
+                    });
+
                     const reporteOffline = {
                         ...formData,
                         fotos: fotosSeleccionadas,
@@ -1352,7 +1359,7 @@ async function guardarReporteVisita() {
                         timestamp: Date.now()
                     };
 
-                    console.log('📴 [GUARDAR REPORTE] Intentando guardar offline...', reporteOffline);
+                    console.log(`📴 [GUARDAR REPORTE OFFLINE] Reporte a guardar - visita_id: ${reporteOffline.visita_id}, fotos: ${reporteOffline.fotos.length}`);
                     const resultado = await window.offlineManager.guardarReporteOffline(reporteOffline);
 
                     if (resultado && resultado.success) {

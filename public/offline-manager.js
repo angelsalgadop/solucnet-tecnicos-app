@@ -497,7 +497,12 @@ class OfflineManager {
 
     // Sincronizar fotos pendientes
     async syncFotos() {
-        if (!this.db) return;
+        if (!this.db) {
+            console.error('❌ [SYNC FOTOS] DB no disponible');
+            return;
+        }
+
+        console.log('📤 [SYNC FOTOS] Iniciando sincronización de fotos...');
 
         const tx = this.db.transaction('offline-fotos', 'readwrite');
         const store = tx.objectStore('offline-fotos');
@@ -507,25 +512,36 @@ class OfflineManager {
             const request = store.getAll();
             request.onsuccess = () => {
                 const results = request.result || [];
-                resolve(results.filter(f => f.sincronizado === false));
+                console.log(`📤 [SYNC FOTOS] Total fotos en IndexedDB: ${results.length}`);
+                const pendientes = results.filter(f => f.sincronizado === false);
+                console.log(`📤 [SYNC FOTOS] Fotos pendientes de sincronizar: ${pendientes.length}`);
+                resolve(pendientes);
             };
             request.onerror = () => reject(request.error);
         });
 
-        console.log(`📤 [OFFLINE MANAGER] Sincronizando ${fotos.length} fotos...`);
+        if (fotos.length === 0) {
+            console.log('✅ [SYNC FOTOS] No hay fotos pendientes de sincronizar');
+            return;
+        }
 
         // Agrupar fotos por reporte_id
         const fotosPorReporte = {};
         for (const foto of fotos) {
+            console.log(`📸 [SYNC FOTOS] Foto encontrada: reporte_id=${foto.reporte_id}, nombre=${foto.nombre}, sincronizado=${foto.sincronizado}`);
             if (!fotosPorReporte[foto.reporte_id]) {
                 fotosPorReporte[foto.reporte_id] = [];
             }
             fotosPorReporte[foto.reporte_id].push(foto);
         }
 
+        console.log(`📤 [SYNC FOTOS] Fotos agrupadas por ${Object.keys(fotosPorReporte).length} reportes`);
+
         // Sincronizar por reporte
         for (const [reporteId, fotosReporte] of Object.entries(fotosPorReporte)) {
             try {
+                console.log(`📤 [SYNC FOTOS] Sincronizando ${fotosReporte.length} fotos del reporte ${reporteId}...`);
+
                 const formData = new FormData();
                 formData.append('reporteId', reporteId);
 
@@ -533,26 +549,37 @@ class OfflineManager {
                     // Convertir base64 a Blob
                     const blob = await fetch(foto.data).then(r => r.blob());
                     formData.append('fotos', blob, foto.nombre);
+                    console.log(`📤 [SYNC FOTOS] Foto agregada al FormData: ${foto.nombre}, tamaño blob: ${blob.size} bytes`);
                 }
+
+                console.log(`📤 [SYNC FOTOS] Enviando ${fotosReporte.length} fotos a /api/reportes-fotos para reporte ${reporteId}...`);
 
                 const response = await fetch(API_BASE_URL + '/api/reportes-fotos', {
                     method: 'POST',
                     body: formData
                 });
 
+                const responseText = await response.text();
+                console.log(`📤 [SYNC FOTOS] Respuesta del servidor (status ${response.status}): ${responseText}`);
+
                 if (response.ok) {
-                    console.log(`✅ ${fotosReporte.length} fotos del reporte ${reporteId} sincronizadas`);
+                    console.log(`✅ [SYNC FOTOS] ${fotosReporte.length} fotos del reporte ${reporteId} sincronizadas exitosamente`);
 
                     // Marcar fotos como sincronizadas
                     for (const foto of fotosReporte) {
                         foto.sincronizado = true;
                         await store.put(foto);
+                        console.log(`✅ [SYNC FOTOS] Foto ${foto.nombre} marcada como sincronizada`);
                     }
+                } else {
+                    console.error(`❌ [SYNC FOTOS] Error HTTP ${response.status}: ${responseText}`);
                 }
             } catch (error) {
-                console.error(`❌ Error sincronizando fotos del reporte ${reporteId}:`, error);
+                console.error(`❌ [SYNC FOTOS] Error sincronizando fotos del reporte ${reporteId}:`, error);
             }
         }
+
+        console.log('✅ [SYNC FOTOS] Sincronización de fotos completada');
     }
 
     // Manejar mensajes del service worker
@@ -607,27 +634,31 @@ class OfflineManager {
 
             const localId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+            // Extraer fotos antes de guardar el reporte (File objects no son serializables en IndexedDB)
+            const fotosAGuardar = reporteData.fotos;
+            const { fotos, ...reporteDataSinFotos } = reporteData;
+
             const reporteOffline = {
                 localId: localId,
-                ...reporteData,
+                ...reporteDataSinFotos,
                 sincronizado: false,
                 timestamp: Date.now()
             };
+
+            console.log(`📴 [OFFLINE MANAGER] Guardando reporte offline con ID: ${localId}, visita_id: ${reporteOffline.visita_id}`);
 
             const tx = this.db.transaction(['offline-reportes'], 'readwrite');
             const store = tx.objectStore('offline-reportes');
             await store.add(reporteOffline);
 
-            console.log(`📴 [OFFLINE MANAGER] Reporte guardado offline con ID: ${localId}`);
-            console.log('📋 [OFFLINE MANAGER] Datos del reporte:', reporteOffline);
+            console.log(`✅ [OFFLINE MANAGER] Reporte guardado offline con ID: ${localId}`);
 
             // Guardar fotos si existen
-            if (reporteData.fotos && reporteData.fotos.length > 0) {
-                console.log(`📸 [OFFLINE MANAGER] Guardando ${reporteData.fotos.length} fotos offline...`);
-                const resultadoFotos = await this.guardarFotosOffline(localId, reporteData.fotos);
-                if (resultadoFotos) {
-                    console.log(`✅ [OFFLINE MANAGER] ${reporteData.fotos.length} fotos guardadas offline`);
-                }
+            if (fotosAGuardar && fotosAGuardar.length > 0) {
+                console.log(`📸 [OFFLINE MANAGER] Iniciando guardado de ${fotosAGuardar.length} fotos para reporte ${localId}...`);
+                await this.guardarFotosOffline(localId, fotosAGuardar);
+            } else {
+                console.warn(`⚠️ [OFFLINE MANAGER] No hay fotos para guardar con el reporte ${localId}`);
             }
 
             return { success: true, localId: localId };
@@ -641,13 +672,19 @@ class OfflineManager {
     // Guardar fotos offline
     async guardarFotosOffline(reporteLocalId, fotos) {
         try {
-            if (!this.db) return;
+            if (!this.db) {
+                console.error('❌ [OFFLINE MANAGER] DB no disponible para guardar fotos');
+                return;
+            }
+
+            console.log(`📸 [OFFLINE MANAGER] Guardando ${fotos.length} fotos offline para reporte ${reporteLocalId}`);
 
             const tx = this.db.transaction(['offline-fotos'], 'readwrite');
             const store = tx.objectStore('offline-fotos');
 
             for (let i = 0; i < fotos.length; i++) {
                 const foto = fotos[i];
+                console.log(`📸 [OFFLINE MANAGER] Procesando foto ${i + 1}/${fotos.length}: ${foto.name}, tipo: ${foto.type}, tamaño: ${foto.size} bytes`);
 
                 // Convertir File a base64 para almacenar
                 const reader = new FileReader();
@@ -657,16 +694,19 @@ class OfflineManager {
                     reader.readAsDataURL(foto);
                 });
 
-                await store.add({
-                    reporte_id: reporteLocalId,  // Cambiar de reporteLocalId a reporte_id
-                    data: base64,                 // Cambiar de fotoData a data
+                const fotoData = {
+                    reporte_id: reporteLocalId,
+                    data: base64,
                     nombre: foto.name || `foto_${i}.jpg`,
-                    sincronizado: false,          // Agregar flag de sincronización
+                    sincronizado: false,
                     timestamp: Date.now()
-                });
+                };
+
+                await store.add(fotoData);
+                console.log(`✅ [OFFLINE MANAGER] Foto ${i + 1} guardada en IndexedDB: ${fotoData.nombre}`);
             }
 
-            console.log(`📸 [OFFLINE MANAGER] ${fotos.length} fotos guardadas offline`);
+            console.log(`✅ [OFFLINE MANAGER] ${fotos.length} fotos guardadas offline para ${reporteLocalId}`);
 
         } catch (error) {
             console.error('❌ [OFFLINE MANAGER] Error guardando fotos offline:', error);
