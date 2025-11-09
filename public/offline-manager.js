@@ -159,7 +159,7 @@ class OfflineManager {
             banner.id = 'offline-status-banner';
             banner.style.cssText = `
                 position: fixed;
-                top: 0;
+                top: env(safe-area-inset-top, 40px);
                 left: 0;
                 right: 0;
                 z-index: 9999;
