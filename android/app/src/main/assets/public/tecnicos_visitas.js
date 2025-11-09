@@ -933,18 +933,24 @@ async function tomarFotoConCamaraTrasera() {
         if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform() && Capacitor.Plugins.Camera) {
             console.log('📸 Usando Capacitor Camera para cámara trasera');
 
-            const { Camera } = Capacitor.Plugins;
+            const { Camera, CameraResultType, CameraSource, CameraDirection } = Capacitor.Plugins;
+
+            console.log('📸 [CAMERA] Abriendo cámara trasera...');
+            console.log('📸 [CAMERA] CameraDirection disponible:', CameraDirection);
+
             const photo = await Camera.getPhoto({
                 quality: 90,
                 allowEditing: false,
-                resultType: 'Base64',  // IMPORTANTE: Primera letra mayúscula
-                source: 'CAMERA',      // IMPORTANTE: Todo en mayúsculas para Android
-                direction: 'REAR',     // IMPORTANTE: Todo en mayúsculas
+                resultType: CameraResultType.Base64,  // Usar enum en lugar de string
+                source: CameraSource.Camera,           // Usar enum en lugar de string
+                direction: CameraDirection.Rear,       // Usar enum - cámara TRASERA
                 saveToGallery: false,
                 correctOrientation: true,
-                width: 1920,           // Limitar tamaño para optimizar
+                width: 1920,
                 height: 1080
             });
+
+            console.log('📸 [CAMERA] Foto capturada exitosamente');
 
             // Convertir base64 a File object
             const blob = await fetch(`data:image/jpeg;base64,${photo.base64String}`).then(res => res.blob());
