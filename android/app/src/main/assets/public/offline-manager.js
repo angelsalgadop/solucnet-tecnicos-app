@@ -565,12 +565,12 @@ class OfflineManager {
                 if (response.ok) {
                     console.log(`✅ [SYNC FOTOS] ${fotosReporte.length} fotos del reporte ${reporteId} sincronizadas exitosamente`);
 
-                    // Marcar fotos como sincronizadas
+                    // ELIMINAR fotos después de sincronizar para liberar espacio
                     for (const foto of fotosReporte) {
-                        foto.sincronizado = true;
-                        await store.put(foto);
-                        console.log(`✅ [SYNC FOTOS] Foto ${foto.nombre} marcada como sincronizada`);
+                        await store.delete(foto.localId);
+                        console.log(`🗑️ [SYNC FOTOS] Foto ${foto.nombre} (localId: ${foto.localId}) eliminada de IndexedDB - espacio liberado`);
                     }
+                    console.log(`✅ [SYNC FOTOS] ${fotosReporte.length} fotos eliminadas de IndexedDB para liberar espacio`);
                 } else {
                     console.error(`❌ [SYNC FOTOS] Error HTTP ${response.status}: ${responseText}`);
                 }
@@ -606,16 +606,33 @@ class OfflineManager {
 
         const tx = this.db.transaction(['offline-reportes', 'offline-fotos'], 'readwrite');
 
+        // Limpiar reportes antiguos sincronizados
         const reportesStore = tx.objectStore('offline-reportes');
         const reportes = await reportesStore.getAll();
 
+        let reportesEliminados = 0;
         for (const reporte of reportes) {
             if (reporte.sincronizado && reporte.timestamp < thirtyDaysAgo) {
                 await reportesStore.delete(reporte.localId);
+                reportesEliminados++;
             }
         }
 
-        console.log('🧹 [OFFLINE MANAGER] Datos antiguos limpiados');
+        // Limpiar fotos antiguas (huérfanas o que no se eliminaron correctamente)
+        const fotosStore = tx.objectStore('offline-fotos');
+        const fotos = await fotosStore.getAll();
+
+        let fotosEliminadas = 0;
+        for (const foto of fotos) {
+            // Eliminar fotos con más de 7 días (deberían haberse sincronizado y eliminado antes)
+            const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+            if (foto.timestamp < sevenDaysAgo) {
+                await fotosStore.delete(foto.localId);
+                fotosEliminadas++;
+            }
+        }
+
+        console.log(`🧹 [OFFLINE MANAGER] Datos antiguos limpiados: ${reportesEliminados} reportes, ${fotosEliminadas} fotos huérfanas`);
     }
 
     // Guardar reporte offline (cuando no hay conexión)
