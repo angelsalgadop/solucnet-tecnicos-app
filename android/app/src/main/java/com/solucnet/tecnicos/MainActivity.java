@@ -38,20 +38,6 @@ public class MainActivity extends BridgeActivity {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
             android.webkit.WebView.setWebContentsDebuggingEnabled(true);
         }
-
-        // CRÍTICO: Configurar WebView para persistir localStorage
-        // Sin esto, localStorage se borra al cerrar la app
-        if (getBridge() != null && getBridge().getWebView() != null) {
-            android.webkit.WebSettings webSettings = getBridge().getWebView().getSettings();
-            webSettings.setDomStorageEnabled(true);
-            webSettings.setDatabaseEnabled(true);
-
-            // Configurar directorio de datos persistente
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
-                String databasePath = getApplicationContext().getDir("database", MODE_PRIVATE).getPath();
-                webSettings.setDatabasePath(databasePath);
-            }
-        }
     }
 
 
@@ -61,6 +47,29 @@ public class MainActivity extends BridgeActivity {
 
         // Aplicar WebViewClient personalizado que acepta certificados SSL
         getBridge().getWebView().setWebViewClient(new SSLWebViewClient(getBridge()));
+
+        // CRÍTICO: Configurar WebView para persistir localStorage
+        // Sin esto, localStorage se borra al cerrar la app
+        // IMPORTANTE: Configurar DESPUÉS de inicializar el bridge y ANTES de cargar contenido
+        android.webkit.WebSettings webSettings = getBridge().getWebView().getSettings();
+
+        // Habilitar DOM Storage (necesario para localStorage)
+        webSettings.setDomStorageEnabled(true);
+
+        // Habilitar Database (necesario para IndexedDB)
+        webSettings.setDatabaseEnabled(true);
+
+        // Configurar directorio de datos persistente (solo para Android antiguo)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+            String databasePath = getApplicationContext().getDir("database", MODE_PRIVATE).getPath();
+            webSettings.setDatabasePath(databasePath);
+        }
+
+        // CRÍTICO: Configurar cache para persistencia
+        webSettings.setAppCacheEnabled(true);
+        String appCachePath = getApplicationContext().getCacheDir().getAbsolutePath();
+        webSettings.setAppCachePath(appCachePath);
+        webSettings.setCacheMode(android.webkit.WebSettings.LOAD_DEFAULT);
     }
 
     @Override
