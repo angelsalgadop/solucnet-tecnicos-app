@@ -935,20 +935,20 @@ async function tomarFotoConCamaraTrasera() {
 
             const { Camera } = Capacitor.Plugins;
 
-            console.log('📸 [CAMERA] Abriendo cámara trasera directamente...');
+            console.log('📸 [CAMERA] Abriendo cámara trasera...');
 
-            // Valores numéricos para Capacitor 7 (evita el menú de selección)
+            // Capacitor 7 usa strings en lowercase
             const photo = await Camera.getPhoto({
                 quality: 90,
                 allowEditing: false,
-                resultType: 0,        // 0 = Base64
-                source: 1,            // 1 = Camera (abre cámara directamente, NO muestra menú)
-                direction: 0,         // 0 = Rear (cámara trasera)
+                resultType: 'base64',           // lowercase
+                source: 'camera',               // lowercase
+                direction: 'rear',              // lowercase - cámara TRASERA
                 saveToGallery: false,
                 correctOrientation: true,
                 width: 1920,
                 height: 1080,
-                presentationStyle: 'fullscreen'
+                presentationStyle: 'fullscreen' // Forzar pantalla completa
             });
 
             console.log('📸 [CAMERA] Foto capturada con cámara trasera');
