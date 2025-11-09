@@ -415,6 +415,23 @@
     <!-- Sistema de Debug Logging -->
     <script src="debug-logger.js?v=1762655000"></script>
 
+    <!-- REDIRECCIÓN AUTOMÁTICA si hay sesión activa -->
+    <script>
+        (function autoRedirect() {
+            const token = localStorage.getItem('token_tecnico');
+            const userTecnico = localStorage.getItem('user_tecnico');
+
+            if (token && userTecnico) {
+                console.log('✅ Sesión activa detectada - Redirigiendo a panel de técnicos...');
+                console.log('👤 Usuario:', JSON.parse(userTecnico).nombre);
+                window.location.href = 'tecnicos_visitas.html';
+                return;
+            }
+
+            console.log('ℹ️ Sin sesión activa - Mostrando pantalla de login');
+        })();
+    </script>
+
     <script>
         // Configuración del servidor
         // IMPORTANTE: Probar primero con HTTP para descartar problemas SSL
