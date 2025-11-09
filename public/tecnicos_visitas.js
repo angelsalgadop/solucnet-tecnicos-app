@@ -146,9 +146,38 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
         if (!enLinea) {
             // MODO OFFLINE: Cargar visitas desde IndexedDB
             console.log('📴 MODO OFFLINE: Cargando visitas desde IndexedDB...');
+            console.log('👤 Técnico actual:', tecnicoActual);
+
+            // Si no hay tecnicoActual, cargar desde localStorage
+            if (!tecnicoActual) {
+                const userTecnico = localStorage.getItem('user_tecnico');
+                if (userTecnico) {
+                    try {
+                        tecnicoActual = JSON.parse(userTecnico);
+                        nombreTecnico.textContent = tecnicoActual.nombre;
+                        console.log('✅ Técnico cargado desde localStorage:', tecnicoActual);
+                    } catch (e) {
+                        console.error('❌ Error parseando user_tecnico:', e);
+                    }
+                }
+            }
+
+            if (!tecnicoActual || !tecnicoActual.id) {
+                console.error('❌ No se pudo cargar el técnico desde localStorage');
+                visitasContainer.innerHTML = `
+                    <div class="alert alert-danger text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <h5>Error de sesión</h5>
+                        <p class="mb-3">No se pudo cargar la información del técnico. Por favor, inicia sesión nuevamente.</p>
+                        <button class="btn btn-primary" onclick="window.location.href='index.html'">Ir al Login</button>
+                    </div>
+                `;
+                return;
+            }
 
             if (typeof window.offlineManager !== 'undefined' && window.offlineManager.loadVisitasOffline) {
-                const visitasOffline = await window.offlineManager.loadVisitasOffline(tecnicoActual?.id);
+                console.log(`🔍 Cargando visitas para técnico ID: ${tecnicoActual.id}`);
+                const visitasOffline = await window.offlineManager.loadVisitasOffline(tecnicoActual.id);
 
                 if (visitasOffline && visitasOffline.length > 0) {
                     console.log(`✅ ${visitasOffline.length} visitas cargadas desde offline`);
@@ -266,9 +295,25 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
         // Intentar cargar visitas offline como fallback
         if (typeof window.offlineManager !== 'undefined' && window.offlineManager.loadVisitasOffline) {
             console.log('📴 Intentando cargar visitas desde offline como fallback...');
-            const visitasOffline = await window.offlineManager.loadVisitasOffline(tecnicoActual?.id);
 
-            if (visitasOffline && visitasOffline.length > 0) {
+            // Si no hay tecnicoActual, cargar desde localStorage
+            if (!tecnicoActual) {
+                const userTecnico = localStorage.getItem('user_tecnico');
+                if (userTecnico) {
+                    try {
+                        tecnicoActual = JSON.parse(userTecnico);
+                        nombreTecnico.textContent = tecnicoActual.nombre;
+                        console.log('✅ Técnico cargado desde localStorage (fallback):', tecnicoActual);
+                    } catch (e) {
+                        console.error('❌ Error parseando user_tecnico:', e);
+                    }
+                }
+            }
+
+            if (tecnicoActual && tecnicoActual.id) {
+                const visitasOffline = await window.offlineManager.loadVisitasOffline(tecnicoActual.id);
+
+                if (visitasOffline && visitasOffline.length > 0) {
                 console.log(`✅ ${visitasOffline.length} visitas cargadas desde offline (fallback)`);
                 visitasAsignadas = visitasOffline;
                 visitasSinFiltrar = [...visitasOffline];
@@ -289,6 +334,7 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
 
                 actualizarIndicadorActualizacion();
                 return;
+                }
             }
         }
 
