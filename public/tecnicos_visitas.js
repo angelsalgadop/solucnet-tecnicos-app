@@ -131,10 +131,30 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
         if (hashNuevo !== hashVisitasAnterior || visitasAsignadas.length === 0) {
             console.log('✅ Datos actualizados detectados, recargando vista');
 
-            visitasAsignadas = resultado.visitas;
-            visitasSinFiltrar = [...resultado.visitas]; // Copia para filtros
+            // GUARDAR filtro de localidad activo ANTES de recargar
+            const filtroLocalidadActual = document.getElementById('filtroLocalidad')?.value || '';
+            console.log(`💾 Guardando filtro de localidad actual: "${filtroLocalidadActual}"`);
+
+            // FILTRAR visitas completadas ANTES de asignar (nunca mostrarlas)
+            const visitasSinCompletar = resultado.visitas.filter(v => v.estado !== 'completada');
+            console.log(`🔍 Visitas filtradas: ${visitasSinCompletar.length} activas de ${resultado.visitas.length} totales (excluidas ${resultado.visitas.length - visitasSinCompletar.length} completadas)`);
+
+            visitasAsignadas = visitasSinCompletar;
+            visitasSinFiltrar = [...visitasSinCompletar]; // Copia para filtros
             llenarFiltroLocalidades();
-            mostrarVisitasAsignadas();
+
+            // RESTAURAR filtro de localidad después de recargar
+            if (filtroLocalidadActual) {
+                const selectLocalidad = document.getElementById('filtroLocalidad');
+                if (selectLocalidad) {
+                    selectLocalidad.value = filtroLocalidadActual;
+                    console.log(`🔄 Filtro de localidad restaurado: "${filtroLocalidadActual}"`);
+                    // Aplicar filtros automáticamente para restaurar la vista filtrada
+                    aplicarFiltros();
+                }
+            } else {
+                mostrarVisitasAsignadas();
+            }
 
             // Restaurar cronómetros activos después de mostrar las visitas
             setTimeout(restaurarCronometros, 100);
