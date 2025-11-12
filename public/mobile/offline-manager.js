@@ -285,6 +285,33 @@ class OfflineManager {
         }
     }
 
+    // Eliminar visita del cache offline
+    async deleteVisitaOffline(visitaId) {
+        await this.waitForDB();
+
+        if (!this.db) {
+            console.log('⚠️ [OFFLINE MANAGER] IndexedDB no está listo para eliminar visita');
+            return false;
+        }
+
+        try {
+            const tx = this.db.transaction('offline-visitas', 'readwrite');
+            const store = tx.objectStore('offline-visitas');
+
+            await new Promise((resolve, reject) => {
+                const request = store.delete(visitaId);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+
+            console.log(`🗑️ [OFFLINE MANAGER] Visita ${visitaId} eliminada del cache`);
+            return true;
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error eliminando visita offline:', error);
+            return false;
+        }
+    }
+
     // Guardar reporte offline
     async saveReporteOffline(reporteData) {
         if (!this.db) return null;
@@ -589,6 +616,12 @@ class OfflineManager {
                             console.error(`❌ [OFFLINE MANAGER] Error asignando equipo:`, errorAsignar);
                         }
                     }
+                } else {
+                    // Error HTTP (400, 500, etc.)
+                    const errorText = await response.text();
+                    console.error(`❌ [OFFLINE MANAGER] Error sincronizando reporte ${reporte.localId}: HTTP ${response.status}`);
+                    console.error(`📋 [OFFLINE MANAGER] Detalles del error:`, errorText);
+                    console.error(`📦 [OFFLINE MANAGER] Datos del reporte:`, JSON.stringify(reporte, null, 2));
                 }
             } catch (error) {
                 console.error(`❌ Error sincronizando reporte ${reporte.localId}:`, error);
@@ -666,6 +699,11 @@ class OfflineManager {
                         });
                         console.log(`🗑️ Foto ${foto.localId} eliminada del cache`);
                     }
+                } else {
+                    // Error HTTP
+                    const errorText = await response.text();
+                    console.error(`❌ [OFFLINE MANAGER] Error sincronizando fotos del reporte ${reporteId}: HTTP ${response.status}`);
+                    console.error(`📋 [OFFLINE MANAGER] Detalles del error:`, errorText);
                 }
             } catch (error) {
                 console.error(`❌ Error sincronizando fotos del reporte ${reporteId}:`, error);

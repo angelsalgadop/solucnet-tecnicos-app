@@ -1177,6 +1177,9 @@ async function guardarReporteVisita() {
                 mostrarVisitasAsignadas();
                 console.log(`🗑️ [OFFLINE] Visita ${formData.visita_id} eliminada de la lista local`);
 
+                // CRÍTICO: Eliminar la visita del cache de IndexedDB
+                await window.offlineManager.deleteVisitaOffline(formData.visita_id);
+
                 // Cerrar modal
                 bootstrap.Modal.getInstance(document.getElementById('modalCompletarVisita')).hide();
             } else {
@@ -1291,6 +1294,9 @@ async function guardarReporteVisita() {
                 visitasSinFiltrar = visitasSinFiltrar.filter(v => v.id != formData.visita_id);
                 mostrarVisitasAsignadas();
                 console.log(`🗑️ [OFFLINE] Visita ${formData.visita_id} eliminada de la lista local`);
+
+                // CRÍTICO: Eliminar la visita del cache de IndexedDB
+                await window.offlineManager.deleteVisitaOffline(formData.visita_id);
 
                 // Cerrar modal
                 bootstrap.Modal.getInstance(document.getElementById('modalCompletarVisita')).hide();
