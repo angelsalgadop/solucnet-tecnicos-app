@@ -459,13 +459,16 @@ class OfflineManager {
         // Leer reportes pendientes
         const txRead = this.db.transaction('offline-reportes', 'readonly');
         const storeRead = txRead.objectStore('offline-reportes');
-        const indexRead = storeRead.index('sincronizado');
 
-        const reportes = await new Promise((resolve) => {
-            const request = indexRead.getAll(IDBKeyRange.only(false));
+        // Obtener todos los reportes y filtrar manualmente (IDBKeyRange.only(false) no funciona con boolean)
+        const allReportes = await new Promise((resolve) => {
+            const request = storeRead.getAll();
             request.onsuccess = () => resolve(request.result || []);
             request.onerror = () => resolve([]);
         });
+
+        // Filtrar manualmente los reportes no sincronizados
+        const reportes = allReportes.filter(r => r.sincronizado === false);
 
         console.log(`📤 [OFFLINE MANAGER] Sincronizando ${reportes.length} reportes...`);
 
@@ -559,13 +562,16 @@ class OfflineManager {
         // Leer fotos pendientes
         const txRead = this.db.transaction('offline-fotos', 'readonly');
         const storeRead = txRead.objectStore('offline-fotos');
-        const indexRead = storeRead.index('sincronizado');
 
-        const fotos = await new Promise((resolve) => {
-            const request = indexRead.getAll(IDBKeyRange.only(false));
+        // Obtener todas las fotos y filtrar manualmente (IDBKeyRange.only(false) no funciona con boolean)
+        const allFotos = await new Promise((resolve) => {
+            const request = storeRead.getAll();
             request.onsuccess = () => resolve(request.result || []);
             request.onerror = () => resolve([]);
         });
+
+        // Filtrar manualmente las fotos no sincronizadas
+        const fotos = allFotos.filter(f => f.sincronizado === false);
 
         console.log(`📤 [OFFLINE MANAGER] Sincronizando ${fotos.length} fotos...`);
 
