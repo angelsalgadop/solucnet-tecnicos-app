@@ -299,6 +299,30 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                     return; // Salir exitosamente
                 } else {
                     console.log('⚠️ [OFFLINE] No hay visitas guardadas en cache');
+
+                    // Mostrar mensaje informativo cuando no hay cache
+                    if (visitasContainer) {
+                        visitasContainer.innerHTML = `
+                            <div class="alert alert-warning text-center" style="margin-top: 50px;">
+                                <i class="fas fa-wifi-slash fa-3x mb-3"></i>
+                                <h5><strong>Modo Offline - Sin visitas en cache</strong></h5>
+                                <p class="mb-2">No hay visitas guardadas para trabajar sin conexión.</p>
+                                <hr>
+                                <p class="mb-1"><strong>Para usar la app offline:</strong></p>
+                                <ol class="text-start" style="display: inline-block;">
+                                    <li>Conéctate a internet</li>
+                                    <li>Carga tus visitas una vez</li>
+                                    <li>Luego podrás trabajar sin conexión</li>
+                                </ol>
+                                <hr>
+                                <p class="text-muted small mb-0">
+                                    <i class="fas fa-info-circle"></i> Las visitas se guardarán automáticamente para acceso offline
+                                </p>
+                            </div>
+                        `;
+                    }
+                    actualizarIndicadorActualizacion();
+                    return; // Salir después de mostrar el mensaje
                 }
             } catch (offlineError) {
                 console.error('❌ [OFFLINE] Error cargando desde IndexedDB:', offlineError);
