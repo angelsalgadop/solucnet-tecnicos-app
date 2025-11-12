@@ -12,7 +12,7 @@ workflows:
     environment:
       vars:
         PACKAGE_NAME: "com.solucnet.tecnicos"
-      node: 18
+      node: 20
       java: 21
     scripts:
       - name: Install dependencies
