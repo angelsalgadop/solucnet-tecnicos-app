@@ -188,19 +188,23 @@ class OfflineManager {
 
             // Buscar reportes pendientes (sincronizado === false)
             const reportesStore = tx.objectStore('offline-reportes');
-            const reportes = await new Promise((resolve) => {
-                const request = reportesStore.index('sincronizado').getAll(IDBKeyRange.only(false));
+            const allReportes = await new Promise((resolve) => {
+                const request = reportesStore.getAll();
                 request.onsuccess = () => resolve(request.result || []);
                 request.onerror = () => resolve([]);
             });
+            // Filtrar manualmente los que no están sincronizados
+            const reportes = allReportes.filter(r => r.sincronizado === false);
 
             // Buscar fotos pendientes (sincronizado === false)
             const fotosStore = tx.objectStore('offline-fotos');
-            const fotos = await new Promise((resolve) => {
-                const request = fotosStore.index('sincronizado').getAll(IDBKeyRange.only(false));
+            const allFotos = await new Promise((resolve) => {
+                const request = fotosStore.getAll();
                 request.onsuccess = () => resolve(request.result || []);
                 request.onerror = () => resolve([]);
             });
+            // Filtrar manualmente las que no están sincronizadas
+            const fotos = allFotos.filter(f => f.sincronizado === false);
 
             // Buscar requests pendientes
             const requestsStore = tx.objectStore('offline-requests');
@@ -247,7 +251,15 @@ class OfflineManager {
             const tx = this.db.transaction('offline-visitas', 'readonly');
             const store = tx.objectStore('offline-visitas');
             const index = store.index('tecnico_id');
-            const visitas = await index.getAll(tecnicoId);
+
+            const visitas = await new Promise((resolve) => {
+                const request = index.getAll(tecnicoId);
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => {
+                    console.error('Error obteniendo visitas por índice');
+                    resolve([]);
+                };
+            });
 
             console.log(`✅ [OFFLINE MANAGER] ${visitas.length} visitas cargadas desde offline`);
             return visitas;

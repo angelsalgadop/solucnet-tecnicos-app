@@ -132,6 +132,13 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             nombreTecnico.textContent = resultado.tecnico.nombre;
         }
 
+        // 💾 GUARDAR visitas en IndexedDB para modo offline
+        if (resultado.visitas && resultado.visitas.length > 0 && window.offlineManager) {
+            const tecnicoId = tecnicoActual?.id || 'unknown';
+            await window.offlineManager.saveVisitasOffline(resultado.visitas, tecnicoId);
+            console.log(`💾 [CACHE] ${resultado.visitas.length} visitas guardadas en IndexedDB para offline`);
+        }
+
         // Calcular hash de los datos nuevos
         const hashNuevo = hashSimple(resultado.visitas);
 
@@ -210,8 +217,77 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
 
     } catch (error) {
         console.error('Error cargando visitas:', error);
+
+        // Si está offline, intentar cargar desde IndexedDB
+        if (!navigator.onLine && window.offlineManager) {
+            console.log('📴 [OFFLINE] Cargando visitas desde IndexedDB...');
+            try {
+                const tecnicoId = tecnicoActual?.id || 'unknown';
+                const visitasOffline = await window.offlineManager.loadVisitasOffline(tecnicoId);
+
+                if (visitasOffline && visitasOffline.length > 0) {
+                    console.log(`✅ [OFFLINE] ${visitasOffline.length} visitas cargadas desde cache`);
+
+                    // Filtrar visitas completadas
+                    const visitasSinCompletar = visitasOffline.filter(v => v.estado !== 'completada');
+                    visitasAsignadas = visitasSinCompletar;
+                    visitasSinFiltrar = [...visitasSinCompletar];
+
+                    // Cargar filtros y mostrar
+                    llenarFiltroLocalidades();
+                    const filtroLocalidadGuardado = localStorage.getItem('filtro_localidad_tecnico') || '';
+                    const filtroEstadoGuardado = localStorage.getItem('filtro_estado_tecnico') || '';
+
+                    if (filtroLocalidadGuardado || filtroEstadoGuardado) {
+                        const selectLocalidad = document.getElementById('filtroLocalidad');
+                        const selectEstado = document.getElementById('filtroEstado');
+
+                        if (selectLocalidad && filtroLocalidadGuardado) {
+                            selectLocalidad.value = filtroLocalidadGuardado;
+                        }
+                        if (selectEstado && filtroEstadoGuardado) {
+                            selectEstado.value = filtroEstadoGuardado;
+                        }
+
+                        let visitasFiltradas = [...visitasSinFiltrar];
+                        if (filtroLocalidadGuardado) {
+                            visitasFiltradas = visitasFiltradas.filter(v => v.localidad === filtroLocalidadGuardado);
+                        }
+                        if (filtroEstadoGuardado) {
+                            visitasFiltradas = visitasFiltradas.filter(v => v.estado === filtroEstadoGuardado);
+                        }
+                        visitasAsignadas = visitasFiltradas;
+                    }
+
+                    mostrarVisitasAsignadas();
+                    setTimeout(restaurarCronometros, 100);
+
+                    // Mostrar mensaje de modo offline
+                    if (visitasContainer) {
+                        const offlineMsg = document.createElement('div');
+                        offlineMsg.className = 'alert alert-warning mb-3';
+                        offlineMsg.innerHTML = '<i class="fas fa-wifi-slash"></i> <strong>Modo offline:</strong> Mostrando visitas guardadas en cache';
+                        visitasContainer.insertBefore(offlineMsg, visitasContainer.firstChild);
+                    }
+
+                    actualizarIndicadorActualizacion();
+                    return; // Salir exitosamente
+                } else {
+                    console.log('⚠️ [OFFLINE] No hay visitas guardadas en cache');
+                }
+            } catch (offlineError) {
+                console.error('❌ [OFFLINE] Error cargando desde IndexedDB:', offlineError);
+            }
+        }
+
+        // Si no hay visitas cargadas, mostrar error
         if (visitasAsignadas.length === 0) {
-            visitasContainer.innerHTML = '<div class="alert alert-danger">Error cargando visitas asignadas</div>';
+            visitasContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    ${!navigator.onLine ? 'Sin conexión y sin datos guardados. Conéctate a internet para cargar tus visitas.' : 'Error cargando visitas asignadas'}
+                </div>
+            `;
         }
         actualizarIndicadorActualizacion();
     }
@@ -1888,6 +1964,12 @@ async function enviarUbicacionTecnico() {
                     console.log(`📍 [CLIENTE] Ubicación cambió ${distancia.toFixed(2)}m, enviando actualización`);
                 }
 
+                // NO enviar ubicación si está offline
+                if (!navigator.onLine) {
+                    console.log('📴 [CLIENTE] Offline: Omitiendo envío de ubicación');
+                    return;
+                }
+
                 console.log('📍 [CLIENTE] Enviando ubicación al servidor...');
 
                 // Enviar ubicación al servidor
@@ -2367,6 +2449,12 @@ function actualizarMapaClientes() {
 async function verificarPermisoAgregarNaps() {
     try {
         console.log('🔍 [NAP] Verificando permisos para agregar cajas NAP...');
+
+        // Si está offline, omitir verificación
+        if (!navigator.onLine) {
+            console.log('📴 [NAP] Offline: Omitiendo verificación de permisos');
+            return;
+        }
 
         const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
         console.log('🔍 [NAP] Token encontrado:', token ? 'Sí' : 'No');
