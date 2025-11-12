@@ -21,16 +21,14 @@ workflows:
       - name: Generate icons
         script: |
           node generate-icons.js || echo "Icons generation skipped"
-      - name: Verify Capacitor files
+      - name: Copy web assets to Android
         script: |
-          echo "Verificando archivos Capacitor..."
-          echo "✅ cordova.variables.gradle:"
-          ls -la android/capacitor-cordova-android-plugins/cordova.variables.gradle
-          echo "✅ capacitor.config.json:"
-          ls -la android/app/src/main/assets/capacitor.config.json
-          echo "✅ Assets web:"
-          ls -la android/app/src/main/assets/public/*.js | wc -l
-          echo "archivos JS encontrados"
+          echo "Copiando archivos web a Android con Capacitor..."
+          npx cap sync android --no-build
+          echo "✅ Archivos sincronizados"
+          echo "Verificando archivos copiados:"
+          ls -la android/app/src/main/assets/public/*.html || echo "⚠️  No se encontraron HTML"
+          ls -la android/app/src/main/assets/capacitor.config.json || echo "⚠️  No se encontró config"
       - name: Set Android SDK location
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"

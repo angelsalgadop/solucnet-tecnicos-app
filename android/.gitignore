@@ -92,10 +92,10 @@ lint/tmp/
 # Cordova plugins for Capacitor
 # capacitor-cordova-android-plugins  # ⚠️ COMENTADO: Necesario para Codemagic builds
 
-# Copied web assets
-# app/src/main/assets/public  # ⚠️ COMENTADO: Necesario para Codemagic builds
+# Copied web assets (generados por npx cap sync)
+app/src/main/assets/public
 
-# Generated Config files
-# app/src/main/assets/capacitor.config.json  # ⚠️ COMENTADO: Necesario para Codemagic builds
-# app/src/main/assets/capacitor.plugins.json  # ⚠️ COMENTADO: Necesario para Codemagic builds
-# app/src/main/res/xml/config.xml  # ⚠️ COMENTADO: Necesario para Codemagic builds
+# Generated Config files (generados por npx cap sync)
+app/src/main/assets/capacitor.config.json
+app/src/main/assets/capacitor.plugins.json
+app/src/main/res/xml/config.xml

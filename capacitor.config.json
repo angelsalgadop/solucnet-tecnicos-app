@@ -2,6 +2,9 @@
   "appId": "com.solucnet.tecnicos",
   "appName": "SolucNet Técnicos",
   "webDir": "public",
+  "server": {
+    "androidScheme": "http"
+  },
   "android": {
     "buildOptions": {
       "keystorePath": "android/release.keystore",
