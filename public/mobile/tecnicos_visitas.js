@@ -420,7 +420,32 @@ async function confirmarInicioVisita() {
     try {
         const visitaId = document.getElementById('visitaIniciarId').value;
 
-        const response = await fetch(`/api/visitas-tecnicas/${visitaId}/iniciar`, {
+        // Detectar si está offline
+        if (!navigator.onLine) {
+            console.log('📴 [OFFLINE] Sin conexión, guardando inicio de visita para sincronizar después');
+
+            // Guardar en IndexedDB para sincronizar luego
+            const guardado = await window.offlineManager.saveInicioVisitaOffline(visitaId);
+
+            if (guardado) {
+                mostrarAlerta('⚠️ Sin conexión: Visita iniciada en modo offline. Se sincronizará cuando vuelva la conexión.', 'warning');
+
+                // Actualizar estado local inmediatamente
+                const visitaIndex = visitasAsignadas.findIndex(v => v.id == visitaId);
+                if (visitaIndex !== -1) {
+                    visitasAsignadas[visitaIndex].estado = 'en_progreso';
+                    mostrarVisitasAsignadas();
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('modalIniciarVisita')).hide();
+            } else {
+                mostrarAlerta('❌ Error guardando inicio de visita offline', 'danger');
+            }
+            return;
+        }
+
+        // Modo online: enviar al servidor
+        const response = await fetch(APP_CONFIG.getApiUrl(`/api/visitas-tecnicas/${visitaId}/iniciar`), {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -446,7 +471,28 @@ async function confirmarInicioVisita() {
 
     } catch (error) {
         console.error('Error iniciando visita:', error);
-        mostrarAlerta('Error iniciando la visita', 'danger');
+
+        // Si falla por conexión, intentar guardar offline
+        if (!navigator.onLine) {
+            const visitaId = document.getElementById('visitaIniciarId').value;
+            const guardado = await window.offlineManager.saveInicioVisitaOffline(visitaId);
+
+            if (guardado) {
+                mostrarAlerta('⚠️ Sin conexión: Visita iniciada en modo offline. Se sincronizará cuando vuelva la conexión.', 'warning');
+
+                const visitaIndex = visitasAsignadas.findIndex(v => v.id == visitaId);
+                if (visitaIndex !== -1) {
+                    visitasAsignadas[visitaIndex].estado = 'en_progreso';
+                    mostrarVisitasAsignadas();
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('modalIniciarVisita')).hide();
+            } else {
+                mostrarAlerta('Error iniciando la visita en modo offline', 'danger');
+            }
+        } else {
+            mostrarAlerta('Error iniciando la visita', 'danger');
+        }
     }
 }
 
@@ -958,7 +1004,34 @@ async function guardarReporteVisita() {
             console.log('✅ Coordenadas validadas y agregadas al reporte:', coordenadasCapturadas);
         }
 
-        // Enviar reporte
+        // Detectar si está offline
+        if (!navigator.onLine) {
+            console.log('📴 [OFFLINE] Sin conexión, guardando reporte offline');
+
+            // Guardar reporte en IndexedDB
+            const reporteLocalId = await window.offlineManager.saveReporteOffline(formData);
+
+            if (reporteLocalId) {
+                // Guardar fotos en IndexedDB
+                if (fotosSeleccionadas.length > 0) {
+                    await window.offlineManager.saveFotosOffline(reporteLocalId, fotosSeleccionadas);
+                }
+
+                mostrarAlerta('⚠️ Sin conexión: Reporte guardado en modo offline. Se sincronizará cuando vuelva la conexión.', 'warning');
+
+                // Remover la visita de la lista local
+                visitasAsignadas = visitasAsignadas.filter(v => v.id != formData.visita_id);
+                mostrarVisitasAsignadas();
+
+                // Cerrar modal
+                bootstrap.Modal.getInstance(document.getElementById('modalCompletarVisita')).hide();
+            } else {
+                mostrarAlerta('❌ Error guardando reporte offline', 'danger');
+            }
+            return;
+        }
+
+        // Modo online: enviar al servidor
         const response = await fetch(APP_CONFIG.getApiUrl('/api/reportes-visitas'), {
             method: 'POST',
             headers: {
@@ -1014,7 +1087,51 @@ async function guardarReporteVisita() {
 
     } catch (error) {
         console.error('Error guardando reporte:', error);
-        mostrarAlerta('Error guardando el reporte de visita', 'danger');
+
+        // Si falla por conexión, intentar guardar offline
+        if (!navigator.onLine) {
+            console.log('📴 [OFFLINE] Error de conexión, guardando reporte offline');
+
+            const formData = {
+                visita_id: document.getElementById('visitaId').value,
+                tecnico_id: document.getElementById('tecnicoId').value,
+                problemas_encontrados: document.getElementById('problemasEncontrados').value,
+                solucion_aplicada: document.getElementById('solucionAplicada').value,
+                materiales_utilizados: document.getElementById('materialesUtilizados').value,
+                cliente_satisfecho: document.getElementById('clienteSatisfecho').value,
+                requiere_seguimiento: document.getElementById('requiereSeguimiento').checked,
+                notas: document.getElementById('notasAdicionales').value
+            };
+
+            // Agregar coordenadas si están disponibles
+            if (coordenadasCapturadas) {
+                formData.latitud = coordenadasCapturadas.latitude;
+                formData.longitud = coordenadasCapturadas.longitude;
+                formData.precision_gps = coordenadasCapturadas.accuracy;
+            }
+
+            const reporteLocalId = await window.offlineManager.saveReporteOffline(formData);
+
+            if (reporteLocalId) {
+                // Guardar fotos en IndexedDB
+                if (fotosSeleccionadas.length > 0) {
+                    await window.offlineManager.saveFotosOffline(reporteLocalId, fotosSeleccionadas);
+                }
+
+                mostrarAlerta('⚠️ Sin conexión: Reporte guardado en modo offline. Se sincronizará cuando vuelva la conexión.', 'warning');
+
+                // Remover la visita de la lista local
+                visitasAsignadas = visitasAsignadas.filter(v => v.id != formData.visita_id);
+                mostrarVisitasAsignadas();
+
+                // Cerrar modal
+                bootstrap.Modal.getInstance(document.getElementById('modalCompletarVisita')).hide();
+            } else {
+                mostrarAlerta('Error guardando el reporte en modo offline', 'danger');
+            }
+        } else {
+            mostrarAlerta('Error guardando el reporte de visita', 'danger');
+        }
     }
 }
 

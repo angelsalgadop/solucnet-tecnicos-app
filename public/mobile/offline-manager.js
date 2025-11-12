@@ -96,7 +96,8 @@ class OfflineManager {
     // Registrar Service Worker
     async registerServiceWorker() {
         try {
-            const registration = await navigator.serviceWorker.register('/sw-offline.js');
+            // Usar ruta relativa para que funcione en app nativa y web
+            const registration = await navigator.serviceWorker.register('sw-offline.js');
             console.log('✅ [OFFLINE MANAGER] Service Worker registrado:', registration.scope);
 
             // Escuchar mensajes del service worker
@@ -141,15 +142,16 @@ class OfflineManager {
             banner.id = 'offline-status-banner';
             banner.style.cssText = `
                 position: fixed;
-                top: 0;
+                top: 56px;
                 left: 0;
                 right: 0;
-                z-index: 9999;
-                padding: 10px 15px;
+                z-index: 1040;
+                padding: 8px 15px;
                 text-align: center;
                 font-weight: bold;
-                font-size: 14px;
+                font-size: 13px;
                 transition: all 0.3s ease;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             `;
             document.body.insertBefore(banner, document.body.firstChild);
         }
@@ -184,13 +186,33 @@ class OfflineManager {
         try {
             const tx = this.db.transaction(['offline-reportes', 'offline-fotos', 'offline-requests'], 'readonly');
 
-            const reportes = await tx.objectStore('offline-reportes').index('sincronizado').getAll(IDBKeyRange.only(false));
-            const fotos = await tx.objectStore('offline-fotos').index('sincronizado').getAll(IDBKeyRange.only(false));
-            const requests = await tx.objectStore('offline-requests').getAll();
+            // Buscar reportes pendientes (sincronizado === false)
+            const reportesStore = tx.objectStore('offline-reportes');
+            const reportes = await new Promise((resolve) => {
+                const request = reportesStore.index('sincronizado').getAll(IDBKeyRange.only(false));
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => resolve([]);
+            });
+
+            // Buscar fotos pendientes (sincronizado === false)
+            const fotosStore = tx.objectStore('offline-fotos');
+            const fotos = await new Promise((resolve) => {
+                const request = fotosStore.index('sincronizado').getAll(IDBKeyRange.only(false));
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => resolve([]);
+            });
+
+            // Buscar requests pendientes
+            const requestsStore = tx.objectStore('offline-requests');
+            const requests = await new Promise((resolve) => {
+                const request = requestsStore.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => resolve([]);
+            });
 
             return reportes.length > 0 || fotos.length > 0 || requests.length > 0;
         } catch (error) {
-            console.error('Error verificando datos pendientes:', error);
+            console.error('❌ [OFFLINE MANAGER] Error verificando datos pendientes:', error);
             return false;
         }
     }
@@ -301,6 +323,62 @@ class OfflineManager {
         });
     }
 
+    // Guardar inicio de visita offline (para sincronizar luego)
+    async saveInicioVisitaOffline(visitaId) {
+        if (!this.db) return false;
+
+        try {
+            const tx = this.db.transaction('offline-requests', 'readwrite');
+            const store = tx.objectStore('offline-requests');
+
+            await store.add({
+                url: `/api/visitas-tecnicas/${visitaId}/iniciar`,
+                method: 'PUT',
+                data: {},
+                timestamp: Date.now()
+            });
+
+            console.log('✅ [OFFLINE MANAGER] Inicio de visita guardado para sincronización posterior');
+            this.updateUIConnectionStatus(this.isOnline);
+            return true;
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error guardando inicio de visita offline:', error);
+            return false;
+        }
+    }
+
+    // Sincronizar requests pendientes (inicios de visita, etc.)
+    async syncRequests() {
+        if (!this.db) return;
+
+        const tx = this.db.transaction('offline-requests', 'readwrite');
+        const store = tx.objectStore('offline-requests');
+        const requests = await new Promise((resolve) => {
+            const req = store.getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => resolve([]);
+        });
+
+        console.log(`📤 [OFFLINE MANAGER] Sincronizando ${requests.length} requests...`);
+
+        for (const request of requests) {
+            try {
+                const response = await fetch(APP_CONFIG.getApiUrl(request.url), {
+                    method: request.method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: request.data ? JSON.stringify(request.data) : undefined
+                });
+
+                if (response.ok) {
+                    console.log(`✅ Request ${request.url} sincronizado`);
+                    await store.delete(request.timestamp);
+                }
+            } catch (error) {
+                console.error(`❌ Error sincronizando request ${request.url}:`, error);
+            }
+        }
+    }
+
     // Sincronizar datos pendientes
     async syncPendingData() {
         if (this.syncInProgress) {
@@ -317,6 +395,9 @@ class OfflineManager {
         console.log('🔄 [OFFLINE MANAGER] Iniciando sincronización...');
 
         try {
+            // Sincronizar requests pendientes (inicios de visita, etc.)
+            await this.syncRequests();
+
             // Sincronizar reportes
             await this.syncReportes();
 
@@ -342,13 +423,19 @@ class OfflineManager {
         const tx = this.db.transaction('offline-reportes', 'readwrite');
         const store = tx.objectStore('offline-reportes');
         const index = store.index('sincronizado');
-        const reportes = await index.getAll(IDBKeyRange.only(false));
+
+        // Usar Promise para manejar correctamente el getAll
+        const reportes = await new Promise((resolve) => {
+            const request = index.getAll(IDBKeyRange.only(false));
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => resolve([]);
+        });
 
         console.log(`📤 [OFFLINE MANAGER] Sincronizando ${reportes.length} reportes...`);
 
         for (const reporte of reportes) {
             try {
-                const response = await fetch('/api/reportes-visitas', {
+                const response = await fetch(APP_CONFIG.getApiUrl('/api/reportes-visitas'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(reporte)
@@ -394,7 +481,13 @@ class OfflineManager {
         const tx = this.db.transaction('offline-fotos', 'readwrite');
         const store = tx.objectStore('offline-fotos');
         const index = store.index('sincronizado');
-        const fotos = await index.getAll(IDBKeyRange.only(false));
+
+        // Usar Promise para manejar correctamente el getAll
+        const fotos = await new Promise((resolve) => {
+            const request = index.getAll(IDBKeyRange.only(false));
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => resolve([]);
+        });
 
         console.log(`📤 [OFFLINE MANAGER] Sincronizando ${fotos.length} fotos...`);
 
@@ -419,7 +512,7 @@ class OfflineManager {
                     formData.append('fotos', blob, foto.nombre);
                 }
 
-                const response = await fetch('/api/reportes-fotos', {
+                const response = await fetch(APP_CONFIG.getApiUrl('/api/reportes-fotos'), {
                     method: 'POST',
                     body: formData
                 });
@@ -427,10 +520,10 @@ class OfflineManager {
                 if (response.ok) {
                     console.log(`✅ ${fotosReporte.length} fotos del reporte ${reporteId} sincronizadas`);
 
-                    // Marcar fotos como sincronizadas
+                    // ⚠️ ELIMINAR fotos del cache inmediatamente después de sincronizar
                     for (const foto of fotosReporte) {
-                        foto.sincronizado = true;
-                        await store.put(foto);
+                        await store.delete(foto.localId);
+                        console.log(`🗑️ Foto ${foto.localId} eliminada del cache`);
                     }
                 }
             } catch (error) {
