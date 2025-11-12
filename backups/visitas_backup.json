@@ -1,56 +1,9 @@
 {
-  "timestamp": "2025-11-08T15:14:18.186Z",
+  "timestamp": "2025-11-12T20:50:00.324Z",
   "visitas": {
-    "391": {
-      "estado": "completada",
-      "fechaInicio": "2025-11-07T18:03:29.335Z",
-      "fechaCompletada": "2025-11-07T18:04:57.834Z",
-      "reporte": {
-        "visita_id": "391",
-        "tecnico_id": "21",
-        "problemas_encontrados": "Instalación ",
-        "solucion_aplicada": "Instalación ",
-        "materiales_utilizados": "Clavos fibra y conector ",
-        "cliente_satisfecho": "si",
-        "requiere_seguimiento": false,
-        "notas": "",
-        "latitud": 7.8782603,
-        "longitud": -76.6481633,
-        "precision_gps": 8.979000091552734
-      },
-      "backupId": "backup_1762538697795_jv5dppubj"
-    },
-    "397": {
-      "estado": "completada",
-      "fechaInicio": "2025-11-07T18:07:43.986Z",
-      "fechaCompletada": "2025-11-07T18:08:50.198Z",
-      "reporte": {
-        "visita_id": "397",
-        "tecnico_id": "21",
-        "problemas_encontrados": "Caja ",
-        "solucion_aplicada": "Organizando ",
-        "materiales_utilizados": "Conectores",
-        "cliente_satisfecho": "si",
-        "requiere_seguimiento": false,
-        "notas": ""
-      },
-      "backupId": "backup_1762538930186_inudilxhr"
-    },
-    "402": {
-      "estado": "completada",
-      "fechaInicio": "2025-11-07T21:12:35.161Z",
-      "fechaCompletada": "2025-11-07T21:13:13.582Z",
-      "reporte": {
-        "visita_id": "402",
-        "tecnico_id": "21",
-        "problemas_encontrados": "Caja",
-        "solucion_aplicada": "Organizando ",
-        "materiales_utilizados": "Conectores ",
-        "cliente_satisfecho": "si",
-        "requiere_seguimiento": false,
-        "notas": ""
-      },
-      "backupId": "backup_1762549993554_oaqt0kfxn"
+    "344": {
+      "estado": "en_progreso",
+      "fechaInicio": "2025-11-12T16:45:21.068Z"
     }
   }
 }

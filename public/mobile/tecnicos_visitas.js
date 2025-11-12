@@ -1047,9 +1047,25 @@ async function guardarReporteVisita() {
         const visitaId = document.getElementById('visitaId').value;
         const visita = visitasAsignadas.find(v => v.id == visitaId);
 
+        // 🔧 FIX: Obtener tecnico_id de manera robusta (no depender solo del campo hidden)
+        let tecnicoId = tecnicoActual?.id;
+        if (!tecnicoId) {
+            const userStorage = localStorage.getItem('user_tecnico');
+            if (userStorage) {
+                try {
+                    const user = JSON.parse(userStorage);
+                    tecnicoId = user.id;
+                } catch (e) {
+                    console.error('❌ Error parseando user_tecnico desde localStorage:', e);
+                }
+            }
+        }
+
+        console.log(`🔍 [DEBUG] tecnico_id obtenido: ${tecnicoId} (tecnicoActual: ${tecnicoActual?.id}, localStorage: ${localStorage.getItem('user_tecnico') ? 'existe' : 'no existe'})`);
+
         const formData = {
             visita_id: visitaId,
-            tecnico_id: document.getElementById('tecnicoId').value,
+            tecnico_id: tecnicoId || 'unknown',
             problemas_encontrados: document.getElementById('problemasEncontrados').value,
             solucion_aplicada: document.getElementById('solucionAplicada').value,
             materiales_utilizados: document.getElementById('materialesUtilizados').value,
