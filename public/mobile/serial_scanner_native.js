@@ -438,11 +438,37 @@ async function confirmarSerialEquipo() {
  */
 async function verificarSerialEnBD(serial) {
     const div = document.getElementById('estadoVerificacion');
+
+    // 📴 Si está OFFLINE, no verificar con servidor - solo guardar
+    if (!navigator.onLine) {
+        console.log('📴 [SERIAL] Modo offline: Serial capturado sin verificación en servidor');
+        div.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-wifi-slash"></i> <strong>Modo Offline</strong><br>
+                Serial capturado: <code>${serial}</code><br>
+                <small>Se validará automáticamente cuando vuelva la conexión</small>
+            </div>
+        `;
+
+        // Guardar serial capturado
+        window.serialEquipoCapturado = serial;
+        window.tipoEquipoCapturado = document.getElementById('tipoEquipo').value;
+
+        // Habilitar botón confirmar
+        const btn = document.getElementById('btnConfirmarSerial');
+        btn.disabled = false;
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-primary');
+        btn.textContent = 'Confirmar Serial (Offline)';
+
+        return; // Salir sin verificar
+    }
+
     div.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Verificando...</div>';
 
     try {
         const token = localStorage.getItem('token_tecnico');
-        const response = await fetch('/api/verificar-serial', {
+        const response = await fetch(APP_CONFIG.getApiUrl('/api/verificar-serial'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -530,7 +556,32 @@ async function verificarSerialEnBD(serial) {
             console.log(`✅ SERIAL APROBADO: ${serial} disponible para asignar`);
         }
     } catch (error) {
-        div.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Error verificando</div>';
+        console.error('❌ [SERIAL] Error verificando serial:', error);
+
+        // Si es error de conexión, tratar como offline
+        if (!navigator.onLine || error.message.includes('Failed to fetch')) {
+            console.log('📴 [SERIAL] Error de conexión detectado, trabajando en modo offline');
+            div.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-wifi-slash"></i> <strong>Sin conexión</strong><br>
+                    Serial capturado: <code>${serial}</code><br>
+                    <small>Se validará cuando vuelva la conexión</small>
+                </div>
+            `;
+
+            // Guardar serial capturado
+            window.serialEquipoCapturado = serial;
+            window.tipoEquipoCapturado = document.getElementById('tipoEquipo').value;
+
+            // Habilitar botón confirmar
+            const btn = document.getElementById('btnConfirmarSerial');
+            btn.disabled = false;
+            btn.classList.remove('btn-secondary');
+            btn.classList.add('btn-primary');
+            btn.textContent = 'Confirmar Serial (Offline)';
+        } else {
+            div.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Error verificando serial</div>';
+        }
     }
 }
 
