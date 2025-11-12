@@ -611,21 +611,36 @@ const localidadesDisponibles = {
 let sslOptions = null;
 let useHTTPS = false;
 
-// Verificar si existen los certificados SSL
-if (fs.existsSync('ssl/private-key.pem') && fs.existsSync('ssl/certificate.pem')) {
+// PRIORIDAD 1: Certificado válido de Let's Encrypt para cliente.solucnet.com
+const letsencryptPath = '/etc/letsencrypt/live/cliente.solucnet.com';
+if (fs.existsSync(`${letsencryptPath}/privkey.pem`) && fs.existsSync(`${letsencryptPath}/fullchain.pem`)) {
+    try {
+        sslOptions = {
+            key: fs.readFileSync(`${letsencryptPath}/privkey.pem`),
+            cert: fs.readFileSync(`${letsencryptPath}/fullchain.pem`)
+        };
+        useHTTPS = true;
+        console.log('✅ Certificados SSL de Let\'s Encrypt cargados (cliente.solucnet.com) - Válido hasta Feb 2026');
+    } catch (error) {
+        console.log('❌ Error cargando certificados de Let\'s Encrypt:', error.message);
+    }
+}
+// FALLBACK: Certificado autofirmado viejo (solo si Let's Encrypt no disponible)
+if (!useHTTPS && fs.existsSync('ssl/private-key.pem') && fs.existsSync('ssl/certificate.pem')) {
     try {
         sslOptions = {
             key: fs.readFileSync('ssl/private-key.pem'),
             cert: fs.readFileSync('ssl/certificate.pem')
         };
         useHTTPS = true;
-        console.log('🔒 Certificados SSL encontrados - Usando HTTPS');
+        console.log('⚠️ Certificados SSL autofirmados cargados (FALLBACK) - Usar Let\'s Encrypt en producción');
     } catch (error) {
         console.log('⚠️  Error cargando certificados SSL:', error.message);
         console.log('🔄 Usando HTTP en su lugar');
         useHTTPS = false;
     }
-} else {
+}
+if (!useHTTPS) {
     console.log('⚠️  No se encontraron certificados SSL');
     console.log('🔄 Usando HTTP');
     useHTTPS = false;
