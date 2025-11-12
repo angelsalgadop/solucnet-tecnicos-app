@@ -927,7 +927,7 @@
 
             try {
                 // Verificar que el token sea válido
-                const response = await fetch('/api/session', {
+                const response = await fetch(APP_CONFIG.getApiUrl('/api/session'), {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
