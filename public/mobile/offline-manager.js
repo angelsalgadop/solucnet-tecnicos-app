@@ -226,16 +226,30 @@ class OfflineManager {
         if (!this.db) return false;
 
         try {
-            const tx = this.db.transaction('offline-visitas', 'readwrite');
-            const store = tx.objectStore('offline-visitas');
+            console.log(`🔍 [OFFLINE MANAGER] Guardando ${visitas.length} visitas en IndexedDB...`);
 
+            // Guardar cada visita en transacción separada
             for (const visita of visitas) {
+                const tx = this.db.transaction('offline-visitas', 'readwrite');
+                const store = tx.objectStore('offline-visitas');
+
                 visita.tecnico_id = tecnicoId;
                 visita.timestamp = Date.now();
-                await store.put(visita);
+
+                await new Promise((resolve, reject) => {
+                    const request = store.put(visita);
+                    request.onsuccess = () => {
+                        console.log(`✅ [OFFLINE MANAGER] Visita ${visita.id} guardada en cache`);
+                        resolve();
+                    };
+                    request.onerror = () => {
+                        console.error(`❌ [OFFLINE MANAGER] Error guardando visita ${visita.id}:`, request.error);
+                        reject(request.error);
+                    };
+                });
             }
 
-            console.log(`✅ [OFFLINE MANAGER] ${visitas.length} visitas guardadas offline`);
+            console.log(`✅ [OFFLINE MANAGER] ${visitas.length} visitas guardadas offline correctamente`);
             return true;
         } catch (error) {
             console.error('❌ [OFFLINE MANAGER] Error guardando visitas offline:', error);
