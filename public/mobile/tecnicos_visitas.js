@@ -134,9 +134,21 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
 
         // 💾 GUARDAR visitas en IndexedDB para modo offline
         if (resultado.visitas && resultado.visitas.length > 0 && window.offlineManager) {
-            const tecnicoId = tecnicoActual?.id || 'unknown';
+            // Obtener tecnicoId desde resultado, tecnicoActual o localStorage como fallback
+            let tecnicoId = resultado.tecnico?.id || tecnicoActual?.id;
+            if (!tecnicoId) {
+                const userStorage = localStorage.getItem('user_tecnico');
+                if (userStorage) {
+                    try {
+                        const user = JSON.parse(userStorage);
+                        tecnicoId = user.id;
+                    } catch (e) {}
+                }
+            }
+            tecnicoId = tecnicoId || 'unknown';
+
             await window.offlineManager.saveVisitasOffline(resultado.visitas, tecnicoId);
-            console.log(`💾 [CACHE] ${resultado.visitas.length} visitas guardadas en IndexedDB para offline`);
+            console.log(`💾 [CACHE] ${resultado.visitas.length} visitas guardadas en IndexedDB para técnico ${tecnicoId}`);
         }
 
         // Calcular hash de los datos nuevos
@@ -222,7 +234,20 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
         if (!navigator.onLine && window.offlineManager) {
             console.log('📴 [OFFLINE] Cargando visitas desde IndexedDB...');
             try {
-                const tecnicoId = tecnicoActual?.id || 'unknown';
+                // Obtener tecnicoId desde tecnicoActual o localStorage como fallback
+                let tecnicoId = tecnicoActual?.id;
+                if (!tecnicoId) {
+                    const userStorage = localStorage.getItem('user_tecnico');
+                    if (userStorage) {
+                        try {
+                            const user = JSON.parse(userStorage);
+                            tecnicoId = user.id;
+                        } catch (e) {}
+                    }
+                }
+                tecnicoId = tecnicoId || 'unknown';
+                console.log(`📴 [OFFLINE] Buscando visitas para técnico ID: ${tecnicoId}`);
+
                 const visitasOffline = await window.offlineManager.loadVisitasOffline(tecnicoId);
 
                 if (visitasOffline && visitasOffline.length > 0) {
