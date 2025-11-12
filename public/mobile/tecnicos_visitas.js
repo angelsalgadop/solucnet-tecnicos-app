@@ -1008,6 +1008,14 @@ async function guardarReporteVisita() {
         if (!navigator.onLine) {
             console.log('📴 [OFFLINE] Sin conexión, guardando reporte offline');
 
+            // Agregar información de serial si se capturó (para asignar cuando sincronice)
+            if (window.serialEquipoCapturado) {
+                formData.serialEquipo = window.serialEquipoCapturado;
+                formData.tipoEquipo = window.tipoEquipoCapturado || 'Onu CData';
+                formData.costoEquipo = 180000;
+                console.log(`📦 [OFFLINE] Serial guardado en reporte offline: ${formData.serialEquipo}`);
+            }
+
             // Guardar reporte en IndexedDB
             const reporteLocalId = await window.offlineManager.saveReporteOffline(formData);
 
@@ -1018,6 +1026,10 @@ async function guardarReporteVisita() {
                 }
 
                 mostrarAlerta('⚠️ Sin conexión: Reporte guardado en modo offline. Se sincronizará cuando vuelva la conexión.', 'warning');
+
+                // Limpiar serial capturado
+                window.serialEquipoCapturado = null;
+                window.tipoEquipoCapturado = null;
 
                 // Remover la visita de la lista local
                 visitasAsignadas = visitasAsignadas.filter(v => v.id != formData.visita_id);
@@ -1110,6 +1122,14 @@ async function guardarReporteVisita() {
                 formData.precision_gps = coordenadasCapturadas.accuracy;
             }
 
+            // Agregar información de serial si se capturó
+            if (window.serialEquipoCapturado) {
+                formData.serialEquipo = window.serialEquipoCapturado;
+                formData.tipoEquipo = window.tipoEquipoCapturado || 'Onu CData';
+                formData.costoEquipo = 180000;
+                console.log(`📦 [OFFLINE] Serial guardado en reporte offline (catch): ${formData.serialEquipo}`);
+            }
+
             const reporteLocalId = await window.offlineManager.saveReporteOffline(formData);
 
             if (reporteLocalId) {
@@ -1119,6 +1139,10 @@ async function guardarReporteVisita() {
                 }
 
                 mostrarAlerta('⚠️ Sin conexión: Reporte guardado en modo offline. Se sincronizará cuando vuelva la conexión.', 'warning');
+
+                // Limpiar serial capturado
+                window.serialEquipoCapturado = null;
+                window.tipoEquipoCapturado = null;
 
                 // Remover la visita de la lista local
                 visitasAsignadas = visitasAsignadas.filter(v => v.id != formData.visita_id);

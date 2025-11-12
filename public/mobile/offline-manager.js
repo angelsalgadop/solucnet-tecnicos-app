@@ -268,7 +268,12 @@ class OfflineManager {
             reporteData.sincronizado = false;
             reporteData.timestamp = Date.now();
 
-            const result = await store.add(reporteData);
+            // Envolver en Promise para obtener el ID correcto
+            const result = await new Promise((resolve, reject) => {
+                const request = store.add(reporteData);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
 
             console.log('✅ [OFFLINE MANAGER] Reporte guardado offline con ID:', result);
 
@@ -294,14 +299,19 @@ class OfflineManager {
                 // Convertir File a base64 para almacenar
                 const base64 = await this.fileToBase64(foto);
 
-                await store.add({
-                    reporte_id: reporteLocalId,
-                    nombre: foto.name,
-                    tipo: foto.type,
-                    tamano: foto.size,
-                    data: base64,
-                    sincronizado: false,
-                    timestamp: Date.now()
+                // Envolver en Promise para manejar correctamente
+                await new Promise((resolve, reject) => {
+                    const request = store.add({
+                        reporte_id: reporteLocalId,
+                        nombre: foto.name,
+                        tipo: foto.type,
+                        tamano: foto.size,
+                        data: base64,
+                        sincronizado: false,
+                        timestamp: Date.now()
+                    });
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
                 });
             }
 
@@ -331,11 +341,16 @@ class OfflineManager {
             const tx = this.db.transaction('offline-requests', 'readwrite');
             const store = tx.objectStore('offline-requests');
 
-            await store.add({
-                url: `/api/visitas-tecnicas/${visitaId}/iniciar`,
-                method: 'PUT',
-                data: {},
-                timestamp: Date.now()
+            // Envolver en Promise para manejar correctamente
+            await new Promise((resolve, reject) => {
+                const request = store.add({
+                    url: `/api/visitas-tecnicas/${visitaId}/iniciar`,
+                    method: 'PUT',
+                    data: {},
+                    timestamp: Date.now()
+                });
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
             });
 
             console.log('✅ [OFFLINE MANAGER] Inicio de visita guardado para sincronización posterior');
@@ -351,10 +366,11 @@ class OfflineManager {
     async syncRequests() {
         if (!this.db) return;
 
-        const tx = this.db.transaction('offline-requests', 'readwrite');
-        const store = tx.objectStore('offline-requests');
+        // Leer requests pendientes
+        const txRead = this.db.transaction('offline-requests', 'readonly');
+        const storeRead = txRead.objectStore('offline-requests');
         const requests = await new Promise((resolve) => {
-            const req = store.getAll();
+            const req = storeRead.getAll();
             req.onsuccess = () => resolve(req.result || []);
             req.onerror = () => resolve([]);
         });
@@ -371,7 +387,15 @@ class OfflineManager {
 
                 if (response.ok) {
                     console.log(`✅ Request ${request.url} sincronizado`);
-                    await store.delete(request.timestamp);
+
+                    // Crear nueva transacción para delete
+                    const txDelete = this.db.transaction('offline-requests', 'readwrite');
+                    const storeDelete = txDelete.objectStore('offline-requests');
+                    await new Promise((resolve, reject) => {
+                        const delReq = storeDelete.delete(request.timestamp);
+                        delReq.onsuccess = () => resolve();
+                        delReq.onerror = () => reject(delReq.error);
+                    });
                 }
             } catch (error) {
                 console.error(`❌ Error sincronizando request ${request.url}:`, error);
@@ -420,13 +444,13 @@ class OfflineManager {
     async syncReportes() {
         if (!this.db) return;
 
-        const tx = this.db.transaction('offline-reportes', 'readwrite');
-        const store = tx.objectStore('offline-reportes');
-        const index = store.index('sincronizado');
+        // Leer reportes pendientes
+        const txRead = this.db.transaction('offline-reportes', 'readonly');
+        const storeRead = txRead.objectStore('offline-reportes');
+        const indexRead = storeRead.index('sincronizado');
 
-        // Usar Promise para manejar correctamente el getAll
         const reportes = await new Promise((resolve) => {
-            const request = index.getAll(IDBKeyRange.only(false));
+            const request = indexRead.getAll(IDBKeyRange.only(false));
             request.onsuccess = () => resolve(request.result || []);
             request.onerror = () => resolve([]);
         });
@@ -445,28 +469,70 @@ class OfflineManager {
                     const result = await response.json();
                     console.log(`✅ Reporte ${reporte.localId} sincronizado (ID servidor: ${result.reporteId})`);
 
-                    // CRÍTICO: Actualizar reporte_id de las fotos asociadas ANTES de marcar como sincronizado
-                    const txFotos = this.db.transaction('offline-fotos', 'readwrite');
-                    const fotosStore = txFotos.objectStore('offline-fotos');
-                    const fotosIndex = fotosStore.index('reporte_id');
+                    // CRÍTICO: Actualizar reporte_id de las fotos asociadas
+                    const txFotosRead = this.db.transaction('offline-fotos', 'readonly');
+                    const fotosStoreRead = txFotosRead.objectStore('offline-fotos');
+                    const fotosIndexRead = fotosStoreRead.index('reporte_id');
 
-                    const fotasDelReporte = await new Promise((resolve, reject) => {
-                        const request = fotosIndex.getAll(IDBKeyRange.only(reporte.localId));
+                    const fotasDelReporte = await new Promise((resolve) => {
+                        const request = fotosIndexRead.getAll(IDBKeyRange.only(reporte.localId));
                         request.onsuccess = () => resolve(request.result || []);
-                        request.onerror = () => reject(request.error);
+                        request.onerror = () => resolve([]);
                     });
 
                     console.log(`🔄 Actualizando reporte_id de ${fotasDelReporte.length} fotos: ${reporte.localId} → ${result.reporteId}`);
 
+                    // Actualizar fotos en nueva transacción
                     for (const foto of fotasDelReporte) {
-                        foto.reporte_id = result.reporteId; // Actualizar a serverId
-                        await fotosStore.put(foto);
+                        foto.reporte_id = result.reporteId;
+                        const txFotosWrite = this.db.transaction('offline-fotos', 'readwrite');
+                        const fotosStoreWrite = txFotosWrite.objectStore('offline-fotos');
+                        await new Promise((resolve, reject) => {
+                            const req = fotosStoreWrite.put(foto);
+                            req.onsuccess = () => resolve();
+                            req.onerror = () => reject(req.error);
+                        });
                     }
 
-                    // Marcar como sincronizado
+                    // Marcar reporte como sincronizado en nueva transacción
                     reporte.sincronizado = true;
                     reporte.serverId = result.reporteId;
-                    await store.put(reporte);
+                    const txReporteWrite = this.db.transaction('offline-reportes', 'readwrite');
+                    const storeWrite = txReporteWrite.objectStore('offline-reportes');
+                    await new Promise((resolve, reject) => {
+                        const req = storeWrite.put(reporte);
+                        req.onsuccess = () => resolve();
+                        req.onerror = () => reject(req.error);
+                    });
+
+                    // Si el reporte tiene serial de equipo, asignarlo al completar
+                    if (reporte.serialEquipo && reporte.visita_id) {
+                        console.log(`📦 [OFFLINE MANAGER] Asignando equipo: ${reporte.serialEquipo} a visita ${reporte.visita_id}`);
+                        try {
+                            const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
+                            const respAsignar = await fetch(APP_CONFIG.getApiUrl('/api/asignar-equipo'), {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                    visitaId: reporte.visita_id,
+                                    serialEquipo: reporte.serialEquipo,
+                                    costoEquipo: reporte.costoEquipo || 180000,
+                                    tipoEquipo: reporte.tipoEquipo || 'Onu CData'
+                                })
+                            });
+
+                            if (respAsignar.ok) {
+                                console.log(`✅ [OFFLINE MANAGER] Equipo ${reporte.serialEquipo} asignado exitosamente`);
+                            } else {
+                                console.error(`⚠️ [OFFLINE MANAGER] Error asignando equipo: ${respAsignar.status}`);
+                            }
+                        } catch (errorAsignar) {
+                            console.error(`❌ [OFFLINE MANAGER] Error asignando equipo:`, errorAsignar);
+                        }
+                    }
                 }
             } catch (error) {
                 console.error(`❌ Error sincronizando reporte ${reporte.localId}:`, error);
@@ -478,13 +544,13 @@ class OfflineManager {
     async syncFotos() {
         if (!this.db) return;
 
-        const tx = this.db.transaction('offline-fotos', 'readwrite');
-        const store = tx.objectStore('offline-fotos');
-        const index = store.index('sincronizado');
+        // Leer fotos pendientes
+        const txRead = this.db.transaction('offline-fotos', 'readonly');
+        const storeRead = txRead.objectStore('offline-fotos');
+        const indexRead = storeRead.index('sincronizado');
 
-        // Usar Promise para manejar correctamente el getAll
         const fotos = await new Promise((resolve) => {
-            const request = index.getAll(IDBKeyRange.only(false));
+            const request = indexRead.getAll(IDBKeyRange.only(false));
             request.onsuccess = () => resolve(request.result || []);
             request.onerror = () => resolve([]);
         });
@@ -522,7 +588,13 @@ class OfflineManager {
 
                     // ⚠️ ELIMINAR fotos del cache inmediatamente después de sincronizar
                     for (const foto of fotosReporte) {
-                        await store.delete(foto.localId);
+                        const txDelete = this.db.transaction('offline-fotos', 'readwrite');
+                        const storeDelete = txDelete.objectStore('offline-fotos');
+                        await new Promise((resolve, reject) => {
+                            const req = storeDelete.delete(foto.localId);
+                            req.onsuccess = () => resolve();
+                            req.onerror = () => reject(req.error);
+                        });
                         console.log(`🗑️ Foto ${foto.localId} eliminada del cache`);
                     }
                 }
