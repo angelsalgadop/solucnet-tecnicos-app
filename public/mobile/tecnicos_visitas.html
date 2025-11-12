@@ -918,15 +918,37 @@
         // Verificar autenticación antes de cargar cualquier contenido
         (async function verificarAutenticacion() {
             const token = localStorage.getItem('token_tecnico');
+            const userStr = localStorage.getItem('user_tecnico');
 
             if (!token) {
-                // No hay token, redirigir al login
+                console.log('❌ No hay token, redirigiendo al login');
                 APP_CONFIG.redirectTo('login_tecnicos.html');
                 return;
             }
 
+            // Si está offline, permitir acceso con token guardado
+            if (!navigator.onLine) {
+                console.log('📴 Modo offline: Verificando usuario guardado...');
+                try {
+                    const user = JSON.parse(userStr);
+                    if (user && user.rol === 'tecnico') {
+                        console.log('✅ Offline: Usuario válido, permitiendo acceso:', user.nombre);
+                        return; // Permitir continuar
+                    } else {
+                        console.log('❌ Offline: Usuario no válido o no es técnico');
+                        APP_CONFIG.redirectTo('login_tecnicos.html');
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error parseando usuario offline:', error);
+                    APP_CONFIG.redirectTo('login_tecnicos.html');
+                    return;
+                }
+            }
+
+            // Si está online, verificar token con servidor
+            console.log('🌐 Online: Verificando token con servidor...');
             try {
-                // Verificar que el token sea válido
                 const response = await fetch(APP_CONFIG.getApiUrl('/api/session'), {
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -936,9 +958,11 @@
                 const data = await response.json();
 
                 if (!data.success || !data.user) {
+                    console.log('❌ Token inválido o expirado, limpiando sesión');
                     // Token inválido o expirado
                     localStorage.removeItem('token_tecnico');
                     localStorage.removeItem('user_tecnico');
+                    localStorage.removeItem('login_timestamp');
                     localStorage.removeItem('remember_tecnico');
                     sessionStorage.removeItem('user_tecnico');
                     APP_CONFIG.redirectTo('login_tecnicos.html');
@@ -947,9 +971,10 @@
 
                 // Verificar que sea un técnico
                 if (data.user.rol !== 'tecnico') {
-                    // No es técnico, redirigir al login
+                    console.log('❌ Usuario no es técnico, denegando acceso');
                     localStorage.removeItem('token_tecnico');
                     localStorage.removeItem('user_tecnico');
+                    localStorage.removeItem('login_timestamp');
                     localStorage.removeItem('remember_tecnico');
                     sessionStorage.removeItem('user_tecnico');
                     alert('Acceso denegado. Solo usuarios técnicos pueden acceder a esta página.');
@@ -958,13 +983,28 @@
                 }
 
                 // Todo OK, usuario autenticado correctamente
-                console.log('Usuario autenticado:', data.user.nombre);
+                console.log('✅ Usuario autenticado:', data.user.nombre);
 
             } catch (error) {
                 console.error('Error verificando autenticación:', error);
-                // Error en la verificación, redirigir al login
+                // Si hay error online pero tenemos usuario guardado, permitir acceso
+                if (userStr) {
+                    try {
+                        const user = JSON.parse(userStr);
+                        if (user && user.rol === 'tecnico') {
+                            console.log('⚠️ Error verificando online, pero usuario guardado es válido, permitiendo acceso');
+                            return; // Permitir continuar
+                        }
+                    } catch (err) {
+                        console.error('Error parseando usuario guardado:', err);
+                    }
+                }
+
+                // Si no hay usuario guardado o es inválido, redirigir
+                console.log('❌ Error verificando y no hay usuario válido guardado, redirigiendo al login');
                 localStorage.removeItem('token_tecnico');
                 localStorage.removeItem('user_tecnico');
+                localStorage.removeItem('login_timestamp');
                 localStorage.removeItem('remember_tecnico');
                 sessionStorage.removeItem('user_tecnico');
                 APP_CONFIG.redirectTo('login_tecnicos.html');

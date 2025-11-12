@@ -22,11 +22,19 @@ document.addEventListener('DOMContentLoaded', function() {
 function configurarEventListeners() {
     // Cerrar sesión
     document.getElementById('btnCerrarSesion').addEventListener('click', function() {
+        console.log('🚪 Cerrando sesión...');
         // Limpiar datos de sesión del técnico
         localStorage.removeItem('token_tecnico');
         localStorage.removeItem('user_tecnico');
+        localStorage.removeItem('login_timestamp');
         localStorage.removeItem('remember_tecnico');
         sessionStorage.removeItem('user_tecnico');
+
+        // Limpiar también filtros guardados
+        localStorage.removeItem('filtro_localidad_tecnico');
+        localStorage.removeItem('filtro_estado_tecnico');
+
+        console.log('✅ Sesión cerrada, redirigiendo al login...');
         // Redirigir al login de técnicos
         APP_CONFIG.redirectTo('login_tecnicos.html');
     });
