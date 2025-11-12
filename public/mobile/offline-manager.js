@@ -228,8 +228,30 @@ class OfflineManager {
         try {
             console.log(`🔍 [OFFLINE MANAGER] Guardando ${visitas.length} visitas en IndexedDB...`);
 
+            // 🔧 FIX: Obtener reportes pendientes de sincronización
+            const txReportes = this.db.transaction('offline-reportes', 'readonly');
+            const storeReportes = txReportes.objectStore('offline-reportes');
+            const allReportes = await new Promise((resolve) => {
+                const request = storeReportes.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => resolve([]);
+            });
+
+            // Filtrar reportes no sincronizados
+            const reportesPendientes = allReportes.filter(r => r.sincronizado === false);
+            const visitasConReportesPendientes = new Set(reportesPendientes.map(r => String(r.visita_id)));
+
+            if (visitasConReportesPendientes.size > 0) {
+                console.log(`⚠️ [OFFLINE MANAGER] ${visitasConReportesPendientes.size} visitas tienen reportes pendientes de sincronización y NO serán agregadas al cache:`, Array.from(visitasConReportesPendientes));
+            }
+
+            // Filtrar visitas: excluir las que tienen reportes pendientes
+            const visitasAGuardar = visitas.filter(v => !visitasConReportesPendientes.has(String(v.id)));
+
+            console.log(`📋 [OFFLINE MANAGER] Guardando ${visitasAGuardar.length} de ${visitas.length} visitas (${visitas.length - visitasAGuardar.length} excluidas por reportes pendientes)`);
+
             // Guardar cada visita en transacción separada
-            for (const visita of visitas) {
+            for (const visita of visitasAGuardar) {
                 const tx = this.db.transaction('offline-visitas', 'readwrite');
                 const store = tx.objectStore('offline-visitas');
 
@@ -249,7 +271,7 @@ class OfflineManager {
                 });
             }
 
-            console.log(`✅ [OFFLINE MANAGER] ${visitas.length} visitas guardadas offline correctamente`);
+            console.log(`✅ [OFFLINE MANAGER] ${visitasAGuardar.length} visitas guardadas offline correctamente`);
             return true;
         } catch (error) {
             console.error('❌ [OFFLINE MANAGER] Error guardando visitas offline:', error);
@@ -640,6 +662,16 @@ class OfflineManager {
                         req.onsuccess = () => resolve();
                         req.onerror = () => reject(req.error);
                     });
+
+                    // 🔧 FIX: Eliminar la visita del cache ahora que el reporte fue sincronizado
+                    if (reporte.visita_id) {
+                        try {
+                            await this.deleteVisitaOffline(reporte.visita_id);
+                            console.log(`🗑️ [OFFLINE MANAGER] Visita ${reporte.visita_id} eliminada del cache después de sincronizar reporte`);
+                        } catch (errorDelete) {
+                            console.error(`⚠️ [OFFLINE MANAGER] Error eliminando visita ${reporte.visita_id} del cache:`, errorDelete);
+                        }
+                    }
 
                     // Si el reporte tiene serial de equipo, asignarlo al completar
                     if (reporte.serialEquipo && reporte.visita_id) {

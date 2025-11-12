@@ -1,9 +1,27 @@
 {
-  "timestamp": "2025-11-12T20:50:00.324Z",
+  "timestamp": "2025-11-12T21:40:00.326Z",
   "visitas": {
     "344": {
-      "estado": "en_progreso",
-      "fechaInicio": "2025-11-12T16:45:21.068Z"
+      "estado": "completada",
+      "fechaInicio": "2025-11-12T16:45:21.068Z",
+      "fechaCompletada": "2025-11-12T21:37:28.607Z",
+      "reporte": {
+        "visita_id": "344",
+        "tecnico_id": 21,
+        "problemas_encontrados": "T",
+        "solucion_aplicada": "T",
+        "materiales_utilizados": "",
+        "cliente_satisfecho": "si",
+        "requiere_seguimiento": false,
+        "notas": "",
+        "serialEquipo": "ZTEGCC1757CE",
+        "tipoEquipo": "Onu CData",
+        "costoEquipo": 180000,
+        "sincronizado": false,
+        "timestamp": 1762983419055,
+        "localId": 1
+      },
+      "backupId": "backup_1762983448585_xjig37caq"
     }
   }
 }

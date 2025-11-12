@@ -1,10 +1,83 @@
 {
-  "timestamp": 1762981061413,
-  "estados": {},
+  "timestamp": 1762983840417,
+  "estados": {
+    "573206064374@c.us": {
+      "enEsperaHumano": {
+        "contador": 0,
+        "ultimaRespuesta": 1762981642994
+      },
+      "clienteEncontrado": {
+        "cliente": {
+          "id": 108,
+          "nombre": "YULIANA DEL CARMEN VELEZ ZAPATA",
+          "estado": "RETIRADO",
+          "cedula": "1028006240",
+          "telefono": "3206064374",
+          "movil": "3206064374",
+          "direccion_principal": "Cra 113  APTO 202 CONT  488186"
+        },
+        "facturas": [
+          {
+            "vencimiento": "15/01/2023",
+            "total": "65900.00",
+            "estado": "No pagado",
+            "situacion": "Vencida"
+          },
+          {
+            "vencimiento": "15/11/2022",
+            "total": "66400.00",
+            "estado": "No pagado",
+            "situacion": "Vencida"
+          },
+          {
+            "vencimiento": "15/12/2022",
+            "total": "74900.00",
+            "estado": "No pagado",
+            "situacion": "Vencida"
+          }
+        ],
+        "cuenta": {
+          "cuenta": "Bancolombia Ahorros *549-000016-75*.   *Recuerda que no aceptamos pago por nequi*"
+        },
+        "bd": {
+          "host": "192.168.99.50",
+          "user": "root",
+          "password": "Y9T1Q6P39YI6TJ2",
+          "database": "Mikrowisp6"
+        }
+      },
+      "seguimiento": null,
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": false,
+      "ultimaInteraccion": 1762981642994
+    },
+    "573203638170@c.us": {
+      "enEsperaHumano": null,
+      "clienteEncontrado": null,
+      "seguimiento": null,
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "primerErrorTimestamp": null,
+      "mensajeSolEnviado": true,
+      "ultimoMenuEnviado": 1762980452881,
+      "primeraInteraccion": false,
+      "ultimaInteraccion": 1762980538009
+    }
+  },
   "chatsFinalizados": [
     "573122664842@c.us",
     "573218941272@c.us",
-    "573208179459@c.us"
+    "573208179459@c.us",
+    "573228627445@c.us",
+    "573203910150@c.us",
+    "573137319562@c.us",
+    "573148855336@c.us",
+    "573122726716@c.us"
   ],
   "chatsActivos": {
     "573024019208@c.us": {
@@ -59,7 +132,31 @@
       "id": "573135648878@c.us",
       "phone": "573135648878",
       "name": "Angel",
-      "lastActivity": 1762933927000,
+      "lastActivity": 1762960398000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573002602418@c.us": {
+      "id": "573002602418@c.us",
+      "phone": "573002602418",
+      "name": "+57 300 2602418",
+      "lastActivity": 1762961658000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573206064374@c.us": {
+      "id": "573206064374@c.us",
+      "phone": "573206064374",
+      "name": "+573206064374",
+      "lastActivity": 1762981642994,
+      "mode": "human",
+      "pendiente": true
+    },
+    "573203638170@c.us": {
+      "id": "573203638170@c.us",
+      "phone": "573203638170",
+      "name": "+573203638170",
+      "lastActivity": 1762980538009,
       "mode": "bot",
       "pendiente": true
     }
@@ -83,7 +180,7 @@
     "573127114618@c.us": "bot",
     "573233620616@c.us": "bot",
     "573136899471@c.us": "bot",
-    "573206064374@c.us": "bot",
+    "573206064374@c.us": "human",
     "573158563992@c.us": "bot",
     "573205778598@c.us": "bot",
     "573136663763@c.us": "bot",
@@ -768,6 +865,8 @@
     "573144337683@c.us": "bot",
     "573104588673@c.us": "bot",
     "573148833911@c.us": "bot",
-    "573218941272@c.us": "bot"
+    "573203638170@c.us": "bot",
+    "573218941272@c.us": "bot",
+    "573148855336@c.us": "bot"
   }
 }
