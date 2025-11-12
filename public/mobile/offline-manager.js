@@ -295,16 +295,55 @@ class OfflineManager {
         }
 
         try {
+            console.log(`🔍 [OFFLINE MANAGER] Intentando eliminar visita ${visitaId} del cache`);
+
+            // Primero verificar que existe
+            const txCheck = this.db.transaction('offline-visitas', 'readonly');
+            const storeCheck = txCheck.objectStore('offline-visitas');
+            const visitaExiste = await new Promise((resolve) => {
+                const request = storeCheck.get(visitaId);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => resolve(null);
+            });
+
+            if (!visitaExiste) {
+                console.log(`⚠️ [OFFLINE MANAGER] Visita ${visitaId} NO existe en cache (ya fue eliminada o nunca se guardó)`);
+                return false;
+            }
+
+            console.log(`✅ [OFFLINE MANAGER] Visita ${visitaId} encontrada en cache:`, visitaExiste);
+
+            // Ahora eliminar
             const tx = this.db.transaction('offline-visitas', 'readwrite');
             const store = tx.objectStore('offline-visitas');
 
             await new Promise((resolve, reject) => {
                 const request = store.delete(visitaId);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    console.log(`✅ [OFFLINE MANAGER] Delete exitoso para visita ${visitaId}`);
+                    resolve();
+                };
+                request.onerror = () => {
+                    console.error(`❌ [OFFLINE MANAGER] Delete falló para visita ${visitaId}:`, request.error);
+                    reject(request.error);
+                };
             });
 
-            console.log(`🗑️ [OFFLINE MANAGER] Visita ${visitaId} eliminada del cache`);
+            // Verificar que se eliminó
+            const txVerify = this.db.transaction('offline-visitas', 'readonly');
+            const storeVerify = txVerify.objectStore('offline-visitas');
+            const sigueExistiendo = await new Promise((resolve) => {
+                const request = storeVerify.get(visitaId);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => resolve(null);
+            });
+
+            if (sigueExistiendo) {
+                console.error(`❌ [OFFLINE MANAGER] Visita ${visitaId} SIGUE en cache después de delete!`);
+                return false;
+            }
+
+            console.log(`🗑️ [OFFLINE MANAGER] Visita ${visitaId} eliminada correctamente del cache`);
             return true;
         } catch (error) {
             console.error('❌ [OFFLINE MANAGER] Error eliminando visita offline:', error);
