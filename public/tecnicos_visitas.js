@@ -131,10 +131,14 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
         if (hashNuevo !== hashVisitasAnterior || visitasAsignadas.length === 0) {
             console.log('✅ Datos actualizados detectados, recargando vista');
 
-            // GUARDAR filtros activos ANTES de recargar
-            const filtroLocalidadActual = document.getElementById('filtroLocalidad')?.value || '';
-            const filtroEstadoActual = document.getElementById('filtroEstado')?.value || '';
-            console.log(`💾 Guardando filtros - Localidad: "${filtroLocalidadActual}", Estado: "${filtroEstadoActual}"`);
+            // CARGAR filtros desde localStorage (persistencia entre sesiones)
+            const filtroLocalidadGuardado = localStorage.getItem('filtro_localidad_tecnico') || '';
+            const filtroEstadoGuardado = localStorage.getItem('filtro_estado_tecnico') || '';
+
+            // GUARDAR filtros activos actuales si existen, sino usar los guardados
+            const filtroLocalidadActual = document.getElementById('filtroLocalidad')?.value || filtroLocalidadGuardado;
+            const filtroEstadoActual = document.getElementById('filtroEstado')?.value || filtroEstadoGuardado;
+            console.log(`💾 Filtros detectados - Localidad: "${filtroLocalidadActual}", Estado: "${filtroEstadoActual}"`);
 
             // FILTRAR visitas completadas ANTES de asignar (nunca mostrarlas)
             const visitasSinCompletar = resultado.visitas.filter(v => v.estado !== 'completada');
@@ -164,9 +168,21 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             }
 
             if (filtrosAplicados) {
-                console.log(`🔄 Filtros restaurados - Localidad: "${filtroLocalidadActual}", Estado: "${filtroEstadoActual}"`);
-                // Aplicar filtros automáticamente para restaurar la vista filtrada
-                aplicarFiltros();
+                console.log(`🔄 Filtros restaurados desde localStorage - Localidad: "${filtroLocalidadActual}", Estado: "${filtroEstadoActual}"`);
+                // Aplicar filtros automáticamente para restaurar la vista filtrada (sin guardar nuevamente)
+                const localidadSeleccionada = filtroLocalidadActual;
+                const estadoSeleccionado = filtroEstadoActual;
+
+                let visitasFiltradas = [...visitasSinFiltrar];
+                if (localidadSeleccionada) {
+                    visitasFiltradas = visitasFiltradas.filter(visita => visita.localidad === localidadSeleccionada);
+                }
+                if (estadoSeleccionado) {
+                    visitasFiltradas = visitasFiltradas.filter(visita => visita.estado === estadoSeleccionado);
+                }
+
+                visitasAsignadas = visitasFiltradas;
+                mostrarVisitasAsignadas();
             } else {
                 mostrarVisitasAsignadas();
             }
@@ -1192,6 +1208,11 @@ function aplicarFiltros() {
     const localidadSeleccionada = document.getElementById('filtroLocalidad').value;
     const estadoSeleccionado = document.getElementById('filtroEstado').value;
 
+    // GUARDAR filtros en localStorage para persistencia
+    localStorage.setItem('filtro_localidad_tecnico', localidadSeleccionada);
+    localStorage.setItem('filtro_estado_tecnico', estadoSeleccionado);
+    console.log(`💾 Filtros guardados en localStorage - Localidad: "${localidadSeleccionada}", Estado: "${estadoSeleccionado}"`);
+
     let visitasFiltradas = [...visitasSinFiltrar];
 
     // Filtrar por Localidad
@@ -1231,6 +1252,11 @@ function aplicarFiltros() {
 function limpiarFiltros() {
     document.getElementById('filtroLocalidad').value = '';
     document.getElementById('filtroEstado').value = '';
+
+    // LIMPIAR filtros de localStorage
+    localStorage.removeItem('filtro_localidad_tecnico');
+    localStorage.removeItem('filtro_estado_tecnico');
+    console.log('🗑️ Filtros eliminados de localStorage');
 
     // Restaurar todas las visitas
     visitasAsignadas = [...visitasSinFiltrar];
@@ -1594,13 +1620,13 @@ function iniciarActualizacionAutomatica() {
         clearInterval(intervaloActualizacion);
     }
 
-    // Configurar actualización cada 10 segundos (10000 ms)
+    // Configurar actualización cada 30 segundos (30000 ms) - Optimizado para mejor rendimiento
     intervaloActualizacion = setInterval(async () => {
         console.log('🔄 Actualizando visitas automáticamente...');
         await cargarVisitasTecnico(false); // No mostrar spinner en actualizaciones automáticas
-    }, 10000);
+    }, 30000);
 
-    console.log('✅ Actualización automática iniciada (cada 10 segundos)');
+    console.log('✅ Actualización automática iniciada (cada 30 segundos)');
 }
 
 // Función para detener actualización automática

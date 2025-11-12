@@ -1,0 +1,57 @@
+workflows:
+  android-workflow:
+    name: Android Build
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
+    environment:
+      vars:
+        PACKAGE_NAME: "com.solucnet.tecnicos"
+      node: 18
+      java: 21
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm install
+      - name: Generate icons
+        script: |
+          node generate-icons.js || echo "Icons generation skipped"
+      - name: Copy web assets to Android
+        script: |
+          echo "Copiando archivos web a Android con Capacitor..."
+          npx cap sync android --no-build
+          echo "✅ Archivos sincronizados"
+          echo "Verificando archivos copiados:"
+          ls -la android/app/src/main/assets/public/*.html || echo "⚠️  No se encontraron HTML"
+          ls -la android/app/src/main/assets/capacitor.config.json || echo "⚠️  No se encontró config"
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Build Android APK
+        script: |
+          cd android
+          # Mostrar más información en caso de error
+          ./gradlew assembleDebug --stacktrace --warning-mode all || {
+            echo "❌ Build falló, mostrando información de debug:"
+            echo "=== Verificando archivos críticos ==="
+            ls -la app/src/main/assets/capacitor.config.json
+            ls -la capacitor-cordova-android-plugins/cordova.variables.gradle
+            echo "=== Mostrando configuración de Gradle ==="
+            cat build.gradle
+            exit 1
+          }
+    artifacts:
+      - android/app/build/outputs/**/*.apk
+      - android/app/build/outputs/**/mapping.txt
+    publishing:
+      email:
+        recipients:
+          - angelsalgadop@gmail.com
+        notify:
+          success: true
+          failure: true

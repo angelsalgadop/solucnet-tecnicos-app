@@ -43,7 +43,7 @@ release.properties
 .env
 .env.local
 secrets.json
-android/gradle.properties
+# android/gradle.properties  # ⚠️ COMENTADO: Necesario para Codemagic (contiene android.useAndroidX)
 
 # WhatsApp session
 .wwebjs_auth/
