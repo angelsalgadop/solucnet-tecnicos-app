@@ -99,8 +99,10 @@ const browserHealthCheck = {
     lastCheck: Date.now(),
     checkInterval: 120000, // Verificar cada 120 segundos (reducir sobrecarga)
     consecutiveFailures: 0,
-    maxFailures: 10, // Reiniciar después de 10 fallas consecutivas (20 minutos)
+    maxFailures: 3, // Reiniciar después de 3 fallas consecutivas (6 minutos) - REDUCIDO para detectar crashes más rápido
     zombieStateDetected: false,
+    sessionClosedErrors: 0, // Contador específico para errores "Session closed"
+    maxSessionClosedErrors: 2, // Reiniciar inmediatamente después de 2 errores "Session closed" consecutivos
     lastSuccessfulOperation: Date.now()
 };
 
@@ -138,25 +140,35 @@ async function verificarSaludNavegador() {
         }
 
         browserHealthCheck.consecutiveFailures = 0;
+        browserHealthCheck.sessionClosedErrors = 0; // Reset contador de errores session closed
         browserHealthCheck.lastSuccessfulOperation = Date.now();
         return { healthy: true };
     } catch (error) {
-        // Si es un error de "Session closed", puede ser temporal - dar más tolerancia
+        // Si es un error de "Session closed", rastrear específicamente
         const isSessionClosed = error.message.includes('Session closed') || error.message.includes('Protocol error');
 
-        // Solo incrementar fallas si NO es un error temporal de sesión
-        // o si ya llevamos varias fallas
-        if (!isSessionClosed || browserHealthCheck.consecutiveFailures >= 3) {
-            browserHealthCheck.consecutiveFailures++;
-            console.log(`⚠️ [HEALTH CHECK] Falla ${browserHealthCheck.consecutiveFailures}/${browserHealthCheck.maxFailures}: ${error.message}`);
+        if (isSessionClosed) {
+            browserHealthCheck.sessionClosedErrors++;
+            console.log(`🚨 [HEALTH CHECK] Error "Session closed" ${browserHealthCheck.sessionClosedErrors}/${browserHealthCheck.maxSessionClosedErrors} - Navegador probablemente crasheado`);
 
-            // Log adicional para errores de sesión cerrada
-            if (isSessionClosed) {
-                console.log('⚠️ [HEALTH CHECK] Sesión de Chrome cerrada - posible crash del navegador');
+            // Si hay 2+ errores "Session closed" consecutivos, es un crash crítico - reiniciar inmediatamente
+            if (browserHealthCheck.sessionClosedErrors >= browserHealthCheck.maxSessionClosedErrors) {
+                browserHealthCheck.consecutiveFailures = browserHealthCheck.maxFailures; // Forzar reinicio
+                console.log('💥 [HEALTH CHECK CRÍTICO] Navegador crasheado detectado - Forzando reinicio inmediato');
+                return { healthy: false, reason: 'session_closed_critical' };
             }
         } else {
-            // Error temporal, solo logging informativo
-            console.log(`ℹ️ [HEALTH CHECK] Error temporal ignorado: ${error.message}`);
+            // Reset contador si el error NO es "Session closed"
+            browserHealthCheck.sessionClosedErrors = 0;
+        }
+
+        // Incrementar contador general de fallas
+        browserHealthCheck.consecutiveFailures++;
+        console.log(`⚠️ [HEALTH CHECK] Falla ${browserHealthCheck.consecutiveFailures}/${browserHealthCheck.maxFailures}: ${error.message}`);
+
+        // Si es session closed, dar contexto adicional
+        if (isSessionClosed) {
+            console.log('⚠️ [HEALTH CHECK] Sesión de Chrome cerrada - posible crash del navegador');
         }
 
         return {
