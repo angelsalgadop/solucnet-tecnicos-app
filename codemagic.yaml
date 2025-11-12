@@ -23,12 +23,43 @@ workflows:
           node generate-icons.js || echo "Icons generation skipped"
       - name: Copy web assets to Android
         script: |
-          echo "Copiando archivos web a Android con Capacitor..."
-          npx cap sync android --no-build
-          echo "✅ Archivos sincronizados"
-          echo "Verificando archivos copiados:"
-          ls -la android/app/src/main/assets/public/*.html || echo "⚠️  No se encontraron HTML"
-          ls -la android/app/src/main/assets/capacitor.config.json || echo "⚠️  No se encontró config"
+          echo "=== Sincronizando con Capacitor ==="
+          echo "Versión de Capacitor:"
+          npx cap --version
+
+          echo ""
+          echo "Ejecutando: npx cap sync android"
+          npx cap sync android 2>&1 | tee sync-output.log
+
+          echo ""
+          echo "=== Verificando archivos generados ==="
+          echo "1. Assets web:"
+          ls -la android/app/src/main/assets/public/*.html 2>&1 || echo "⚠️  No se encontraron HTML"
+
+          echo ""
+          echo "2. Configuración Capacitor:"
+          ls -la android/app/src/main/assets/capacitor.config.json 2>&1 || echo "⚠️  No se encontró capacitor.config.json"
+
+          echo ""
+          echo "3. Directorio capacitor-cordova-android-plugins:"
+          ls -la android/capacitor-cordova-android-plugins/ 2>&1 || echo "⚠️  Directorio no existe"
+
+          echo ""
+          echo "4. Archivo cordova.variables.gradle:"
+          ls -la android/capacitor-cordova-android-plugins/cordova.variables.gradle 2>&1 || echo "❌ CRÍTICO: cordova.variables.gradle NO EXISTE"
+
+          echo ""
+          if [ ! -f android/capacitor-cordova-android-plugins/cordova.variables.gradle ]; then
+            echo "❌ ERROR: npx cap sync no generó capacitor-cordova-android-plugins"
+            echo "Contenido del directorio android/:"
+            ls -la android/
+            echo ""
+            echo "Output del sync:"
+            cat sync-output.log
+            exit 1
+          fi
+
+          echo "✅ Todos los archivos necesarios están presentes"
       - name: Set Android SDK location
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
