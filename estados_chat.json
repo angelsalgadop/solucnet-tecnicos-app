@@ -1,5 +1,5 @@
 {
-  "timestamp": 1762983840417,
+  "timestamp": 1762985580429,
   "estados": {
     "573206064374@c.us": {
       "enEsperaHumano": {
@@ -54,19 +54,6 @@
       "ultimoMenuEnviado": null,
       "primeraInteraccion": false,
       "ultimaInteraccion": 1762981642994
-    },
-    "573203638170@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": null,
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "primerErrorTimestamp": null,
-      "mensajeSolEnviado": true,
-      "ultimoMenuEnviado": 1762980452881,
-      "primeraInteraccion": false,
-      "ultimaInteraccion": 1762980538009
     }
   },
   "chatsFinalizados": [
@@ -77,7 +64,8 @@
     "573203910150@c.us",
     "573137319562@c.us",
     "573148855336@c.us",
-    "573122726716@c.us"
+    "573122726716@c.us",
+    "573203638170@c.us"
   ],
   "chatsActivos": {
     "573024019208@c.us": {
@@ -150,14 +138,6 @@
       "name": "+573206064374",
       "lastActivity": 1762981642994,
       "mode": "human",
-      "pendiente": true
-    },
-    "573203638170@c.us": {
-      "id": "573203638170@c.us",
-      "phone": "573203638170",
-      "name": "+573203638170",
-      "lastActivity": 1762980538009,
-      "mode": "bot",
       "pendiente": true
     }
   },

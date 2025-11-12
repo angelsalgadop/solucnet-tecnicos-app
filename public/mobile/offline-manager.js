@@ -300,11 +300,28 @@ class OfflineManager {
         }
 
         try {
+            // 🔧 FIX: Obtener reportes pendientes de sincronización
+            const txReportes = this.db.transaction('offline-reportes', 'readonly');
+            const storeReportes = txReportes.objectStore('offline-reportes');
+            const allReportes = await new Promise((resolve) => {
+                const request = storeReportes.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => resolve([]);
+            });
+
+            // Filtrar reportes no sincronizados
+            const reportesPendientes = allReportes.filter(r => r.sincronizado === false);
+            const visitasConReportesPendientes = new Set(reportesPendientes.map(r => parseInt(r.visita_id, 10)));
+
+            if (visitasConReportesPendientes.size > 0) {
+                console.log(`⚠️ [OFFLINE MANAGER] ${visitasConReportesPendientes.size} visitas tienen reportes pendientes, serán EXCLUIDAS al cargar:`, Array.from(visitasConReportesPendientes));
+            }
+
             const tx = this.db.transaction('offline-visitas', 'readonly');
             const store = tx.objectStore('offline-visitas');
             const index = store.index('tecnico_id');
 
-            const visitas = await new Promise((resolve) => {
+            const visitasRaw = await new Promise((resolve) => {
                 const request = index.getAll(tecnicoId);
                 request.onsuccess = () => resolve(request.result || []);
                 request.onerror = () => {
@@ -313,7 +330,10 @@ class OfflineManager {
                 };
             });
 
-            console.log(`✅ [OFFLINE MANAGER] ${visitas.length} visitas cargadas desde offline`);
+            // 🔧 FIX: Filtrar visitas que tienen reportes pendientes
+            const visitas = visitasRaw.filter(v => !visitasConReportesPendientes.has(v.id));
+
+            console.log(`✅ [OFFLINE MANAGER] ${visitas.length} visitas cargadas desde offline (${visitasRaw.length - visitas.length} excluidas por reportes pendientes)`);
             return visitas;
         } catch (error) {
             console.error('❌ [OFFLINE MANAGER] Error cargando visitas offline:', error);
@@ -331,36 +351,38 @@ class OfflineManager {
         }
 
         try {
-            console.log(`🔍 [OFFLINE MANAGER] Intentando eliminar visita ${visitaId} del cache`);
+            // 🔧 FIX: Convertir visitaId a número si viene como string
+            const visitaIdNum = typeof visitaId === 'string' ? parseInt(visitaId, 10) : visitaId;
+            console.log(`🔍 [OFFLINE MANAGER] Intentando eliminar visita ${visitaIdNum} del cache (original: ${visitaId}, tipo: ${typeof visitaId})`);
 
             // Primero verificar que existe
             const txCheck = this.db.transaction('offline-visitas', 'readonly');
             const storeCheck = txCheck.objectStore('offline-visitas');
             const visitaExiste = await new Promise((resolve) => {
-                const request = storeCheck.get(visitaId);
+                const request = storeCheck.get(visitaIdNum);
                 request.onsuccess = () => resolve(request.result);
                 request.onerror = () => resolve(null);
             });
 
             if (!visitaExiste) {
-                console.log(`⚠️ [OFFLINE MANAGER] Visita ${visitaId} NO existe en cache (ya fue eliminada o nunca se guardó)`);
+                console.log(`⚠️ [OFFLINE MANAGER] Visita ${visitaIdNum} NO existe en cache (ya fue eliminada o nunca se guardó)`);
                 return false;
             }
 
-            console.log(`✅ [OFFLINE MANAGER] Visita ${visitaId} encontrada en cache:`, visitaExiste);
+            console.log(`✅ [OFFLINE MANAGER] Visita ${visitaIdNum} encontrada en cache:`, visitaExiste);
 
             // Ahora eliminar
             const tx = this.db.transaction('offline-visitas', 'readwrite');
             const store = tx.objectStore('offline-visitas');
 
             await new Promise((resolve, reject) => {
-                const request = store.delete(visitaId);
+                const request = store.delete(visitaIdNum);
                 request.onsuccess = () => {
-                    console.log(`✅ [OFFLINE MANAGER] Delete exitoso para visita ${visitaId}`);
+                    console.log(`✅ [OFFLINE MANAGER] Delete exitoso para visita ${visitaIdNum}`);
                     resolve();
                 };
                 request.onerror = () => {
-                    console.error(`❌ [OFFLINE MANAGER] Delete falló para visita ${visitaId}:`, request.error);
+                    console.error(`❌ [OFFLINE MANAGER] Delete falló para visita ${visitaIdNum}:`, request.error);
                     reject(request.error);
                 };
             });
@@ -369,17 +391,17 @@ class OfflineManager {
             const txVerify = this.db.transaction('offline-visitas', 'readonly');
             const storeVerify = txVerify.objectStore('offline-visitas');
             const sigueExistiendo = await new Promise((resolve) => {
-                const request = storeVerify.get(visitaId);
+                const request = storeVerify.get(visitaIdNum);
                 request.onsuccess = () => resolve(request.result);
                 request.onerror = () => resolve(null);
             });
 
             if (sigueExistiendo) {
-                console.error(`❌ [OFFLINE MANAGER] Visita ${visitaId} SIGUE en cache después de delete!`);
+                console.error(`❌ [OFFLINE MANAGER] Visita ${visitaIdNum} SIGUE en cache después de delete!`);
                 return false;
             }
 
-            console.log(`🗑️ [OFFLINE MANAGER] Visita ${visitaId} eliminada correctamente del cache`);
+            console.log(`🗑️ [OFFLINE MANAGER] Visita ${visitaIdNum} eliminada correctamente del cache`);
             return true;
         } catch (error) {
             console.error('❌ [OFFLINE MANAGER] Error eliminando visita offline:', error);

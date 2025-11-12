@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-11-12T21:40:00.326Z",
+  "timestamp": "2025-11-12T22:10:00.326Z",
   "visitas": {
     "344": {
       "estado": "completada",
@@ -22,6 +22,28 @@
         "localId": 1
       },
       "backupId": "backup_1762983448585_xjig37caq"
+    },
+    "404": {
+      "estado": "completada",
+      "fechaInicio": "2025-11-12T21:57:14.813Z",
+      "fechaCompletada": "2025-11-12T21:57:15.178Z",
+      "reporte": {
+        "visita_id": "404",
+        "tecnico_id": 21,
+        "problemas_encontrados": "R",
+        "solucion_aplicada": "R",
+        "materiales_utilizados": "",
+        "cliente_satisfecho": "si",
+        "requiere_seguimiento": false,
+        "notas": "",
+        "serialEquipo": "ZTEGCC0B9948",
+        "tipoEquipo": "Onu CData",
+        "costoEquipo": 180000,
+        "sincronizado": false,
+        "timestamp": 1762984603557,
+        "localId": 1
+      },
+      "backupId": "backup_1762984635159_s5kbs9v30"
     }
   }
 }

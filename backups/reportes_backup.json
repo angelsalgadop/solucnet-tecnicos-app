@@ -3140,5 +3140,23 @@
     "localId": 1,
     "backup_timestamp": "2025-11-12T21:37:28.585Z",
     "backup_id": "backup_1762983448585_xjig37caq"
+  },
+  {
+    "visita_id": "404",
+    "tecnico_id": 21,
+    "problemas_encontrados": "R",
+    "solucion_aplicada": "R",
+    "materiales_utilizados": "",
+    "cliente_satisfecho": "si",
+    "requiere_seguimiento": false,
+    "notas": "",
+    "serialEquipo": "ZTEGCC0B9948",
+    "tipoEquipo": "Onu CData",
+    "costoEquipo": 180000,
+    "sincronizado": false,
+    "timestamp": 1762984603557,
+    "localId": 1,
+    "backup_timestamp": "2025-11-12T21:57:15.159Z",
+    "backup_id": "backup_1762984635159_s5kbs9v30"
   }
 ]
