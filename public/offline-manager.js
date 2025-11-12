@@ -184,8 +184,8 @@ class OfflineManager {
         try {
             const tx = this.db.transaction(['offline-reportes', 'offline-fotos', 'offline-requests'], 'readonly');
 
-            const reportes = await tx.objectStore('offline-reportes').index('sincronizado').getAll(false);
-            const fotos = await tx.objectStore('offline-fotos').index('sincronizado').getAll(false);
+            const reportes = await tx.objectStore('offline-reportes').index('sincronizado').getAll(IDBKeyRange.only(false));
+            const fotos = await tx.objectStore('offline-fotos').index('sincronizado').getAll(IDBKeyRange.only(false));
             const requests = await tx.objectStore('offline-requests').getAll();
 
             return reportes.length > 0 || fotos.length > 0 || requests.length > 0;
@@ -342,7 +342,7 @@ class OfflineManager {
         const tx = this.db.transaction('offline-reportes', 'readwrite');
         const store = tx.objectStore('offline-reportes');
         const index = store.index('sincronizado');
-        const reportes = await index.getAll(false);
+        const reportes = await index.getAll(IDBKeyRange.only(false));
 
         console.log(`📤 [OFFLINE MANAGER] Sincronizando ${reportes.length} reportes...`);
 
@@ -357,6 +357,24 @@ class OfflineManager {
                 if (response.ok) {
                     const result = await response.json();
                     console.log(`✅ Reporte ${reporte.localId} sincronizado (ID servidor: ${result.reporteId})`);
+
+                    // CRÍTICO: Actualizar reporte_id de las fotos asociadas ANTES de marcar como sincronizado
+                    const txFotos = this.db.transaction('offline-fotos', 'readwrite');
+                    const fotosStore = txFotos.objectStore('offline-fotos');
+                    const fotosIndex = fotosStore.index('reporte_id');
+
+                    const fotasDelReporte = await new Promise((resolve, reject) => {
+                        const request = fotosIndex.getAll(IDBKeyRange.only(reporte.localId));
+                        request.onsuccess = () => resolve(request.result || []);
+                        request.onerror = () => reject(request.error);
+                    });
+
+                    console.log(`🔄 Actualizando reporte_id de ${fotasDelReporte.length} fotos: ${reporte.localId} → ${result.reporteId}`);
+
+                    for (const foto of fotasDelReporte) {
+                        foto.reporte_id = result.reporteId; // Actualizar a serverId
+                        await fotosStore.put(foto);
+                    }
 
                     // Marcar como sincronizado
                     reporte.sincronizado = true;
@@ -376,7 +394,7 @@ class OfflineManager {
         const tx = this.db.transaction('offline-fotos', 'readwrite');
         const store = tx.objectStore('offline-fotos');
         const index = store.index('sincronizado');
-        const fotos = await index.getAll(false);
+        const fotos = await index.getAll(IDBKeyRange.only(false));
 
         console.log(`📤 [OFFLINE MANAGER] Sincronizando ${fotos.length} fotos...`);
 
