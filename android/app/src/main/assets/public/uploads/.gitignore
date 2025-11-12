@@ -1,0 +1,3 @@
+# Ignorar archivos subidos (PDFs, fotos, etc.)
+*
+!.gitignore

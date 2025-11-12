@@ -90,12 +90,12 @@ lint/tmp/
 *.hprof
 
 # Cordova plugins for Capacitor
-capacitor-cordova-android-plugins
+# capacitor-cordova-android-plugins  # ⚠️ COMENTADO: Necesario para Codemagic builds
 
 # Copied web assets
-app/src/main/assets/public
+# app/src/main/assets/public  # ⚠️ COMENTADO: Necesario para Codemagic builds
 
 # Generated Config files
-app/src/main/assets/capacitor.config.json
-app/src/main/assets/capacitor.plugins.json
-app/src/main/res/xml/config.xml
+# app/src/main/assets/capacitor.config.json  # ⚠️ COMENTADO: Necesario para Codemagic builds
+# app/src/main/assets/capacitor.plugins.json  # ⚠️ COMENTADO: Necesario para Codemagic builds
+# app/src/main/res/xml/config.xml  # ⚠️ COMENTADO: Necesario para Codemagic builds
