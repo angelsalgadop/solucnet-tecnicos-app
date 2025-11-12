@@ -1,7 +1,7 @@
 {
   "appId": "com.solucnet.tecnicos",
   "appName": "SolucNet Técnicos",
-  "webDir": "public",
+  "webDir": "public/mobile",
   "android": {
     "buildOptions": {
       "keystorePath": "android/release.keystore",
