@@ -243,9 +243,25 @@ class OfflineManager {
         }
     }
 
+    // Esperar a que IndexedDB esté listo
+    async waitForDB() {
+        let attempts = 0;
+        while (!this.db && attempts < 50) { // Máximo 5 segundos
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        return this.db !== null;
+    }
+
     // Cargar visitas desde offline
     async loadVisitasOffline(tecnicoId) {
-        if (!this.db) return [];
+        // Esperar a que db esté listo
+        await this.waitForDB();
+
+        if (!this.db) {
+            console.log('⚠️ [OFFLINE MANAGER] IndexedDB no está listo después de esperar');
+            return [];
+        }
 
         try {
             const tx = this.db.transaction('offline-visitas', 'readonly');
@@ -392,9 +408,19 @@ class OfflineManager {
 
         for (const request of requests) {
             try {
+                // Obtener token para autorización
+                const token = localStorage.getItem('token_tecnico');
+                if (!token) {
+                    console.error('❌ No hay token disponible para sincronizar request');
+                    continue;
+                }
+
                 const response = await fetch(APP_CONFIG.getApiUrl(request.url), {
                     method: request.method,
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: request.data ? JSON.stringify(request.data) : undefined
                 });
 
@@ -479,9 +505,19 @@ class OfflineManager {
 
         for (const reporte of reportes) {
             try {
+                // Obtener token para autorización
+                const token = localStorage.getItem('token_tecnico');
+                if (!token) {
+                    console.error('❌ No hay token disponible para sincronizar reporte');
+                    continue;
+                }
+
                 const response = await fetch(APP_CONFIG.getApiUrl('/api/reportes-visitas'), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify(reporte)
                 });
 
@@ -592,6 +628,13 @@ class OfflineManager {
         // Sincronizar por reporte
         for (const [reporteId, fotosReporte] of Object.entries(fotosPorReporte)) {
             try {
+                // Obtener token para autorización
+                const token = localStorage.getItem('token_tecnico');
+                if (!token) {
+                    console.error('❌ No hay token disponible para sincronizar fotos');
+                    continue;
+                }
+
                 const formData = new FormData();
                 formData.append('reporteId', reporteId);
 
@@ -603,6 +646,9 @@ class OfflineManager {
 
                 const response = await fetch(APP_CONFIG.getApiUrl('/api/reportes-fotos'), {
                     method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: formData
                 });
 
