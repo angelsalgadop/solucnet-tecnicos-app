@@ -17,7 +17,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
+          echo "=== Instalando dependencias ==="
           npm install
+
+          echo ""
+          echo "Verificando instalación de Capacitor:"
+          npm list @capacitor/cli @capacitor/android @capacitor/core | head -20 || echo "Algunas dependencias de Capacitor no están instaladas correctamente"
       - name: Generate icons
         script: |
           node generate-icons.js || echo "Icons generation skipped"
@@ -50,13 +55,32 @@ workflows:
 
           echo ""
           if [ ! -f android/capacitor-cordova-android-plugins/cordova.variables.gradle ]; then
-            echo "❌ ERROR: npx cap sync no generó capacitor-cordova-android-plugins"
-            echo "Contenido del directorio android/:"
-            ls -la android/
+            echo "⚠️  Primera sincronización no generó capacitor-cordova-android-plugins"
             echo ""
-            echo "Output del sync:"
-            cat sync-output.log
-            exit 1
+            echo "Intentando enfoque alternativo: npx cap update android"
+            npx cap update android 2>&1 | tee update-output.log
+
+            echo ""
+            echo "Verificando nuevamente:"
+            if [ ! -f android/capacitor-cordova-android-plugins/cordova.variables.gradle ]; then
+              echo "❌ ERROR CRÍTICO: No se pudo generar capacitor-cordova-android-plugins"
+              echo ""
+              echo "=== Diagnóstico completo ==="
+              echo "Contenido del directorio android/:"
+              ls -la android/
+              echo ""
+              echo "Contenido de capacitor.config.json:"
+              cat capacitor.config.json
+              echo ""
+              echo "Output del sync original:"
+              cat sync-output.log
+              echo ""
+              echo "Output del update:"
+              cat update-output.log
+              exit 1
+            else
+              echo "✅ npx cap update funcionó correctamente"
+            fi
           fi
 
           echo "✅ Todos los archivos necesarios están presentes"
