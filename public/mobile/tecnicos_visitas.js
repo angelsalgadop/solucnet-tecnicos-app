@@ -39,6 +39,13 @@ function configurarEventListeners() {
         APP_CONFIG.redirectTo('login_tecnicos.html');
     });
 
+    // Escuchar evento de sincronización completada
+    window.addEventListener('offline-sync-completed', async () => {
+        console.log('📢 [VISITAS] Sincronización completada, recargando visitas...');
+        await cargarVisitasTecnico();
+        mostrarAlerta('✅ Datos sincronizados con el servidor', 'success');
+    });
+
     // Drag and drop para fotos
     const uploadArea = document.querySelector('.file-upload-area');
 
@@ -1166,7 +1173,9 @@ async function guardarReporteVisita() {
 
                 // Remover la visita de la lista local
                 visitasAsignadas = visitasAsignadas.filter(v => v.id != formData.visita_id);
+                visitasSinFiltrar = visitasSinFiltrar.filter(v => v.id != formData.visita_id);
                 mostrarVisitasAsignadas();
+                console.log(`🗑️ [OFFLINE] Visita ${formData.visita_id} eliminada de la lista local`);
 
                 // Cerrar modal
                 bootstrap.Modal.getInstance(document.getElementById('modalCompletarVisita')).hide();
@@ -1279,7 +1288,9 @@ async function guardarReporteVisita() {
 
                 // Remover la visita de la lista local
                 visitasAsignadas = visitasAsignadas.filter(v => v.id != formData.visita_id);
+                visitasSinFiltrar = visitasSinFiltrar.filter(v => v.id != formData.visita_id);
                 mostrarVisitasAsignadas();
+                console.log(`🗑️ [OFFLINE] Visita ${formData.visita_id} eliminada de la lista local`);
 
                 // Cerrar modal
                 bootstrap.Modal.getInstance(document.getElementById('modalCompletarVisita')).hide();

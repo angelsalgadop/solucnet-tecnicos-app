@@ -304,12 +304,13 @@ class OfflineManager {
         if (!this.db) return false;
 
         try {
-            const tx = this.db.transaction('offline-fotos', 'readwrite');
-            const store = tx.objectStore('offline-fotos');
-
             for (const foto of fotos) {
                 // Convertir File a base64 para almacenar
                 const base64 = await this.fileToBase64(foto);
+
+                // Crear transacción separada para cada foto
+                const tx = this.db.transaction('offline-fotos', 'readwrite');
+                const store = tx.objectStore('offline-fotos');
 
                 // Envolver en Promise para manejar correctamente
                 await new Promise((resolve, reject) => {
@@ -444,6 +445,10 @@ class OfflineManager {
 
             // Actualizar UI
             this.updateUIConnectionStatus(true);
+
+            // Disparar evento para que la app recargue las visitas
+            window.dispatchEvent(new CustomEvent('offline-sync-completed'));
+            console.log('📢 [OFFLINE MANAGER] Evento offline-sync-completed disparado');
 
         } catch (error) {
             console.error('❌ [OFFLINE MANAGER] Error durante sincronización:', error);

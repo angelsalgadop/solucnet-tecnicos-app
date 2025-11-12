@@ -452,7 +452,8 @@ async function verificarSerialEnBD(serial) {
 
         // Guardar serial capturado
         window.serialEquipoCapturado = serial;
-        window.tipoEquipoCapturado = document.getElementById('tipoEquipo').value;
+        const tipoEquipoSelect = document.getElementById('tipoEquipo');
+        window.tipoEquipoCapturado = tipoEquipoSelect ? tipoEquipoSelect.value : 'Onu CData';
 
         // Habilitar botón confirmar
         const btn = document.getElementById('btnConfirmarSerial');
@@ -460,6 +461,7 @@ async function verificarSerialEnBD(serial) {
         btn.classList.remove('btn-secondary');
         btn.classList.add('btn-primary');
         btn.textContent = 'Confirmar Serial (Offline)';
+        btn.onclick = guardarSerialYContinuar; // IMPORTANTE: Asignar función
 
         return; // Salir sin verificar
     }
@@ -571,7 +573,8 @@ async function verificarSerialEnBD(serial) {
 
             // Guardar serial capturado
             window.serialEquipoCapturado = serial;
-            window.tipoEquipoCapturado = document.getElementById('tipoEquipo').value;
+            const tipoEquipoSelect = document.getElementById('tipoEquipo');
+            window.tipoEquipoCapturado = tipoEquipoSelect ? tipoEquipoSelect.value : 'Onu CData';
 
             // Habilitar botón confirmar
             const btn = document.getElementById('btnConfirmarSerial');
@@ -579,6 +582,7 @@ async function verificarSerialEnBD(serial) {
             btn.classList.remove('btn-secondary');
             btn.classList.add('btn-primary');
             btn.textContent = 'Confirmar Serial (Offline)';
+            btn.onclick = guardarSerialYContinuar; // IMPORTANTE: Asignar función
         } else {
             div.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Error verificando serial</div>';
         }
