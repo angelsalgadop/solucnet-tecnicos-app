@@ -28,7 +28,7 @@ function configurarEventListeners() {
         localStorage.removeItem('remember_tecnico');
         sessionStorage.removeItem('user_tecnico');
         // Redirigir al login de técnicos
-        window.location.href = '/login_tecnicos.html';
+        APP_CONFIG.redirectTo('login_tecnicos.html');
     });
 
     // Drag and drop para fotos
@@ -80,7 +80,7 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
     try {
         const token = localStorage.getItem('token_tecnico');
         if (!token) {
-            window.location.href = '/login_tecnicos.html';
+            APP_CONFIG.redirectTo('login_tecnicos.html');
             return;
         }
 
@@ -96,7 +96,7 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             `;
         }
 
-        const response = await fetch('/api/mis-visitas', {
+        const response = await fetch(APP_CONFIG.getApiUrl('/api/mis-visitas', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -112,7 +112,7 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                 localStorage.removeItem('token_tecnico');
                 localStorage.removeItem('user_tecnico');
                 localStorage.removeItem('remember_tecnico');
-                window.location.href = '/login_tecnicos.html';
+                APP_CONFIG.redirectTo('login_tecnicos.html');
                 return;
             }
             throw new Error(resultado.message || 'Error cargando visitas');
@@ -959,7 +959,7 @@ async function guardarReporteVisita() {
         }
 
         // Enviar reporte
-        const response = await fetch('/api/reportes-visitas', {
+        const response = await fetch(APP_CONFIG.getApiUrl('/api/reportes-visitas', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1035,7 +1035,7 @@ async function subirFotosReporte(reporteId) {
             formData.append('fotos', fotosSeleccionadas[i]);
         }
 
-        const response = await fetch('/api/reportes-fotos', {
+        const response = await fetch(APP_CONFIG.getApiUrl('/api/reportes-fotos', {
             method: 'POST',
             body: formData
         });
@@ -1429,7 +1429,7 @@ async function notificarClienteLlegada(visitaId) {
 
     try {
         // Enviar notificación de llegada
-        const response = await fetch('/api/notificar-llegada-cliente', {
+        const response = await fetch(APP_CONFIG.getApiUrl('/api/notificar-llegada-cliente', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1538,7 +1538,7 @@ async function cancelarVisitaPorFaltaContacto(visitaId) {
     if (!visita) return;
 
     try {
-        const response = await fetch('/api/cancelar-visita-sin-contacto', {
+        const response = await fetch(APP_CONFIG.getApiUrl('/api/cancelar-visita-sin-contacto', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1742,7 +1742,7 @@ async function enviarUbicacionTecnico() {
                 console.log('📍 [CLIENTE] Enviando ubicación al servidor...');
 
                 // Enviar ubicación al servidor
-                const response = await fetch('/api/tecnicos/ubicacion', {
+                const response = await fetch(APP_CONFIG.getApiUrl('/api/tecnicos/ubicacion', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2070,7 +2070,7 @@ async function cargarUbicacionesClientes() {
         }
 
         // Obtener ubicaciones de clientes desde el servidor
-        const response = await fetch('/api/ubicaciones-clientes-asignados', {
+        const response = await fetch(APP_CONFIG.getApiUrl('/api/ubicaciones-clientes-asignados', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -2222,7 +2222,7 @@ async function verificarPermisoAgregarNaps() {
         const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
         console.log('🔍 [NAP] Token encontrado:', token ? 'Sí' : 'No');
 
-        const response = await fetch('/api/usuario-actual', {
+        const response = await fetch(APP_CONFIG.getApiUrl('/api/usuario-actual', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -2552,7 +2552,7 @@ async function guardarNuevaNap() {
     try {
         const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
 
-        const response = await fetch('/api/cajas-nap', {
+        const response = await fetch(APP_CONFIG.getApiUrl('/api/cajas-nap', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2612,7 +2612,7 @@ async function asignarEquipoAlCompletar(visitaId, serialEquipo, costoEquipo = 18
 
         const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
 
-        const response = await fetch('/api/asignar-equipo', {
+        const response = await fetch(APP_CONFIG.getApiUrl('/api/asignar-equipo', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

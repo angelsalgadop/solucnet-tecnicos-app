@@ -907,6 +907,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
+    <script src="config.js"></script>
+
     <!-- Sistema de Gestión Offline para App Móvil -->
     <script src="offline-manager.js?v=1.0.0"></script>
 
@@ -919,7 +921,7 @@
 
             if (!token) {
                 // No hay token, redirigir al login
-                window.location.href = '/login_tecnicos.html';
+                APP_CONFIG.redirectTo('login_tecnicos.html');
                 return;
             }
 
@@ -939,7 +941,7 @@
                     localStorage.removeItem('user_tecnico');
                     localStorage.removeItem('remember_tecnico');
                     sessionStorage.removeItem('user_tecnico');
-                    window.location.href = '/login_tecnicos.html';
+                    APP_CONFIG.redirectTo('login_tecnicos.html');
                     return;
                 }
 
@@ -951,7 +953,7 @@
                     localStorage.removeItem('remember_tecnico');
                     sessionStorage.removeItem('user_tecnico');
                     alert('Acceso denegado. Solo usuarios técnicos pueden acceder a esta página.');
-                    window.location.href = '/login_tecnicos.html';
+                    APP_CONFIG.redirectTo('login_tecnicos.html');
                     return;
                 }
 
@@ -965,7 +967,7 @@
                 localStorage.removeItem('user_tecnico');
                 localStorage.removeItem('remember_tecnico');
                 sessionStorage.removeItem('user_tecnico');
-                window.location.href = '/login_tecnicos.html';
+                APP_CONFIG.redirectTo('login_tecnicos.html');
             }
         })();
     </script>
