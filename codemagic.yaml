@@ -37,7 +37,16 @@ workflows:
       - name: Build Android APK
         script: |
           cd android
-          ./gradlew assembleDebug
+          # Mostrar más información en caso de error
+          ./gradlew assembleDebug --stacktrace --warning-mode all || {
+            echo "❌ Build falló, mostrando información de debug:"
+            echo "=== Verificando archivos críticos ==="
+            ls -la app/src/main/assets/capacitor.config.json
+            ls -la capacitor-cordova-android-plugins/cordova.variables.gradle
+            echo "=== Mostrando configuración de Gradle ==="
+            cat build.gradle
+            exit 1
+          }
     artifacts:
       - android/app/build/outputs/**/*.apk
       - android/app/build/outputs/**/mapping.txt
