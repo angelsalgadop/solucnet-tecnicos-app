@@ -2,13 +2,18 @@
   "appId": "com.solucnet.tecnicos",
   "appName": "SolucNet Técnicos",
   "webDir": "public/mobile",
+  "server": {
+    "cleartext": true,
+    "hostname": "cliente.solucnet.com"
+  },
   "android": {
     "buildOptions": {
       "keystorePath": "android/release.keystore",
       "keystoreAlias": "solucnet-key"
     },
     "allowMixedContent": true,
-    "backgroundColor": "#28a745"
+    "backgroundColor": "#28a745",
+    "webContentsDebuggingEnabled": true
   },
   "plugins": {
     "SplashScreen": {
