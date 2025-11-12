@@ -14,10 +14,10 @@ const APP_CONFIG = {
         return false;
     })(),
 
-    // URL del servidor (IMPORTANTE: Cambiar esto a tu dominio real)
+    // URL del servidor (IMPORTANTE: Solo la base, sin rutas)
     // Para desarrollo local: 'http://localhost:3000'
-    // Para producción: 'https://tu-servidor.com'
-    SERVER_URL: 'https://solucnet.com',
+    // Para producción: 'https://tu-servidor.com:puerto'
+    SERVER_URL: 'https://cliente.solucnet.com:3000',
 
     // Función helper para construir URLs de API
     getApiUrl: function(endpoint) {
