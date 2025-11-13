@@ -347,14 +347,14 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
         }
         actualizarIndicadorActualizacion();
 
-        // 🔧 FIX v1.55: Descargar PDFs automáticamente en background
+        // 🔧 FIX v1.60: Descargar PDFs automáticamente con modal de progreso
         if (navigator.onLine && visitasAsignadas.length > 0) {
-            // Ejecutar en background sin bloquear la UI
+            // Ejecutar con modal de progreso visible
             setTimeout(() => {
-                descargarPDFsEnBackground().catch(err => {
+                descargarPDFsEnBackground(true).catch(err => {
                     console.warn('⚠️ [PDFS AUTO] Error en descarga automática:', err);
                 });
-            }, 2000); // Esperar 2 segundos después de cargar visitas
+            }, 1000); // Esperar 1 segundo después de cargar visitas
         }
     }
 }
@@ -1823,8 +1823,8 @@ async function cargarPdfsVisita(visitaId) {
     }
 }
 
-// 🔧 FIX v1.55: Descargar PDFs automáticamente en background
-async function descargarPDFsEnBackground() {
+// 🔧 FIX v1.60: Descargar PDFs automáticamente con barra de progreso
+async function descargarPDFsEnBackground(mostrarModal = false) {
     // Solo ejecutar si hay conexión
     if (!navigator.onLine) {
         console.log('📴 [PDFS AUTO] Sin conexión, omitiendo descarga automática');
@@ -1845,57 +1845,106 @@ async function descargarPDFsEnBackground() {
         return;
     }
 
-    let totalDescargados = 0;
-    let totalYaEnCache = 0;
-
-    for (const visita of visitasAsignadas) {
-        try {
-            // Obtener lista de PDFs para esta visita
-            const response = await fetch(APP_CONFIG.getApiUrl(`/api/visitas/${visita.id}/archivos-pdf`), {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) continue; // Saltar si hay error
-
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) continue;
-
-            const resultado = await response.json();
-
-            if (resultado.success && resultado.archivos && resultado.archivos.length > 0) {
-                for (const archivo of resultado.archivos) {
-                    try {
-                        // Verificar si ya está en caché
-                        const pdfCached = await window.offlineManager.getPdfOffline(visita.id, archivo.nombre_archivo);
-
-                        if (pdfCached) {
-                            totalYaEnCache++;
-                            continue; // Ya está descargado
-                        }
-
-                        // Descargar y guardar en caché
-                        const pdfUrl = APP_CONFIG.getApiUrl(`/uploads/pdfs_visitas/${archivo.nombre_archivo}`);
-                        const pdfResponse = await fetch(pdfUrl, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-
-                        if (pdfResponse.ok) {
-                            const pdfBlob = await pdfResponse.blob();
-                            await window.offlineManager.savePdfOffline(visita.id, archivo.nombre_archivo, archivo.nombre_original, pdfBlob);
-                            totalDescargados++;
-                            console.log(`✅ [PDFS AUTO] Descargado: ${archivo.nombre_original} (visita ${visita.id})`);
-                        }
-                    } catch (pdfError) {
-                        console.warn(`⚠️ [PDFS AUTO] Error descargando ${archivo.nombre_archivo}:`, pdfError.message);
-                    }
-                }
-            }
-        } catch (visitaError) {
-            console.warn(`⚠️ [PDFS AUTO] Error procesando visita ${visita.id}:`, visitaError.message);
-        }
+    // Mostrar modal si se solicita
+    let modal = null;
+    if (mostrarModal && document.getElementById('modalCargaPdfs')) {
+        modal = new bootstrap.Modal(document.getElementById('modalCargaPdfs'));
+        modal.show();
     }
 
-    console.log(`📥 [PDFS AUTO] Descarga completada - Nuevos: ${totalDescargados}, Ya en caché: ${totalYaEnCache}`);
+    try {
+        // PASO 1: Contar total de PDFs disponibles
+        if (modal) document.getElementById('textoCargaPdfs').textContent = 'Verificando archivos disponibles...';
+
+        let totalPdfs = 0;
+        const pdfsParaDescargar = [];
+
+        for (const visita of visitasAsignadas) {
+            try {
+                const response = await fetch(APP_CONFIG.getApiUrl(`/api/visitas/${visita.id}/archivos-pdf`), {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const resultado = await response.json();
+                    if (resultado.success && resultado.archivos && resultado.archivos.length > 0) {
+                        for (const archivo of resultado.archivos) {
+                            pdfsParaDescargar.push({ visita, archivo });
+                            totalPdfs++;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn(`⚠️ [PDFS AUTO] Error obteniendo lista de visita ${visita.id}:`, error.message);
+            }
+        }
+
+        console.log(`📊 [PDFS AUTO] Total de PDFs encontrados: ${totalPdfs}`);
+
+        if (totalPdfs === 0) {
+            console.log('📄 [PDFS AUTO] No hay PDFs para descargar');
+            if (modal) modal.hide();
+            return;
+        }
+
+        // PASO 2: Descargar PDFs con progreso
+        let descargados = 0;
+        let yaEnCache = 0;
+
+        for (let i = 0; i < pdfsParaDescargar.length; i++) {
+            const { visita, archivo } = pdfsParaDescargar[i];
+
+            try {
+                // Verificar si ya está en caché
+                const pdfCached = await window.offlineManager.getPdfOffline(visita.id, archivo.nombre_archivo);
+
+                if (pdfCached) {
+                    yaEnCache++;
+                    console.log(`💾 [PDFS AUTO] Ya en caché: ${archivo.nombre_original}`);
+                } else {
+                    // Descargar
+                    const pdfUrl = APP_CONFIG.getApiUrl(`/uploads/pdfs_visitas/${archivo.nombre_archivo}`);
+                    const pdfResponse = await fetch(pdfUrl, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (pdfResponse.ok) {
+                        const pdfBlob = await pdfResponse.blob();
+                        await window.offlineManager.savePdfOffline(visita.id, archivo.nombre_archivo, archivo.nombre_original, pdfBlob);
+                        descargados++;
+                        console.log(`✅ [PDFS AUTO] Descargado: ${archivo.nombre_original}`);
+                    }
+                }
+
+                // Actualizar progreso
+                const procesados = descargados + yaEnCache;
+                const porcentaje = Math.round((procesados / totalPdfs) * 100);
+
+                if (modal) {
+                    document.getElementById('textoCargaPdfs').textContent = `Descargando ${archivo.nombre_original}...`;
+                    document.getElementById('barraProgresoPdfs').style.width = `${porcentaje}%`;
+                    document.getElementById('barraProgresoPdfs').setAttribute('aria-valuenow', porcentaje);
+                    document.getElementById('porcentajePdfs').textContent = `${porcentaje}%`;
+                    document.getElementById('contadorPdfs').textContent = `${procesados} / ${totalPdfs} archivos`;
+                }
+
+            } catch (pdfError) {
+                console.warn(`⚠️ [PDFS AUTO] Error descargando ${archivo.nombre_archivo}:`, pdfError.message);
+            }
+        }
+
+        console.log(`📥 [PDFS AUTO] Descarga completada - Nuevos: ${descargados}, Ya en caché: ${yaEnCache}`);
+
+        // Cerrar modal después de 500ms
+        if (modal) {
+            document.getElementById('textoCargaPdfs').textContent = '¡Descarga completada!';
+            setTimeout(() => modal.hide(), 500);
+        }
+
+    } catch (error) {
+        console.error('❌ [PDFS AUTO] Error en descarga:', error);
+        if (modal) modal.hide();
+    }
 }
 
 // Variables globales para cronómetros
@@ -2454,14 +2503,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// 🔧 FIX v1.58: Listener para descargar PDFs cuando la conexión vuelve
+// 🔧 FIX v1.60: Listener para descargar PDFs cuando la conexión vuelve
 window.addEventListener('online', function() {
     console.log('🌐 [CONEXIÓN] Conexión restaurada - Descargando PDFs pendientes...');
 
     // Esperar un momento para asegurar que la conexión esté estable
     setTimeout(() => {
         if (visitasAsignadas && visitasAsignadas.length > 0) {
-            descargarPDFsEnBackground().catch(err => {
+            descargarPDFsEnBackground(true).catch(err => {
                 console.warn('⚠️ [PDFS AUTO] Error en descarga tras reconexión:', err);
             });
         }
