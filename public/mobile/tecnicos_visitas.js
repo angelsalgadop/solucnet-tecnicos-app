@@ -3104,7 +3104,7 @@ async function asignarEquipoAlCompletar(visitaId, serialEquipo, costoEquipo = 18
     }
 }
 
-// 🔧 FIX v1.49: Función para abrir PDFs en app nativa y web
+// 🔧 FIX v1.50: Función para descargar y abrir PDFs en app nativa
 async function abrirPdfEnApp(blobUrl, nombreArchivo) {
     try {
         console.log(`📄 [ABRIR PDF] Intentando abrir: ${nombreArchivo}`);
@@ -3112,24 +3112,69 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
         console.log(`📄 [ABRIR PDF] Es app nativa: ${APP_CONFIG.isNative()}`);
 
         if (APP_CONFIG.isNative() && window.Capacitor) {
-            // En app nativa, usar Browser plugin de Capacitor
-            console.log('📱 [ABRIR PDF] Abriendo en app nativa con Browser...');
+            // En app nativa: DESCARGAR al almacenamiento y abrir con app externa
+            console.log('📱 [ABRIR PDF] Descargando PDF al almacenamiento del teléfono...');
 
-            // Verificar si Browser está disponible
-            if (window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
-                await window.Capacitor.Plugins.Browser.open({
-                    url: blobUrl,
-                    presentationStyle: 'popover'
+            // 1. Obtener Blob desde blob URL
+            const response = await fetch(blobUrl);
+            const blob = await response.blob();
+            console.log(`📄 [ABRIR PDF] Blob obtenido: ${blob.size} bytes, tipo: ${blob.type}`);
+
+            // 2. Convertir Blob a base64
+            const reader = new FileReader();
+            const base64Data = await new Promise((resolve, reject) => {
+                reader.onloadend = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+            console.log(`📄 [ABRIR PDF] Convertido a base64: ${base64Data.length} caracteres`);
+
+            // 3. Guardar en almacenamiento usando Capacitor Filesystem
+            const { Filesystem, Directory } = window.Capacitor.Plugins;
+            const fileName = `solucnet_${Date.now()}_${nombreArchivo}`;
+
+            await Filesystem.writeFile({
+                path: fileName,
+                data: base64Data,
+                directory: Directory.Documents,
+                recursive: true
+            });
+            console.log(`✅ [ABRIR PDF] PDF guardado en Documents: ${fileName}`);
+
+            // 4. Obtener URI del archivo
+            const fileUri = await Filesystem.getUri({
+                path: fileName,
+                directory: Directory.Documents
+            });
+            console.log(`📄 [ABRIR PDF] URI del archivo: ${fileUri.uri}`);
+
+            // 5. Intentar abrir con FileOpener
+            if (window.Capacitor.Plugins.FileOpener) {
+                console.log('📱 [ABRIR PDF] Abriendo con FileOpener...');
+                await window.Capacitor.Plugins.FileOpener.open({
+                    filePath: fileUri.uri,
+                    contentType: 'application/pdf',
+                    openWithDefault: true
                 });
-                console.log('✅ [ABRIR PDF] PDF abierto con Browser plugin');
+                console.log('✅ [ABRIR PDF] PDF abierto con FileOpener');
+                alert(`PDF descargado exitosamente:\n${fileName}\n\nSe abrirá con tu visor de PDFs.`);
+            } else if (window.Capacitor.Plugins.Share) {
+                // Fallback: compartir archivo (permite al usuario elegir con qué abrirlo)
+                console.log('📱 [ABRIR PDF] Compartiendo archivo...');
+                await window.Capacitor.Plugins.Share.share({
+                    title: nombreArchivo,
+                    text: 'Abrir PDF',
+                    url: fileUri.uri,
+                    dialogTitle: 'Abrir PDF con...'
+                });
+                console.log('✅ [ABRIR PDF] PDF compartido');
             } else {
-                // Fallback: abrir en nueva ventana (puede no funcionar en todas las apps)
-                console.log('⚠️ [ABRIR PDF] Browser plugin no disponible, usando window.open...');
-                const nuevaVentana = window.open(blobUrl, '_blank');
-                if (!nuevaVentana) {
-                    throw new Error('No se pudo abrir el PDF. Tu navegador puede estar bloqueando ventanas emergentes.');
-                }
-                console.log('✅ [ABRIR PDF] PDF abierto con window.open');
+                // Si no hay plugins, solo notificar que se descargó
+                console.log('⚠️ [ABRIR PDF] Plugins no disponibles, archivo descargado');
+                alert(`PDF descargado exitosamente en Documentos:\n${fileName}\n\nEncontrarlo en la carpeta de Documentos de tu teléfono.`);
             }
         } else {
             // En web, abrir en nueva pestaña
@@ -3141,8 +3186,9 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
             console.log('✅ [ABRIR PDF] PDF abierto en nueva pestaña');
         }
     } catch (error) {
-        console.error('❌ [ABRIR PDF] Error abriendo PDF:', error);
-        alert(`Error al abrir PDF: ${error.message}\n\nIntenta descargar el archivo en su lugar.`);
+        console.error('❌ [ABRIR PDF] Error:', error);
+        console.error('❌ [ABRIR PDF] Stack:', error.stack);
+        alert(`Error al abrir PDF: ${error.message}\n\nPor favor verifica que tienes permisos de almacenamiento habilitados.`);
     }
 }
 

@@ -55,12 +55,17 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
-    <!-- Almacenamiento (para guardar fotos offline) -->
+    <!-- Almacenamiento (para guardar fotos y PDFs offline) -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
                      android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
                      android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!-- 🔧 FIX v1.50: Permisos para descargar y abrir PDFs -->
+    <uses-permission android:name="android.permission.READ_MEDIA_DOCUMENTS" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+                     android:maxSdkVersion="33" />
 
     <!-- Vibración (para notificaciones) -->
     <uses-permission android:name="android.permission.VIBRATE" />
