@@ -3121,11 +3121,14 @@ async function mostrarNotificacionDescarga(nombreArchivo, fileUri) {
             }
 
             // Crear notificación de descarga completa
+            // Generar ID válido para Java int (max 2147483647)
+            const notificationId = Math.floor(Date.now() % 2147483647);
+
             await LocalNotifications.schedule({
                 notifications: [{
                     title: '📄 PDF Descargado',
                     body: `${nombreArchivo}\nToca para abrir`,
-                    id: Date.now(),
+                    id: notificationId,
                     schedule: { at: new Date(Date.now()) },
                     sound: 'default',
                     smallIcon: 'ic_stat_download',
