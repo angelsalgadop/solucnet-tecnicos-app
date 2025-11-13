@@ -1,5 +1,5 @@
 // Service Worker para SolucNet Técnicos - Modo Offline Completo
-const CACHE_NAME = 'solucnet-tecnicos-v1.42.0';
+const CACHE_NAME = 'solucnet-tecnicos-v1.53.0-FORCE-REFRESH';
 const OFFLINE_DATA_STORE = 'solucnet-offline-data';
 const SYNC_TAG = 'sync-visitas';
 
@@ -18,13 +18,21 @@ const CRITICAL_RESOURCES = [
 
 // Install: Cachear recursos críticos
 self.addEventListener('install', (event) => {
-    console.log('[SW] Instalando Service Worker...');
+    console.log('[SW] 🔄 Instalando Service Worker v1.53 - FORZANDO ACTUALIZACIÓN...');
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            console.log('[SW] Cacheando recursos críticos');
+        caches.keys().then((cacheNames) => {
+            // Eliminar TODAS las cachés antiguas inmediatamente
+            console.log('[SW] 🗑️ Eliminando TODAS las cachés antiguas:', cacheNames);
+            return Promise.all(
+                cacheNames.map((cacheName) => caches.delete(cacheName))
+            );
+        }).then(() => {
+            return caches.open(CACHE_NAME);
+        }).then((cache) => {
+            console.log('[SW] 💾 Cacheando recursos críticos con versión nueva');
             return cache.addAll(CRITICAL_RESOURCES);
         }).then(() => {
-            console.log('[SW] Service Worker instalado correctamente');
+            console.log('[SW] ✅ Service Worker v1.53 instalado correctamente');
             return self.skipWaiting();
         })
     );
@@ -280,4 +288,4 @@ function notifyClientsSyncComplete() {
 }
 
 // Mensaje de log
-console.log('[SW] Service Worker SolucNet Técnicos cargado');
+console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.53 CARGADO - Cache limpiado');
