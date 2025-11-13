@@ -3204,7 +3204,40 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
             });
             console.log(`📄 [ABRIR PDF] URI del archivo: ${fileUri.uri}`);
 
-            // 6. Intentar abrir con FileOpener
+            // 6. Mostrar notificación de Android de descarga completa
+            try {
+                if (window.Capacitor.Plugins.LocalNotifications) {
+                    const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+
+                    // Solicitar permisos si es necesario
+                    const permResult = await LocalNotifications.checkPermissions();
+                    if (permResult.display !== 'granted') {
+                        await LocalNotifications.requestPermissions();
+                    }
+
+                    // Crear notificación de descarga completa
+                    await LocalNotifications.schedule({
+                        notifications: [{
+                            title: '📄 PDF Descargado',
+                            body: `${nombreArchivo}\nToca para abrir`,
+                            id: Date.now(),
+                            schedule: { at: new Date(Date.now()) },
+                            sound: 'default',
+                            smallIcon: 'ic_stat_download',
+                            channelId: 'downloads',
+                            extra: {
+                                action: 'open_pdf',
+                                filePath: fileUri.uri
+                            }
+                        }]
+                    });
+                    console.log('✅ [NOTIFICACIÓN] Notificación de descarga mostrada');
+                }
+            } catch (notifError) {
+                console.warn('⚠️ [NOTIFICACIÓN] No se pudo mostrar notificación:', notifError.message);
+            }
+
+            // 7. Intentar abrir con FileOpener
             if (window.Capacitor.Plugins.FileOpener) {
                 console.log('📱 [ABRIR PDF] Abriendo con FileOpener...');
                 await window.Capacitor.Plugins.FileOpener.open({
@@ -3213,7 +3246,6 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
                     openWithDefault: true
                 });
                 console.log('✅ [ABRIR PDF] PDF abierto con FileOpener');
-                alert(`PDF descargado exitosamente:\n${fileName}\n\nSe abrirá con tu visor de PDFs.`);
             } else if (window.Capacitor.Plugins.Share) {
                 // Fallback: compartir archivo (permite al usuario elegir con qué abrirlo)
                 console.log('📱 [ABRIR PDF] Compartiendo archivo...');
@@ -3227,7 +3259,7 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
             } else {
                 // Si no hay plugins, solo notificar que se descargó
                 console.log('⚠️ [ABRIR PDF] Plugins no disponibles, archivo descargado');
-                alert(`PDF descargado exitosamente en Documentos:\n${fileName}\n\nEncontrarlo en la carpeta de Documentos de tu teléfono.`);
+                alert(`PDF descargado exitosamente en Documentos:\n${fileName}\n\nBusca el archivo en la carpeta de Documentos de tu teléfono.`);
             }
         } else {
             // En web, abrir en nueva pestaña
