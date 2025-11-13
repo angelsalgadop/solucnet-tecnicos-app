@@ -2364,7 +2364,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 3000); // Esperar 3 segundos después de cargar la página
 });
 
-// 🔧 FIX v1.55: Listener para abrir PDFs al tocar notificación
+// 🔧 FIX v1.57: Listener para abrir PDFs al tocar notificación
 document.addEventListener('DOMContentLoaded', function() {
     // Solo en app nativa con Capacitor
     if (APP_CONFIG.isNative() && window.Capacitor?.Plugins?.LocalNotifications) {
@@ -2373,32 +2373,31 @@ document.addEventListener('DOMContentLoaded', function() {
         const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
 
         // Listener para cuando se toca una notificación
-        LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
-            console.log('🔔 [NOTIFICACIÓN] Usuario tocó notificación:', notification);
+        LocalNotifications.addListener('localNotificationActionPerformed', async (notification) => {
+            console.log('🔔 [NOTIFICACIÓN] Usuario tocó notificación:', JSON.stringify(notification, null, 2));
 
             // Extraer información del PDF
-            const filePath = notification.notification?.extra?.filePath;
+            const fileUri = notification.notification?.extra?.fileUri;
+            const fileName = notification.notification?.extra?.fileName;
             const action = notification.notification?.extra?.action;
 
-            if (action === 'open_pdf' && filePath) {
-                console.log('📄 [NOTIFICACIÓN] Intentando abrir PDF:', filePath);
+            console.log('🔔 [NOTIFICACIÓN] Action:', action);
+            console.log('🔔 [NOTIFICACIÓN] FileURI:', fileUri);
+            console.log('🔔 [NOTIFICACIÓN] FileName:', fileName);
 
-                // Abrir PDF con FileOpener
-                if (window.Capacitor.Plugins.FileOpener) {
-                    window.Capacitor.Plugins.FileOpener.open({
-                        filePath: filePath,
-                        contentType: 'application/pdf',
-                        openWithDefault: true
-                    }).then(() => {
-                        console.log('✅ [NOTIFICACIÓN] PDF abierto desde notificación');
-                    }).catch((error) => {
-                        console.error('❌ [NOTIFICACIÓN] Error abriendo PDF:', error);
-                        alert('Error al abrir el PDF. Puedes encontrarlo en la carpeta Documentos.');
-                    });
-                } else {
-                    console.warn('⚠️ [NOTIFICACIÓN] FileOpener no disponible');
-                    alert('El PDF fue descargado en la carpeta Documentos de tu teléfono.');
+            if (action === 'open_pdf' && fileUri) {
+                console.log('📄 [NOTIFICACIÓN] Intentando abrir PDF desde notificación...');
+
+                try {
+                    // Usar la función global abrirPDFConFileOpener
+                    await window.abrirPDFConFileOpener(fileUri);
+                    console.log('✅ [NOTIFICACIÓN] PDF abierto exitosamente desde notificación');
+                } catch (error) {
+                    console.error('❌ [NOTIFICACIÓN] Error abriendo PDF:', error);
+                    alert(`Error al abrir el PDF.\n\nPuedes encontrarlo en:\nDocumentos/${fileName || 'archivo PDF'}`);
                 }
+            } else {
+                console.warn('⚠️ [NOTIFICACIÓN] No se encontró fileUri en extras de notificación');
             }
         });
 
@@ -3232,9 +3231,11 @@ async function asignarEquipoAlCompletar(visitaId, serialEquipo, costoEquipo = 18
 }
 
 // 🔔 FIX v1.53: Función para mostrar notificaciones de descarga (Web o Nativa)
-async function mostrarNotificacionDescarga(nombreArchivo, fileUri) {
+async function mostrarNotificacionDescarga(nombreArchivo, fileUri, fileName = null) {
     try {
         console.log('🔔 [NOTIFICACIÓN] Intentando mostrar notificación de descarga...');
+        console.log('🔔 [NOTIFICACIÓN] FileURI:', fileUri);
+        console.log('🔔 [NOTIFICACIÓN] FileName:', fileName);
 
         // Opción 1: Capacitor LocalNotifications (APK nativa)
         if (window.Capacitor?.Plugins?.LocalNotifications) {
@@ -3267,7 +3268,7 @@ async function mostrarNotificacionDescarga(nombreArchivo, fileUri) {
             const notificationId = Math.floor(Date.now() % 2147483647);
             console.log(`📱 [NOTIFICACIÓN] ID generado: ${notificationId}`);
 
-            // Crear notificación INMEDIATA (sin schedule)
+            // Crear notificación INMEDIATA (sin schedule) con fileUri en extras
             await LocalNotifications.schedule({
                 notifications: [{
                     title: '📄 PDF Descargado',
@@ -3278,11 +3279,12 @@ async function mostrarNotificacionDescarga(nombreArchivo, fileUri) {
                     channelId: 'downloads',
                     extra: {
                         action: 'open_pdf',
-                        filePath: fileUri
+                        fileUri: fileUri,  // URI completo del archivo
+                        fileName: fileName || nombreArchivo  // Nombre del archivo
                     }
                 }]
             });
-            console.log('✅ [NOTIFICACIÓN] Notificación nativa mostrada inmediatamente');
+            console.log('✅ [NOTIFICACIÓN] Notificación nativa mostrada con URI:', fileUri);
             return;
         }
 
@@ -3435,32 +3437,33 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
             });
             console.log(`📄 [ABRIR PDF] URI del archivo: ${fileUri.uri}`);
 
-            // 6. Mostrar notificación de descarga completa (Capacitor o Web)
-            await mostrarNotificacionDescarga(nombreArchivo, fileUri.uri);
+            // 6. Mostrar notificación de descarga completa (pasando ruta completa)
+            await mostrarNotificacionDescarga(nombreArchivo, fileUri.uri, fileName);
 
-            // 7. Intentar abrir con FileOpener
-            if (window.Capacitor.Plugins.FileOpener) {
-                console.log('📱 [ABRIR PDF] Abriendo con FileOpener...');
-                await window.Capacitor.Plugins.FileOpener.open({
-                    filePath: fileUri.uri,
-                    contentType: 'application/pdf',
-                    openWithDefault: true
-                });
-                console.log('✅ [ABRIR PDF] PDF abierto con FileOpener');
-            } else if (window.Capacitor.Plugins.Share) {
-                // Fallback: compartir archivo (permite al usuario elegir con qué abrirlo)
-                console.log('📱 [ABRIR PDF] Compartiendo archivo...');
-                await window.Capacitor.Plugins.Share.share({
-                    title: nombreArchivo,
-                    text: 'Abrir PDF',
-                    url: fileUri.uri,
-                    dialogTitle: 'Abrir PDF con...'
-                });
-                console.log('✅ [ABRIR PDF] PDF compartido');
-            } else {
-                // Si no hay plugins, solo notificar que se descargó
-                console.log('⚠️ [ABRIR PDF] Plugins no disponibles, archivo descargado');
-                alert(`PDF descargado exitosamente en Documentos:\n${fileName}\n\nBusca el archivo en la carpeta de Documentos de tu teléfono.`);
+            // 7. Intentar abrir con FileOpener inmediatamente después de descargar
+            console.log('📱 [ABRIR PDF] Intentando abrir con FileOpener...');
+            console.log('📱 [ABRIR PDF] URI:', fileUri.uri);
+            console.log('📱 [ABRIR PDF] FileName:', fileName);
+
+            try {
+                // Usar el URI completo que devuelve Capacitor Filesystem
+                await abrirPDFConFileOpener(fileUri.uri);
+                console.log('✅ [ABRIR PDF] PDF abierto exitosamente con FileOpener');
+            } catch (openError) {
+                console.error('❌ [ABRIR PDF] Error abriendo con FileOpener:', openError);
+
+                // Fallback: Intentar compartir
+                if (window.Capacitor.Plugins.Share) {
+                    console.log('📱 [ABRIR PDF] Intentando compartir como alternativa...');
+                    await window.Capacitor.Plugins.Share.share({
+                        title: nombreArchivo,
+                        text: 'Abrir PDF',
+                        url: fileUri.uri,
+                        dialogTitle: 'Abrir PDF con...'
+                    });
+                } else {
+                    alert(`PDF descargado en Documentos:\n${fileName}\n\nNo se pudo abrir automáticamente. Búscalo en tu carpeta de Documentos.`);
+                }
             }
         } else {
             // En web, mostrar notificación y abrir en nueva pestaña
@@ -3482,6 +3485,36 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
     }
 }
 
+// 🔧 FIX v1.57: Función para abrir PDF con FileOpener plugin
+async function abrirPDFConFileOpener(fileUri) {
+    console.log('📱 [FILE OPENER] Intentando abrir PDF:', fileUri);
+
+    // Verificar que FileOpener esté disponible
+    if (!window.Capacitor || !window.Capacitor.Plugins) {
+        throw new Error('Capacitor no está disponible');
+    }
+
+    // Importar FileOpener dinámicamente
+    const { FileOpener } = window.Capacitor.Plugins;
+
+    if (!FileOpener) {
+        throw new Error('Plugin FileOpener no está disponible');
+    }
+
+    try {
+        // Abrir el archivo con la aplicación predeterminada
+        await FileOpener.open({
+            filePath: fileUri,
+            contentType: 'application/pdf'
+        });
+        console.log('✅ [FILE OPENER] PDF abierto correctamente');
+    } catch (error) {
+        console.error('❌ [FILE OPENER] Error:', error);
+        throw error;
+    }
+}
+
 // Agregar funciones globales
 window.asignarEquipoAlCompletar = asignarEquipoAlCompletar;
 window.abrirPdfEnApp = abrirPdfEnApp;
+window.abrirPDFConFileOpener = abrirPDFConFileOpener;
