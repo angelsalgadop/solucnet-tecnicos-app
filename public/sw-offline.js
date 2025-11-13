@@ -1,5 +1,5 @@
 // Service Worker para SolucNet Técnicos - Modo Offline Completo
-const CACHE_NAME = 'solucnet-tecnicos-v1.0.0';
+const CACHE_NAME = 'solucnet-tecnicos-v1.42.0';
 const OFFLINE_DATA_STORE = 'solucnet-offline-data';
 const SYNC_TAG = 'sync-visitas';
 
@@ -62,8 +62,12 @@ self.addEventListener('fetch', (event) => {
 
     // Estrategia diferente según el tipo de recurso
     if (request.method === 'GET') {
-        // Para recursos estáticos: Cache-First
-        if (url.pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/)) {
+        // 🔧 FIX: Cachear archivos PDF y recursos en /uploads/ (fotos, documentos)
+        if (url.pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|pdf|ogg|mp4|webm)$/)) {
+            event.respondWith(cacheFirst(request));
+        }
+        // 🔧 FIX: Archivos en /uploads/ siempre Cache-First para funcionar offline
+        else if (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/public/uploads/')) {
             event.respondWith(cacheFirst(request));
         }
         // Para HTML y APIs: Network-First con caché como fallback

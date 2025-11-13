@@ -1611,16 +1611,26 @@ async function cargarPdfsVisita(visitaId) {
 
     } catch (error) {
         console.error('Error cargando PDFs:', error);
-        document.getElementById(`lista-pdfs-${visitaId}`).innerHTML =
-            '<p class="text-danger small">Error cargando archivos</p>';
+
+        // 🔧 FIX: Mostrar mensaje apropiado en modo offline
+        const mensajeOffline = !navigator.onLine
+            ? '<p class="text-warning small"><i class="fas fa-wifi-slash"></i> Sin conexión. Los archivos se mostrarán cuando te conectes a internet.</p>'
+            : '<p class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Error cargando archivos. Intenta nuevamente.</p>';
+
+        document.getElementById(`lista-pdfs-${visitaId}`).innerHTML = mensajeOffline;
 
         // Restaurar botón
         const botonActualizar = document.querySelector(`#pdfs-visita-${visitaId} button`);
-        const iconoBoton = botonActualizar.querySelector('i');
-        iconoBoton.className = 'fas fa-sync';
-        botonActualizar.disabled = false;
+        if (botonActualizar) {
+            const iconoBoton = botonActualizar.querySelector('i');
+            iconoBoton.className = 'fas fa-sync';
+            botonActualizar.disabled = false;
+        }
 
-        mostrarAlerta('Error cargando archivos PDF', 'danger');
+        // Solo mostrar alerta de error si NO es por estar offline
+        if (navigator.onLine) {
+            mostrarAlerta('Error cargando archivos PDF', 'danger');
+        }
     }
 }
 

@@ -3158,5 +3158,47 @@
     "localId": 1,
     "backup_timestamp": "2025-11-12T21:57:15.159Z",
     "backup_id": "backup_1762984635159_s5kbs9v30"
+  },
+  {
+    "visita_id": "410",
+    "tecnico_id": 21,
+    "problemas_encontrados": "T",
+    "solucion_aplicada": "T",
+    "materiales_utilizados": "",
+    "cliente_satisfecho": "si",
+    "requiere_seguimiento": false,
+    "notas": "",
+    "serialEquipo": "ZTEGCC006121",
+    "tipoEquipo": "Onu CData",
+    "costoEquipo": 180000,
+    "sincronizado": false,
+    "timestamp": 1762986301086,
+    "localId": 1,
+    "backup_timestamp": "2025-11-12T22:26:01.107Z",
+    "backup_id": "backup_1762986361107_d69cdaaaz"
+  },
+  {
+    "visita_id": "428",
+    "tecnico_id": 21,
+    "problemas_encontrados": "Moden",
+    "solucion_aplicada": "Cambio",
+    "materiales_utilizados": "Moden",
+    "cliente_satisfecho": "si",
+    "requiere_seguimiento": false,
+    "notas": "",
+    "backup_timestamp": "2025-11-13T14:10:03.135Z",
+    "backup_id": "backup_1763043003135_l159r4rn8"
+  },
+  {
+    "visita_id": "422",
+    "tecnico_id": 21,
+    "problemas_encontrados": "Conector ",
+    "solucion_aplicada": "Cambio ",
+    "materiales_utilizados": "Conector",
+    "cliente_satisfecho": "si",
+    "requiere_seguimiento": false,
+    "notas": "",
+    "backup_timestamp": "2025-11-13T14:22:37.612Z",
+    "backup_id": "backup_1763043757612_a4aw7qry7"
   }
 ]

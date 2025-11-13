@@ -1,49 +1,37 @@
 {
-  "timestamp": "2025-11-12T22:10:00.326Z",
+  "timestamp": "2025-11-13T14:40:04.367Z",
   "visitas": {
-    "344": {
+    "422": {
       "estado": "completada",
-      "fechaInicio": "2025-11-12T16:45:21.068Z",
-      "fechaCompletada": "2025-11-12T21:37:28.607Z",
+      "fechaInicio": "2025-11-13T14:21:16.338Z",
+      "fechaCompletada": "2025-11-13T14:22:37.630Z",
       "reporte": {
-        "visita_id": "344",
+        "visita_id": "422",
         "tecnico_id": 21,
-        "problemas_encontrados": "T",
-        "solucion_aplicada": "T",
-        "materiales_utilizados": "",
+        "problemas_encontrados": "Conector ",
+        "solucion_aplicada": "Cambio ",
+        "materiales_utilizados": "Conector",
         "cliente_satisfecho": "si",
         "requiere_seguimiento": false,
-        "notas": "",
-        "serialEquipo": "ZTEGCC1757CE",
-        "tipoEquipo": "Onu CData",
-        "costoEquipo": 180000,
-        "sincronizado": false,
-        "timestamp": 1762983419055,
-        "localId": 1
+        "notas": ""
       },
-      "backupId": "backup_1762983448585_xjig37caq"
+      "backupId": "backup_1763043757612_a4aw7qry7"
     },
-    "404": {
+    "428": {
       "estado": "completada",
-      "fechaInicio": "2025-11-12T21:57:14.813Z",
-      "fechaCompletada": "2025-11-12T21:57:15.178Z",
+      "fechaInicio": "2025-11-13T14:08:06.019Z",
+      "fechaCompletada": "2025-11-13T14:10:03.172Z",
       "reporte": {
-        "visita_id": "404",
+        "visita_id": "428",
         "tecnico_id": 21,
-        "problemas_encontrados": "R",
-        "solucion_aplicada": "R",
-        "materiales_utilizados": "",
+        "problemas_encontrados": "Moden",
+        "solucion_aplicada": "Cambio",
+        "materiales_utilizados": "Moden",
         "cliente_satisfecho": "si",
         "requiere_seguimiento": false,
-        "notas": "",
-        "serialEquipo": "ZTEGCC0B9948",
-        "tipoEquipo": "Onu CData",
-        "costoEquipo": 180000,
-        "sincronizado": false,
-        "timestamp": 1762984603557,
-        "localId": 1
+        "notas": ""
       },
-      "backupId": "backup_1762984635159_s5kbs9v30"
+      "backupId": "backup_1763043003135_l159r4rn8"
     }
   }
 }
