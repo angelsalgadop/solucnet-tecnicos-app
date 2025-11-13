@@ -902,7 +902,13 @@ class OfflineManager {
             const tx = this.db.transaction('offline-pdfs', 'readonly');
             const store = tx.objectStore('offline-pdfs');
             const index = store.index('visita_id');
-            const pdfs = await index.getAll(visitaId);
+
+            // 🔧 FIX v1.49: Envolver getAll en Promise correctamente
+            const pdfs = await new Promise((resolve, reject) => {
+                const request = index.getAll(visitaId);
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
 
             const pdf = pdfs.find(p => p.nombre_archivo === nombreArchivo);
             if (pdf) {
@@ -925,7 +931,13 @@ class OfflineManager {
             const tx = this.db.transaction('offline-pdfs', 'readonly');
             const store = tx.objectStore('offline-pdfs');
             const index = store.index('visita_id');
-            const pdfs = await index.getAll(visitaId);
+
+            // 🔧 FIX v1.49: Envolver getAll en Promise correctamente
+            const pdfs = await new Promise((resolve, reject) => {
+                const request = index.getAll(visitaId);
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
 
             console.log(`📄 [OFFLINE MANAGER] ${pdfs.length} PDFs encontrados para visita ${visitaId}`);
             return pdfs;
@@ -943,10 +955,21 @@ class OfflineManager {
             const tx = this.db.transaction('offline-pdfs', 'readwrite');
             const store = tx.objectStore('offline-pdfs');
             const index = store.index('visita_id');
-            const pdfs = await index.getAll(visitaId);
 
+            // 🔧 FIX v1.49: Envolver getAll en Promise correctamente
+            const pdfs = await new Promise((resolve, reject) => {
+                const request = index.getAll(visitaId);
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+
+            // Eliminar cada PDF
             for (const pdf of pdfs) {
-                await store.delete(pdf.id);
+                await new Promise((resolve, reject) => {
+                    const deleteRequest = store.delete(pdf.id);
+                    deleteRequest.onsuccess = () => resolve();
+                    deleteRequest.onerror = () => reject(deleteRequest.error);
+                });
             }
 
             console.log(`🗑️ [OFFLINE MANAGER] ${pdfs.length} PDFs eliminados para visita ${visitaId}`);

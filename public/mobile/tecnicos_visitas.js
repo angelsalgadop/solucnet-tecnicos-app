@@ -1687,12 +1687,14 @@ async function cargarPdfsVisita(visitaId) {
             }
 
             // Generar HTML con URLs de blob o mensaje de offline
-            const listaHtml = archivosConUrl.map(archivo => {
+            const listaHtml = archivosConUrl.map((archivo, index) => {
                 const iconoEstado = archivo.fromCache ? '💾' : '📄';
+                const pdfId = `pdf-${visitaId}-${index}`;
+
                 const botonHtml = archivo.url
-                    ? `<a href="${archivo.url}" target="_blank" download="${archivo.nombre_original}" class="btn btn-sm btn-outline-primary">
-                           <i class="fas fa-download"></i>
-                       </a>`
+                    ? `<button onclick="abrirPdfEnApp('${archivo.url}', '${archivo.nombre_original}')" class="btn btn-sm btn-outline-primary" id="${pdfId}">
+                           <i class="fas fa-eye"></i> Ver
+                       </button>`
                     : `<span class="btn btn-sm btn-outline-secondary disabled">
                            <i class="fas fa-wifi-slash"></i> Offline
                        </span>`;
@@ -3102,5 +3104,48 @@ async function asignarEquipoAlCompletar(visitaId, serialEquipo, costoEquipo = 18
     }
 }
 
-// Agregar función global
+// 🔧 FIX v1.49: Función para abrir PDFs en app nativa y web
+async function abrirPdfEnApp(blobUrl, nombreArchivo) {
+    try {
+        console.log(`📄 [ABRIR PDF] Intentando abrir: ${nombreArchivo}`);
+        console.log(`📄 [ABRIR PDF] URL: ${blobUrl}`);
+        console.log(`📄 [ABRIR PDF] Es app nativa: ${APP_CONFIG.isNative()}`);
+
+        if (APP_CONFIG.isNative() && window.Capacitor) {
+            // En app nativa, usar Browser plugin de Capacitor
+            console.log('📱 [ABRIR PDF] Abriendo en app nativa con Browser...');
+
+            // Verificar si Browser está disponible
+            if (window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
+                await window.Capacitor.Plugins.Browser.open({
+                    url: blobUrl,
+                    presentationStyle: 'popover'
+                });
+                console.log('✅ [ABRIR PDF] PDF abierto con Browser plugin');
+            } else {
+                // Fallback: abrir en nueva ventana (puede no funcionar en todas las apps)
+                console.log('⚠️ [ABRIR PDF] Browser plugin no disponible, usando window.open...');
+                const nuevaVentana = window.open(blobUrl, '_blank');
+                if (!nuevaVentana) {
+                    throw new Error('No se pudo abrir el PDF. Tu navegador puede estar bloqueando ventanas emergentes.');
+                }
+                console.log('✅ [ABRIR PDF] PDF abierto con window.open');
+            }
+        } else {
+            // En web, abrir en nueva pestaña
+            console.log('🌐 [ABRIR PDF] Abriendo en navegador web...');
+            const nuevaVentana = window.open(blobUrl, '_blank');
+            if (!nuevaVentana) {
+                throw new Error('No se pudo abrir el PDF. Tu navegador puede estar bloqueando ventanas emergentes.');
+            }
+            console.log('✅ [ABRIR PDF] PDF abierto en nueva pestaña');
+        }
+    } catch (error) {
+        console.error('❌ [ABRIR PDF] Error abriendo PDF:', error);
+        alert(`Error al abrir PDF: ${error.message}\n\nIntenta descargar el archivo en su lugar.`);
+    }
+}
+
+// Agregar funciones globales
 window.asignarEquipoAlCompletar = asignarEquipoAlCompletar;
+window.abrirPdfEnApp = abrirPdfEnApp;
