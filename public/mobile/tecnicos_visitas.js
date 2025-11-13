@@ -6,6 +6,7 @@ let fotosSeleccionadas = [];
 let intervaloActualizacion = null; // Intervalo para actualización automática
 let ultimaActualizacion = null; // Timestamp de última actualización
 let hashVisitasAnterior = null; // Hash para detectar cambios
+let visitasConPdfsDescargados = new Set(); // 🔧 v1.62: IDs de visitas con PDFs ya descargados
 
 // Elementos del DOM
 const visitasContainer = document.getElementById('visitasAsignadas');
@@ -90,7 +91,62 @@ function hashSimple(data) {
     return JSON.stringify(data);
 }
 
-// Cargar visitas asignadas al técnico
+// 🔧 v1.62: Mostrar barra de progreso inline dentro del contenedor de visitas
+function mostrarBarraProgresoInline() {
+    const barraHtml = `
+        <div id="barraProgresoInline" class="card shadow-sm mb-3" style="border-left: 4px solid #0d6efd;">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <h6 class="mb-0" id="textoProgresoInline">Verificando actualizaciones...</h6>
+                </div>
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                         role="progressbar"
+                         id="barraProgresoInlineBar"
+                         style="width: 0%"
+                         aria-valuenow="0"
+                         aria-valuemin="0"
+                         aria-valuemax="100">
+                        <span id="porcentajeInline" class="fw-bold">0%</span>
+                    </div>
+                </div>
+                <small class="text-muted mt-1 d-block" id="contadorInline">Iniciando...</small>
+            </div>
+        </div>
+    `;
+
+    // Insertar al inicio del contenedor (antes de las visitas existentes)
+    visitasContainer.insertAdjacentHTML('afterbegin', barraHtml);
+}
+
+// 🔧 v1.62: Actualizar barra de progreso inline
+function actualizarBarraProgresoInline(texto, porcentaje, contador = '') {
+    const textoEl = document.getElementById('textoProgresoInline');
+    const barraEl = document.getElementById('barraProgresoInlineBar');
+    const porcentajeEl = document.getElementById('porcentajeInline');
+    const contadorEl = document.getElementById('contadorInline');
+
+    if (textoEl) textoEl.textContent = texto;
+    if (barraEl) {
+        barraEl.style.width = `${porcentaje}%`;
+        barraEl.setAttribute('aria-valuenow', porcentaje);
+    }
+    if (porcentajeEl) porcentajeEl.textContent = `${Math.round(porcentaje)}%`;
+    if (contadorEl) contadorEl.textContent = contador;
+}
+
+// 🔧 v1.62: Ocultar barra de progreso inline
+function ocultarBarraProgresoInline() {
+    const barra = document.getElementById('barraProgresoInline');
+    if (barra) {
+        barra.remove();
+    }
+}
+
+// 🔧 v1.62: Cargar visitas con descarga incremental de PDFs
 async function cargarVisitasTecnico(mostrarSpinner = true) {
     try {
         const token = localStorage.getItem('token_tecnico');
@@ -99,20 +155,10 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             return;
         }
 
-        // 🔧 FIX v1.61: Determinar si es carga inicial (mostrar modal) o actualización automática (background)
         const esCargaInicial = visitasAsignadas.length === 0;
-        let modal = null;
 
-        // Si es carga inicial Y hay conexión, mostrar modal de progreso
-        if (esCargaInicial && navigator.onLine && document.getElementById('modalCargaPdfs')) {
-            modal = new bootstrap.Modal(document.getElementById('modalCargaPdfs'));
-            modal.show();
-            document.getElementById('textoCargaPdfs').textContent = 'Conectando con el servidor...';
-            document.getElementById('barraProgresoPdfs').style.width = '0%';
-            document.getElementById('porcentajePdfs').textContent = '0%';
-            document.getElementById('contadorPdfs').textContent = 'Iniciando...';
-        } else if (esCargaInicial) {
-            // Sin conexión o sin modal disponible, usar spinner tradicional
+        // CARGA INICIAL: Mostrar spinner tradicional
+        if (esCargaInicial) {
             visitasContainer.innerHTML = `
                 <div class="text-center">
                     <div class="spinner-border text-success" role="status">
@@ -123,25 +169,16 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             `;
         }
 
-        // PASO 1: Descargar visitas del servidor
-        if (modal) {
-            document.getElementById('textoCargaPdfs').textContent = 'Descargando lista de visitas...';
-            document.getElementById('barraProgresoPdfs').style.width = '5%';
-            document.getElementById('porcentajePdfs').textContent = '5%';
-        }
-
+        // Descargar visitas del servidor
         const response = await fetch(APP_CONFIG.getApiUrl('/api/mis-visitas'), {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             cache: 'no-cache'
         });
 
         const resultado = await response.json();
 
         if (!response.ok || !resultado.success) {
-            if (modal) modal.hide();
             if (response.status === 401 || response.status === 403) {
                 localStorage.removeItem('token_tecnico');
                 localStorage.removeItem('user_tecnico');
@@ -158,7 +195,7 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             nombreTecnico.textContent = resultado.tecnico.nombre;
         }
 
-        // PASO 2: Guardar visitas en IndexedDB
+        // Guardar visitas en IndexedDB
         if (resultado.visitas && resultado.visitas.length > 0 && window.offlineManager) {
             let tecnicoId = resultado.tecnico?.id || tecnicoActual?.id;
             if (!tecnicoId) {
@@ -171,32 +208,41 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                 }
             }
             tecnicoId = tecnicoId || 'unknown';
-
             await window.offlineManager.saveVisitasOffline(resultado.visitas, tecnicoId);
             console.log(`💾 [CACHE] ${resultado.visitas.length} visitas guardadas en IndexedDB`);
         }
 
-        if (modal) {
-            document.getElementById('textoCargaPdfs').textContent = 'Visitas descargadas, verificando archivos PDFs...';
-            document.getElementById('barraProgresoPdfs').style.width = '10%';
-            document.getElementById('porcentajePdfs').textContent = '10%';
-        }
+        // Filtrar visitas completadas
+        const visitasNuevas = resultado.visitas.filter(v => v.estado !== 'completada');
 
-        // PASO 3: Descargar PDFs de cada visita (solo si hay conexión Y es carga inicial)
-        if (esCargaInicial && navigator.onLine && resultado.visitas && resultado.visitas.length > 0) {
-            const visitasSinCompletar = resultado.visitas.filter(v => v.estado !== 'completada');
+        // DETECTAR VISITAS NUEVAS (comparar IDs)
+        const idsActuales = new Set(visitasAsignadas.map(v => v.id));
+        const visitasRealmenteNuevas = visitasNuevas.filter(v => !idsActuales.has(v.id));
 
-            // Contar total de PDFs disponibles
+        console.log(`🔍 Visitas actuales: ${visitasAsignadas.length}, Visitas totales: ${visitasNuevas.length}, Nuevas detectadas: ${visitasRealmenteNuevas.length}`);
+
+        // DESCARGAR PDFs SOLO DE VISITAS NUEVAS (si hay y si hay conexión)
+        if (visitasRealmenteNuevas.length > 0 && navigator.onLine) {
+            console.log(`📥 Descargando PDFs de ${visitasRealmenteNuevas.length} visitas nuevas...`);
+
+            // Mostrar barra de progreso inline (solo si NO es carga inicial)
+            if (!esCargaInicial) {
+                mostrarBarraProgresoInline();
+                actualizarBarraProgresoInline('Verificando archivos nuevos...', 5, 'Iniciando...');
+            }
+
+            // Contar PDFs de visitas nuevas
             let totalPdfs = 0;
             const pdfsParaDescargar = [];
 
-            for (let i = 0; i < visitasSinCompletar.length; i++) {
-                const visita = visitasSinCompletar[i];
-                if (modal) {
-                    document.getElementById('textoCargaPdfs').textContent = `Verificando PDFs de visita ${i + 1}/${visitasSinCompletar.length}...`;
-                    const progresoVerificacion = 10 + (i / visitasSinCompletar.length) * 15; // 10-25%
-                    document.getElementById('barraProgresoPdfs').style.width = `${Math.round(progresoVerificacion)}%`;
-                    document.getElementById('porcentajePdfs').textContent = `${Math.round(progresoVerificacion)}%`;
+            for (let i = 0; i < visitasRealmenteNuevas.length; i++) {
+                const visita = visitasRealmenteNuevas[i];
+                if (!esCargaInicial) {
+                    actualizarBarraProgresoInline(
+                        `Verificando visita nueva ${i + 1}/${visitasRealmenteNuevas.length}...`,
+                        5 + (i / visitasRealmenteNuevas.length) * 20,
+                        `Analizando visita ${visita.cliente_nombre}...`
+                    );
                 }
 
                 try {
@@ -218,47 +264,37 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                 }
             }
 
-            console.log(`📊 Total de PDFs encontrados: ${totalPdfs}`);
+            console.log(`📊 ${totalPdfs} PDFs nuevos encontrados`);
 
-            // Descargar cada PDF
+            // Descargar PDFs nuevos
             if (totalPdfs > 0) {
                 let descargados = 0;
-                let yaEnCache = 0;
 
                 for (let i = 0; i < pdfsParaDescargar.length; i++) {
                     const { visita, archivo } = pdfsParaDescargar[i];
 
                     try {
-                        // Verificar si ya está en caché
-                        const pdfCached = await window.offlineManager.getPdfOffline(visita.id, archivo.nombre_archivo);
+                        const pdfUrl = APP_CONFIG.getApiUrl(`/uploads/pdfs_visitas/${archivo.nombre_archivo}`);
+                        const pdfResponse = await fetch(pdfUrl, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
 
-                        if (pdfCached) {
-                            yaEnCache++;
-                            console.log(`💾 Ya en caché: ${archivo.nombre_original}`);
-                        } else {
-                            // Descargar
-                            const pdfUrl = APP_CONFIG.getApiUrl(`/uploads/pdfs_visitas/${archivo.nombre_archivo}`);
-                            const pdfResponse = await fetch(pdfUrl, {
-                                headers: { 'Authorization': `Bearer ${token}` }
-                            });
-
-                            if (pdfResponse.ok) {
-                                const pdfBlob = await pdfResponse.blob();
-                                await window.offlineManager.savePdfOffline(visita.id, archivo.nombre_archivo, archivo.nombre_original, pdfBlob);
-                                descargados++;
-                                console.log(`✅ Descargado: ${archivo.nombre_original}`);
-                            }
+                        if (pdfResponse.ok) {
+                            const pdfBlob = await pdfResponse.blob();
+                            await window.offlineManager.savePdfOffline(visita.id, archivo.nombre_archivo, archivo.nombre_original, pdfBlob);
+                            descargados++;
+                            visitasConPdfsDescargados.add(visita.id);
+                            console.log(`✅ Descargado: ${archivo.nombre_original}`);
                         }
 
                         // Actualizar progreso (25% - 95%)
-                        const procesados = descargados + yaEnCache;
-                        const progresoPdfs = 25 + (procesados / totalPdfs) * 70;
-
-                        if (modal) {
-                            document.getElementById('textoCargaPdfs').textContent = `Descargando ${archivo.nombre_original}...`;
-                            document.getElementById('barraProgresoPdfs').style.width = `${Math.round(progresoPdfs)}%`;
-                            document.getElementById('porcentajePdfs').textContent = `${Math.round(progresoPdfs)}%`;
-                            document.getElementById('contadorPdfs').textContent = `${procesados} / ${totalPdfs} archivos`;
+                        const progreso = 25 + (descargados / totalPdfs) * 70;
+                        if (!esCargaInicial) {
+                            actualizarBarraProgresoInline(
+                                `Descargando ${archivo.nombre_original}...`,
+                                progreso,
+                                `${descargados} / ${totalPdfs} archivos`
+                            );
                         }
 
                     } catch (pdfError) {
@@ -266,39 +302,38 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                     }
                 }
 
-                console.log(`📥 Descarga completada - Nuevos: ${descargados}, Ya en caché: ${yaEnCache}`);
+                console.log(`✅ ${descargados} PDFs nuevos descargados`);
+
+                // Completar progreso
+                if (!esCargaInicial) {
+                    actualizarBarraProgresoInline('¡Descarga completada!', 100, `${descargados} archivos descargados`);
+                    setTimeout(() => ocultarBarraProgresoInline(), 1500);
+                }
+            } else {
+                // No hay PDFs que descargar
+                if (!esCargaInicial) {
+                    ocultarBarraProgresoInline();
+                }
             }
         }
 
-        // PASO 4: Preparar para mostrar visitas
-        if (modal) {
-            document.getElementById('textoCargaPdfs').textContent = '¡Descarga completada! Preparando vista...';
-            document.getElementById('barraProgresoPdfs').style.width = '100%';
-            document.getElementById('porcentajePdfs').textContent = '100%';
-        }
-
-        // Calcular hash de los datos nuevos
+        // Actualizar vista de visitas
         const hashNuevo = hashSimple(resultado.visitas);
 
-        // Solo actualizar si los datos han cambiado
         if (hashNuevo !== hashVisitasAnterior || visitasAsignadas.length === 0) {
             console.log('✅ Datos actualizados detectados, recargando vista');
 
-            // CARGAR filtros desde localStorage
+            // Cargar filtros
             const filtroLocalidadGuardado = localStorage.getItem('filtro_localidad_tecnico') || '';
             const filtroEstadoGuardado = localStorage.getItem('filtro_estado_tecnico') || '';
             const filtroLocalidadActual = document.getElementById('filtroLocalidad')?.value || filtroLocalidadGuardado;
             const filtroEstadoActual = document.getElementById('filtroEstado')?.value || filtroEstadoGuardado;
 
-            // FILTRAR visitas completadas
-            const visitasSinCompletar = resultado.visitas.filter(v => v.estado !== 'completada');
-            console.log(`🔍 Visitas filtradas: ${visitasSinCompletar.length} activas de ${resultado.visitas.length} totales`);
-
-            visitasAsignadas = visitasSinCompletar;
-            visitasSinFiltrar = [...visitasSinCompletar];
+            visitasAsignadas = visitasNuevas;
+            visitasSinFiltrar = [...visitasNuevas];
             llenarFiltroLocalidades();
 
-            // Restaurar filtros
+            // Aplicar filtros
             let filtrosAplicados = false;
             if (filtroLocalidadActual) {
                 const selectLocalidad = document.getElementById('filtroLocalidad');
@@ -326,25 +361,13 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                 visitasAsignadas = visitasFiltradas;
             }
 
-            // Cerrar modal ANTES de mostrar visitas
-            if (modal) {
-                setTimeout(() => {
-                    modal.hide();
-                    mostrarVisitasAsignadas();
-                    setTimeout(restaurarCronometros, 100);
-                }, 500);
-            } else {
-                mostrarVisitasAsignadas();
-                setTimeout(restaurarCronometros, 100);
-            }
-
+            mostrarVisitasAsignadas();
+            setTimeout(restaurarCronometros, 100);
             hashVisitasAnterior = hashNuevo;
         } else {
-            console.log('⏭️ Sin cambios en los datos, omitiendo recarga');
-            if (modal) modal.hide();
+            console.log('⏭️ Sin cambios en los datos');
         }
 
-        // Actualizar timestamp e indicador visual
         ultimaActualizacion = Date.now();
         actualizarIndicadorActualizacion();
 
