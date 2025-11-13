@@ -1581,7 +1581,18 @@ async function cargarPdfsVisita(visitaId) {
         botonActualizar.disabled = true;
 
         console.log(`📄 [PDFS] Cargando archivos de visita ${visitaId}...`);
-        const response = await fetch(`/api/visitas/${visitaId}/archivos-pdf`);
+
+        // 🔧 FIX v1.47: Obtener y enviar token de autenticación
+        const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
+        if (!token) {
+            throw new Error('No hay token de autenticación. Por favor inicia sesión nuevamente.');
+        }
+
+        const response = await fetch(APP_CONFIG.getApiUrl(`/api/visitas/${visitaId}/archivos-pdf`), {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
 
         console.log(`📄 [PDFS] Respuesta HTTP ${response.status} ${response.statusText}`);
 
