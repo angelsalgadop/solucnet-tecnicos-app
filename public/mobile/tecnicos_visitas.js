@@ -99,8 +99,20 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             return;
         }
 
-        // Solo mostrar spinner en la primera carga
-        if (mostrarSpinner && visitasAsignadas.length === 0) {
+        // 🔧 FIX v1.61: Determinar si es carga inicial (mostrar modal) o actualización automática (background)
+        const esCargaInicial = visitasAsignadas.length === 0;
+        let modal = null;
+
+        // Si es carga inicial Y hay conexión, mostrar modal de progreso
+        if (esCargaInicial && navigator.onLine && document.getElementById('modalCargaPdfs')) {
+            modal = new bootstrap.Modal(document.getElementById('modalCargaPdfs'));
+            modal.show();
+            document.getElementById('textoCargaPdfs').textContent = 'Conectando con el servidor...';
+            document.getElementById('barraProgresoPdfs').style.width = '0%';
+            document.getElementById('porcentajePdfs').textContent = '0%';
+            document.getElementById('contadorPdfs').textContent = 'Iniciando...';
+        } else if (esCargaInicial) {
+            // Sin conexión o sin modal disponible, usar spinner tradicional
             visitasContainer.innerHTML = `
                 <div class="text-center">
                     <div class="spinner-border text-success" role="status">
@@ -111,18 +123,25 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             `;
         }
 
+        // PASO 1: Descargar visitas del servidor
+        if (modal) {
+            document.getElementById('textoCargaPdfs').textContent = 'Descargando lista de visitas...';
+            document.getElementById('barraProgresoPdfs').style.width = '5%';
+            document.getElementById('porcentajePdfs').textContent = '5%';
+        }
+
         const response = await fetch(APP_CONFIG.getApiUrl('/api/mis-visitas'), {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
             },
-            cache: 'no-cache' // Evitar caché del navegador
+            cache: 'no-cache'
         });
 
         const resultado = await response.json();
 
         if (!response.ok || !resultado.success) {
-            // Token inválido o error de autorización
+            if (modal) modal.hide();
             if (response.status === 401 || response.status === 403) {
                 localStorage.removeItem('token_tecnico');
                 localStorage.removeItem('user_tecnico');
@@ -133,15 +152,14 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             throw new Error(resultado.message || 'Error cargando visitas');
         }
 
-        // Actualizar información del técnico en la interfaz
+        // Actualizar información del técnico
         if (resultado.tecnico) {
             tecnicoActual = resultado.tecnico;
             nombreTecnico.textContent = resultado.tecnico.nombre;
         }
 
-        // 💾 GUARDAR visitas en IndexedDB para modo offline
+        // PASO 2: Guardar visitas en IndexedDB
         if (resultado.visitas && resultado.visitas.length > 0 && window.offlineManager) {
-            // Obtener tecnicoId desde resultado, tecnicoActual o localStorage como fallback
             let tecnicoId = resultado.tecnico?.id || tecnicoActual?.id;
             if (!tecnicoId) {
                 const userStorage = localStorage.getItem('user_tecnico');
@@ -155,7 +173,108 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             tecnicoId = tecnicoId || 'unknown';
 
             await window.offlineManager.saveVisitasOffline(resultado.visitas, tecnicoId);
-            console.log(`💾 [CACHE] ${resultado.visitas.length} visitas guardadas en IndexedDB para técnico ${tecnicoId}`);
+            console.log(`💾 [CACHE] ${resultado.visitas.length} visitas guardadas en IndexedDB`);
+        }
+
+        if (modal) {
+            document.getElementById('textoCargaPdfs').textContent = 'Visitas descargadas, verificando archivos PDFs...';
+            document.getElementById('barraProgresoPdfs').style.width = '10%';
+            document.getElementById('porcentajePdfs').textContent = '10%';
+        }
+
+        // PASO 3: Descargar PDFs de cada visita (solo si hay conexión Y es carga inicial)
+        if (esCargaInicial && navigator.onLine && resultado.visitas && resultado.visitas.length > 0) {
+            const visitasSinCompletar = resultado.visitas.filter(v => v.estado !== 'completada');
+
+            // Contar total de PDFs disponibles
+            let totalPdfs = 0;
+            const pdfsParaDescargar = [];
+
+            for (let i = 0; i < visitasSinCompletar.length; i++) {
+                const visita = visitasSinCompletar[i];
+                if (modal) {
+                    document.getElementById('textoCargaPdfs').textContent = `Verificando PDFs de visita ${i + 1}/${visitasSinCompletar.length}...`;
+                    const progresoVerificacion = 10 + (i / visitasSinCompletar.length) * 15; // 10-25%
+                    document.getElementById('barraProgresoPdfs').style.width = `${Math.round(progresoVerificacion)}%`;
+                    document.getElementById('porcentajePdfs').textContent = `${Math.round(progresoVerificacion)}%`;
+                }
+
+                try {
+                    const respPdfs = await fetch(APP_CONFIG.getApiUrl(`/api/visitas/${visita.id}/archivos-pdf`), {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (respPdfs.ok) {
+                        const resultPdfs = await respPdfs.json();
+                        if (resultPdfs.success && resultPdfs.archivos && resultPdfs.archivos.length > 0) {
+                            for (const archivo of resultPdfs.archivos) {
+                                pdfsParaDescargar.push({ visita, archivo });
+                                totalPdfs++;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ Error verificando PDFs de visita ${visita.id}:`, error.message);
+                }
+            }
+
+            console.log(`📊 Total de PDFs encontrados: ${totalPdfs}`);
+
+            // Descargar cada PDF
+            if (totalPdfs > 0) {
+                let descargados = 0;
+                let yaEnCache = 0;
+
+                for (let i = 0; i < pdfsParaDescargar.length; i++) {
+                    const { visita, archivo } = pdfsParaDescargar[i];
+
+                    try {
+                        // Verificar si ya está en caché
+                        const pdfCached = await window.offlineManager.getPdfOffline(visita.id, archivo.nombre_archivo);
+
+                        if (pdfCached) {
+                            yaEnCache++;
+                            console.log(`💾 Ya en caché: ${archivo.nombre_original}`);
+                        } else {
+                            // Descargar
+                            const pdfUrl = APP_CONFIG.getApiUrl(`/uploads/pdfs_visitas/${archivo.nombre_archivo}`);
+                            const pdfResponse = await fetch(pdfUrl, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+
+                            if (pdfResponse.ok) {
+                                const pdfBlob = await pdfResponse.blob();
+                                await window.offlineManager.savePdfOffline(visita.id, archivo.nombre_archivo, archivo.nombre_original, pdfBlob);
+                                descargados++;
+                                console.log(`✅ Descargado: ${archivo.nombre_original}`);
+                            }
+                        }
+
+                        // Actualizar progreso (25% - 95%)
+                        const procesados = descargados + yaEnCache;
+                        const progresoPdfs = 25 + (procesados / totalPdfs) * 70;
+
+                        if (modal) {
+                            document.getElementById('textoCargaPdfs').textContent = `Descargando ${archivo.nombre_original}...`;
+                            document.getElementById('barraProgresoPdfs').style.width = `${Math.round(progresoPdfs)}%`;
+                            document.getElementById('porcentajePdfs').textContent = `${Math.round(progresoPdfs)}%`;
+                            document.getElementById('contadorPdfs').textContent = `${procesados} / ${totalPdfs} archivos`;
+                        }
+
+                    } catch (pdfError) {
+                        console.warn(`⚠️ Error descargando ${archivo.nombre_archivo}:`, pdfError.message);
+                    }
+                }
+
+                console.log(`📥 Descarga completada - Nuevos: ${descargados}, Ya en caché: ${yaEnCache}`);
+            }
+        }
+
+        // PASO 4: Preparar para mostrar visitas
+        if (modal) {
+            document.getElementById('textoCargaPdfs').textContent = '¡Descarga completada! Preparando vista...';
+            document.getElementById('barraProgresoPdfs').style.width = '100%';
+            document.getElementById('porcentajePdfs').textContent = '100%';
         }
 
         // Calcular hash de los datos nuevos
@@ -165,26 +284,22 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
         if (hashNuevo !== hashVisitasAnterior || visitasAsignadas.length === 0) {
             console.log('✅ Datos actualizados detectados, recargando vista');
 
-            // CARGAR filtros desde localStorage (persistencia entre sesiones)
+            // CARGAR filtros desde localStorage
             const filtroLocalidadGuardado = localStorage.getItem('filtro_localidad_tecnico') || '';
             const filtroEstadoGuardado = localStorage.getItem('filtro_estado_tecnico') || '';
-
-            // GUARDAR filtros activos actuales si existen, sino usar los guardados
             const filtroLocalidadActual = document.getElementById('filtroLocalidad')?.value || filtroLocalidadGuardado;
             const filtroEstadoActual = document.getElementById('filtroEstado')?.value || filtroEstadoGuardado;
-            console.log(`💾 Filtros detectados - Localidad: "${filtroLocalidadActual}", Estado: "${filtroEstadoActual}"`);
 
-            // FILTRAR visitas completadas ANTES de asignar (nunca mostrarlas)
+            // FILTRAR visitas completadas
             const visitasSinCompletar = resultado.visitas.filter(v => v.estado !== 'completada');
-            console.log(`🔍 Visitas filtradas: ${visitasSinCompletar.length} activas de ${resultado.visitas.length} totales (excluidas ${resultado.visitas.length - visitasSinCompletar.length} completadas)`);
+            console.log(`🔍 Visitas filtradas: ${visitasSinCompletar.length} activas de ${resultado.visitas.length} totales`);
 
             visitasAsignadas = visitasSinCompletar;
-            visitasSinFiltrar = [...visitasSinCompletar]; // Copia para filtros
+            visitasSinFiltrar = [...visitasSinCompletar];
             llenarFiltroLocalidades();
 
-            // RESTAURAR filtros después de recargar
+            // Restaurar filtros
             let filtrosAplicados = false;
-
             if (filtroLocalidadActual) {
                 const selectLocalidad = document.getElementById('filtroLocalidad');
                 if (selectLocalidad) {
@@ -192,7 +307,6 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                     filtrosAplicados = true;
                 }
             }
-
             if (filtroEstadoActual) {
                 const selectEstado = document.getElementById('filtroEstado');
                 if (selectEstado) {
@@ -202,32 +316,32 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             }
 
             if (filtrosAplicados) {
-                console.log(`🔄 Filtros restaurados desde localStorage - Localidad: "${filtroLocalidadActual}", Estado: "${filtroEstadoActual}"`);
-                // Aplicar filtros automáticamente para restaurar la vista filtrada (sin guardar nuevamente)
-                const localidadSeleccionada = filtroLocalidadActual;
-                const estadoSeleccionado = filtroEstadoActual;
-
                 let visitasFiltradas = [...visitasSinFiltrar];
-                if (localidadSeleccionada) {
-                    visitasFiltradas = visitasFiltradas.filter(visita => visita.localidad === localidadSeleccionada);
+                if (filtroLocalidadActual) {
+                    visitasFiltradas = visitasFiltradas.filter(v => v.localidad === filtroLocalidadActual);
                 }
-                if (estadoSeleccionado) {
-                    visitasFiltradas = visitasFiltradas.filter(visita => visita.estado === estadoSeleccionado);
+                if (filtroEstadoActual) {
+                    visitasFiltradas = visitasFiltradas.filter(v => v.estado === filtroEstadoActual);
                 }
-
                 visitasAsignadas = visitasFiltradas;
-                mostrarVisitasAsignadas();
-            } else {
-                mostrarVisitasAsignadas();
             }
 
-            // Restaurar cronómetros activos después de mostrar las visitas
-            setTimeout(restaurarCronometros, 100);
+            // Cerrar modal ANTES de mostrar visitas
+            if (modal) {
+                setTimeout(() => {
+                    modal.hide();
+                    mostrarVisitasAsignadas();
+                    setTimeout(restaurarCronometros, 100);
+                }, 500);
+            } else {
+                mostrarVisitasAsignadas();
+                setTimeout(restaurarCronometros, 100);
+            }
 
-            // Guardar el hash para la próxima comparación
             hashVisitasAnterior = hashNuevo;
         } else {
             console.log('⏭️ Sin cambios en los datos, omitiendo recarga');
+            if (modal) modal.hide();
         }
 
         // Actualizar timestamp e indicador visual
@@ -346,16 +460,6 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             `;
         }
         actualizarIndicadorActualizacion();
-
-        // 🔧 FIX v1.60: Descargar PDFs automáticamente con modal de progreso
-        if (navigator.onLine && visitasAsignadas.length > 0) {
-            // Ejecutar con modal de progreso visible
-            setTimeout(() => {
-                descargarPDFsEnBackground(true).catch(err => {
-                    console.warn('⚠️ [PDFS AUTO] Error en descarga automática:', err);
-                });
-            }, 1000); // Esperar 1 segundo después de cargar visitas
-        }
     }
 }
 
@@ -2503,18 +2607,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// 🔧 FIX v1.60: Listener para descargar PDFs cuando la conexión vuelve
+// 🔧 FIX v1.61: Listener para reconexión - recargar visitas y PDFs
 window.addEventListener('online', function() {
-    console.log('🌐 [CONEXIÓN] Conexión restaurada - Descargando PDFs pendientes...');
-
-    // Esperar un momento para asegurar que la conexión esté estable
-    setTimeout(() => {
-        if (visitasAsignadas && visitasAsignadas.length > 0) {
-            descargarPDFsEnBackground(true).catch(err => {
-                console.warn('⚠️ [PDFS AUTO] Error en descarga tras reconexión:', err);
-            });
-        }
-    }, 1000);
+    console.log('🌐 [CONEXIÓN] Conexión restaurada - El sistema de actualización automática descargará PDFs pendientes');
 });
 
 // Log cuando se pierde la conexión
