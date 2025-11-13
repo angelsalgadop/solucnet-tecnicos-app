@@ -1616,7 +1616,56 @@ async function cargarPdfsVisita(visitaId) {
 
         console.log(`📄 [PDFS] Cargando archivos de visita ${visitaId}...`);
 
-        // 🔧 FIX v1.47: Obtener y enviar token de autenticación
+        // 🔧 FIX v1.58: Si está offline, cargar PDFs desde cache directamente
+        if (!navigator.onLine) {
+            console.log(`📴 [PDFS] Modo offline - Cargando PDFs desde IndexedDB...`);
+
+            // Obtener todos los PDFs guardados para esta visita
+            const pdfsOffline = await window.offlineManager.getPdfsForVisita(visitaId);
+
+            if (pdfsOffline && pdfsOffline.length > 0) {
+                console.log(`📄 [PDFS] ${pdfsOffline.length} PDFs encontrados en caché offline`);
+
+                const archivosConUrl = pdfsOffline.map(pdf => ({
+                    nombre_original: pdf.nombre_original,
+                    nombre_archivo: pdf.nombre_archivo,
+                    tamaño: pdf.blob.size,
+                    url: URL.createObjectURL(pdf.blob),
+                    fromCache: true
+                }));
+
+                // Generar HTML
+                const listaHtml = archivosConUrl.map((archivo, index) => {
+                    const pdfId = `pdf-${visitaId}-${index}`;
+                    return `
+                        <div class="d-flex justify-content-between align-items-center py-1 px-2 bg-light rounded mb-2">
+                            <div>
+                                <span>💾</span>
+                                <i class="fas fa-file-pdf text-danger me-2"></i>
+                                <span class="small">${archivo.nombre_original}</span>
+                                <small class="text-muted ms-2">(${(archivo.tamaño / 1024).toFixed(1)} KB)</small>
+                            </div>
+                            <button onclick="abrirPdfEnApp('${archivo.url}', '${archivo.nombre_original}')" class="btn btn-sm btn-outline-primary" id="${pdfId}">
+                                <i class="fas fa-eye"></i> Ver
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById(`lista-pdfs-${visitaId}`).innerHTML = listaHtml;
+            } else {
+                console.log(`📄 [PDFS] No hay PDFs en caché para visita ${visitaId}`);
+                document.getElementById(`lista-pdfs-${visitaId}`).innerHTML =
+                    '<p class="text-warning small"><i class="fas fa-wifi-slash"></i> Sin conexión. Los archivos se mostrarán cuando te conectes a internet.</p>';
+            }
+
+            // Restaurar botón
+            iconoBoton.className = 'fas fa-sync';
+            botonActualizar.disabled = false;
+            return; // Salir de la función
+        }
+
+        // 🔧 Online: Obtener lista de PDFs del servidor
         const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
         if (!token) {
             throw new Error('No hay token de autenticación. Por favor inicia sesión nuevamente.');
