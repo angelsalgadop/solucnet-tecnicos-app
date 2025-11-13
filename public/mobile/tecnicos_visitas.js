@@ -1585,8 +1585,23 @@ async function cargarPdfsVisita(visitaId) {
 
         console.log(`📄 [PDFS] Respuesta HTTP ${response.status} ${response.statusText}`);
 
+        // 🔧 FIX CRÍTICO: Verificar Content-Type antes de parsear JSON
+        const contentType = response.headers.get('content-type');
+        console.log(`📄 [PDFS] Content-Type: ${contentType}`);
+
         if (!response.ok) {
+            // Leer respuesta como texto para ver el error
+            const errorText = await response.text();
+            console.error(`❌ [PDFS] Respuesta del servidor:`, errorText.substring(0, 500));
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        // Verificar que la respuesta sea JSON
+        if (!contentType || !contentType.includes('application/json')) {
+            const htmlResponse = await response.text();
+            console.error(`❌ [PDFS] Servidor devolvió HTML en lugar de JSON:`);
+            console.error(htmlResponse.substring(0, 500));
+            throw new Error(`Servidor devolvió ${contentType || 'HTML'} en lugar de JSON. Posible error de autenticación o configuración.`);
         }
 
         const resultado = await response.json();
@@ -1630,12 +1645,16 @@ async function cargarPdfsVisita(visitaId) {
         let mensajeError;
         if (!navigator.onLine) {
             mensajeError = '<p class="text-warning small"><i class="fas fa-wifi-slash"></i> Sin conexión. Los archivos se mostrarán cuando te conectes a internet.</p>';
+        } else if (error.message.includes('HTML') || error.message.includes('JSON') || error.message.includes('autenticación')) {
+            mensajeError = '<p class="text-danger small"><i class="fas fa-lock"></i> Error de autenticación. Por favor cierra e inicia sesión nuevamente.</p>';
         } else if (error.message.includes('HTTP 401') || error.message.includes('HTTP 403')) {
             mensajeError = '<p class="text-danger small"><i class="fas fa-lock"></i> No autorizado. Inicia sesión nuevamente.</p>';
         } else if (error.message.includes('HTTP 404')) {
             mensajeError = '<p class="text-muted small"><i class="fas fa-info-circle"></i> No se encontraron archivos para esta visita.</p>';
         } else if (error.message.includes('HTTP 500')) {
             mensajeError = '<p class="text-danger small"><i class="fas fa-server"></i> Error del servidor. Intenta más tarde.</p>';
+        } else if (error.name === 'SyntaxError') {
+            mensajeError = '<p class="text-danger small"><i class="fas fa-lock"></i> Error de formato. Cierra e inicia sesión nuevamente.</p>';
         } else {
             mensajeError = `<p class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Error: ${error.message}</p>`;
         }
