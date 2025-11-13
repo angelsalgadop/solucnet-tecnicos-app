@@ -1580,10 +1580,20 @@ async function cargarPdfsVisita(visitaId) {
         iconoBoton.className = 'fas fa-spinner fa-spin';
         botonActualizar.disabled = true;
 
+        console.log(`📄 [PDFS] Cargando archivos de visita ${visitaId}...`);
         const response = await fetch(`/api/visitas/${visitaId}/archivos-pdf`);
+
+        console.log(`📄 [PDFS] Respuesta HTTP ${response.status} ${response.statusText}`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         const resultado = await response.json();
+        console.log(`📄 [PDFS] Resultado:`, resultado);
 
         if (resultado.success && resultado.archivos.length > 0) {
+            console.log(`📄 [PDFS] ${resultado.archivos.length} archivos encontrados`);
             const listaHtml = resultado.archivos.map(archivo => `
                 <div class="d-flex justify-content-between align-items-center py-1 px-2 bg-light rounded mb-2">
                     <div>
@@ -1601,6 +1611,7 @@ async function cargarPdfsVisita(visitaId) {
 
             document.getElementById(`lista-pdfs-${visitaId}`).innerHTML = listaHtml;
         } else {
+            console.log(`📄 [PDFS] Sin archivos para visita ${visitaId}`);
             document.getElementById(`lista-pdfs-${visitaId}`).innerHTML =
                 '<p class="text-muted small">No hay archivos adjuntos para esta visita</p>';
         }
@@ -1610,14 +1621,26 @@ async function cargarPdfsVisita(visitaId) {
         botonActualizar.disabled = false;
 
     } catch (error) {
-        console.error('Error cargando PDFs:', error);
+        console.error('❌ [PDFS] Error cargando archivos:', error);
+        console.error('❌ [PDFS] Tipo de error:', error.name);
+        console.error('❌ [PDFS] Mensaje:', error.message);
+        console.error('❌ [PDFS] Stack:', error.stack);
 
-        // 🔧 FIX: Mostrar mensaje apropiado en modo offline
-        const mensajeOffline = !navigator.onLine
-            ? '<p class="text-warning small"><i class="fas fa-wifi-slash"></i> Sin conexión. Los archivos se mostrarán cuando te conectes a internet.</p>'
-            : '<p class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Error cargando archivos. Intenta nuevamente.</p>';
+        // 🔧 FIX: Mostrar mensaje apropiado según el tipo de error
+        let mensajeError;
+        if (!navigator.onLine) {
+            mensajeError = '<p class="text-warning small"><i class="fas fa-wifi-slash"></i> Sin conexión. Los archivos se mostrarán cuando te conectes a internet.</p>';
+        } else if (error.message.includes('HTTP 401') || error.message.includes('HTTP 403')) {
+            mensajeError = '<p class="text-danger small"><i class="fas fa-lock"></i> No autorizado. Inicia sesión nuevamente.</p>';
+        } else if (error.message.includes('HTTP 404')) {
+            mensajeError = '<p class="text-muted small"><i class="fas fa-info-circle"></i> No se encontraron archivos para esta visita.</p>';
+        } else if (error.message.includes('HTTP 500')) {
+            mensajeError = '<p class="text-danger small"><i class="fas fa-server"></i> Error del servidor. Intenta más tarde.</p>';
+        } else {
+            mensajeError = `<p class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Error: ${error.message}</p>`;
+        }
 
-        document.getElementById(`lista-pdfs-${visitaId}`).innerHTML = mensajeOffline;
+        document.getElementById(`lista-pdfs-${visitaId}`).innerHTML = mensajeError;
 
         // Restaurar botón
         const botonActualizar = document.querySelector(`#pdfs-visita-${visitaId} button`);
@@ -1629,7 +1652,7 @@ async function cargarPdfsVisita(visitaId) {
 
         // Solo mostrar alerta de error si NO es por estar offline
         if (navigator.onLine) {
-            mostrarAlerta('Error cargando archivos PDF', 'danger');
+            mostrarAlerta(`Error cargando archivos: ${error.message}`, 'danger');
         }
     }
 }
