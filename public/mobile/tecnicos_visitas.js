@@ -3132,26 +3132,32 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
             });
             console.log(`📄 [ABRIR PDF] Convertido a base64: ${base64Data.length} caracteres`);
 
-            // 3. Guardar en almacenamiento usando Capacitor Filesystem
-            const { Filesystem, Directory } = window.Capacitor.Plugins;
+            // 3. Verificar que Filesystem esté disponible
+            if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Filesystem) {
+                throw new Error('Filesystem plugin no disponible. Asegúrate de tener Capacitor instalado correctamente.');
+            }
+
+            const Filesystem = window.Capacitor.Plugins.Filesystem;
             const fileName = `solucnet_${Date.now()}_${nombreArchivo}`;
 
+            // 4. Guardar en almacenamiento (usando string 'DOCUMENTS' directamente)
+            console.log('📄 [ABRIR PDF] Guardando en almacenamiento...');
             await Filesystem.writeFile({
                 path: fileName,
                 data: base64Data,
-                directory: Directory.Documents,
+                directory: 'DOCUMENTS',  // String directo en lugar de Directory.Documents
                 recursive: true
             });
             console.log(`✅ [ABRIR PDF] PDF guardado en Documents: ${fileName}`);
 
-            // 4. Obtener URI del archivo
+            // 5. Obtener URI del archivo
             const fileUri = await Filesystem.getUri({
                 path: fileName,
-                directory: Directory.Documents
+                directory: 'DOCUMENTS'
             });
             console.log(`📄 [ABRIR PDF] URI del archivo: ${fileUri.uri}`);
 
-            // 5. Intentar abrir con FileOpener
+            // 6. Intentar abrir con FileOpener
             if (window.Capacitor.Plugins.FileOpener) {
                 console.log('📱 [ABRIR PDF] Abriendo con FileOpener...');
                 await window.Capacitor.Plugins.FileOpener.open({
