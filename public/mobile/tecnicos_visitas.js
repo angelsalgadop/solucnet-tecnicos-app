@@ -3104,7 +3104,7 @@ async function asignarEquipoAlCompletar(visitaId, serialEquipo, costoEquipo = 18
     }
 }
 
-// 🔧 FIX v1.50: Función para descargar y abrir PDFs en app nativa
+// 🔧 FIX v1.52: Función para descargar y abrir PDFs en app nativa (CON PERMISOS)
 async function abrirPdfEnApp(blobUrl, nombreArchivo) {
     try {
         console.log(`📄 [ABRIR PDF] Intentando abrir: ${nombreArchivo}`);
@@ -3112,15 +3112,69 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
         console.log(`📄 [ABRIR PDF] Es app nativa: ${APP_CONFIG.isNative()}`);
 
         if (APP_CONFIG.isNative() && window.Capacitor) {
-            // En app nativa: DESCARGAR al almacenamiento y abrir con app externa
+            // 1. SOLICITAR PERMISOS DE ALMACENAMIENTO
+            console.log('🔐 [ABRIR PDF] Verificando permisos de almacenamiento...');
+
+            const Filesystem = window.Capacitor.Plugins.Filesystem;
+
+            // Solicitar permisos usando Capacitor Permissions
+            try {
+                if (window.Capacitor.Plugins.Permissions) {
+                    const permissions = window.Capacitor.Plugins.Permissions;
+
+                    // Verificar estado actual
+                    const checkResult = await permissions.query({ name: 'storage' });
+                    console.log(`🔐 [PERMISOS] Estado actual: ${checkResult.state}`);
+
+                    if (checkResult.state !== 'granted') {
+                        console.log('🔐 [PERMISOS] Solicitando permisos al usuario...');
+                        const requestResult = await permissions.request({ name: 'storage' });
+                        console.log(`🔐 [PERMISOS] Resultado: ${requestResult.state}`);
+
+                        if (requestResult.state !== 'granted') {
+                            throw new Error('Se requieren permisos de almacenamiento para descargar PDFs.\n\nPor favor ve a Configuración → Aplicaciones → SolucNet Técnicos → Permisos y habilita "Archivos y multimedia".');
+                        }
+                    }
+
+                    console.log('✅ [PERMISOS] Permisos de almacenamiento concedidos');
+                } else {
+                    console.warn('⚠️ [PERMISOS] Permissions API no disponible, intentando sin verificación...');
+                }
+            } catch (permError) {
+                console.error('❌ [PERMISOS] Error verificando permisos:', permError);
+                // Continuar de todos modos, Filesystem puede tener sus propios permisos
+            }
+
+            // 2. Verificar permisos de Filesystem directamente
+            try {
+                if (Filesystem.checkPermissions) {
+                    const fsPerms = await Filesystem.checkPermissions();
+                    console.log(`🔐 [FILESYSTEM] Permisos actuales:`, fsPerms);
+
+                    if (fsPerms.publicStorage !== 'granted') {
+                        console.log('🔐 [FILESYSTEM] Solicitando permisos...');
+                        const requestFs = await Filesystem.requestPermissions();
+                        console.log(`🔐 [FILESYSTEM] Permisos solicitados:`, requestFs);
+
+                        if (requestFs.publicStorage !== 'granted') {
+                            throw new Error('Permisos de almacenamiento denegados.\n\nPara descargar PDFs, ve a:\nConfiguraci\u00f3n → Aplicaciones → SolucNet T\u00e9cnicos → Permisos → Archivos y multimedia → Permitir');
+                        }
+                    }
+                    console.log('✅ [FILESYSTEM] Permisos verificados correctamente');
+                }
+            } catch (fsPermError) {
+                console.warn('⚠️ [FILESYSTEM] No se pudieron verificar permisos, intentando de todos modos:', fsPermError.message);
+            }
+
+            // 3. DESCARGAR al almacenamiento y abrir con app externa
             console.log('📱 [ABRIR PDF] Descargando PDF al almacenamiento del teléfono...');
 
-            // 1. Obtener Blob desde blob URL
+            // Obtener Blob desde blob URL
             const response = await fetch(blobUrl);
             const blob = await response.blob();
             console.log(`📄 [ABRIR PDF] Blob obtenido: ${blob.size} bytes, tipo: ${blob.type}`);
 
-            // 2. Convertir Blob a base64
+            // Convertir Blob a base64
             const reader = new FileReader();
             const base64Data = await new Promise((resolve, reject) => {
                 reader.onloadend = () => {
@@ -3132,15 +3186,8 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
             });
             console.log(`📄 [ABRIR PDF] Convertido a base64: ${base64Data.length} caracteres`);
 
-            // 3. Verificar que Filesystem esté disponible
-            if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Filesystem) {
-                throw new Error('Filesystem plugin no disponible. Asegúrate de tener Capacitor instalado correctamente.');
-            }
-
-            const Filesystem = window.Capacitor.Plugins.Filesystem;
-            const fileName = `solucnet_${Date.now()}_${nombreArchivo}`;
-
             // 4. Guardar en almacenamiento (usando string 'DOCUMENTS' directamente)
+            const fileName = `solucnet_${Date.now()}_${nombreArchivo}`;
             console.log('📄 [ABRIR PDF] Guardando en almacenamiento...');
             await Filesystem.writeFile({
                 path: fileName,
