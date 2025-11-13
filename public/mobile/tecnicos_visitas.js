@@ -346,6 +346,16 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             `;
         }
         actualizarIndicadorActualizacion();
+
+        // 🔧 FIX v1.55: Descargar PDFs automáticamente en background
+        if (navigator.onLine && visitasAsignadas.length > 0) {
+            // Ejecutar en background sin bloquear la UI
+            setTimeout(() => {
+                descargarPDFsEnBackground().catch(err => {
+                    console.warn('⚠️ [PDFS AUTO] Error en descarga automática:', err);
+                });
+            }, 2000); // Esperar 2 segundos después de cargar visitas
+        }
     }
 }
 
@@ -1764,6 +1774,81 @@ async function cargarPdfsVisita(visitaId) {
     }
 }
 
+// 🔧 FIX v1.55: Descargar PDFs automáticamente en background
+async function descargarPDFsEnBackground() {
+    // Solo ejecutar si hay conexión
+    if (!navigator.onLine) {
+        console.log('📴 [PDFS AUTO] Sin conexión, omitiendo descarga automática');
+        return;
+    }
+
+    // Solo ejecutar si hay visitas asignadas
+    if (!visitasAsignadas || visitasAsignadas.length === 0) {
+        console.log('📄 [PDFS AUTO] No hay visitas asignadas');
+        return;
+    }
+
+    console.log(`📥 [PDFS AUTO] Iniciando descarga automática de PDFs para ${visitasAsignadas.length} visitas...`);
+
+    const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
+    if (!token) {
+        console.warn('⚠️ [PDFS AUTO] Sin token, omitiendo descarga');
+        return;
+    }
+
+    let totalDescargados = 0;
+    let totalYaEnCache = 0;
+
+    for (const visita of visitasAsignadas) {
+        try {
+            // Obtener lista de PDFs para esta visita
+            const response = await fetch(APP_CONFIG.getApiUrl(`/api/visitas/${visita.id}/archivos-pdf`), {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) continue; // Saltar si hay error
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) continue;
+
+            const resultado = await response.json();
+
+            if (resultado.success && resultado.archivos && resultado.archivos.length > 0) {
+                for (const archivo of resultado.archivos) {
+                    try {
+                        // Verificar si ya está en caché
+                        const pdfCached = await window.offlineManager.getPdfOffline(visita.id, archivo.nombre_archivo);
+
+                        if (pdfCached) {
+                            totalYaEnCache++;
+                            continue; // Ya está descargado
+                        }
+
+                        // Descargar y guardar en caché
+                        const pdfUrl = APP_CONFIG.getApiUrl(`/uploads/pdfs_visitas/${archivo.nombre_archivo}`);
+                        const pdfResponse = await fetch(pdfUrl, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+
+                        if (pdfResponse.ok) {
+                            const pdfBlob = await pdfResponse.blob();
+                            await window.offlineManager.savePdfOffline(visita.id, archivo.nombre_archivo, archivo.nombre_original, pdfBlob);
+                            totalDescargados++;
+                            console.log(`✅ [PDFS AUTO] Descargado: ${archivo.nombre_original} (visita ${visita.id})`);
+                        }
+                    } catch (pdfError) {
+                        console.warn(`⚠️ [PDFS AUTO] Error descargando ${archivo.nombre_archivo}:`, pdfError.message);
+                    }
+                }
+            }
+        } catch (visitaError) {
+            console.warn(`⚠️ [PDFS AUTO] Error procesando visita ${visita.id}:`, visitaError.message);
+        }
+    }
+
+    console.log(`📥 [PDFS AUTO] Descarga completada - Nuevos: ${totalDescargados}, Ya en caché: ${totalYaEnCache}`);
+}
+
 // Variables globales para cronómetros
 let cronometrosActivos = {};
 
@@ -2277,6 +2362,48 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         iniciarEnvioUbicacionAutomatica();
     }, 3000); // Esperar 3 segundos después de cargar la página
+});
+
+// 🔧 FIX v1.55: Listener para abrir PDFs al tocar notificación
+document.addEventListener('DOMContentLoaded', function() {
+    // Solo en app nativa con Capacitor
+    if (APP_CONFIG.isNative() && window.Capacitor?.Plugins?.LocalNotifications) {
+        console.log('📱 [NOTIFICACIÓN] Registrando listener para clicks en notificaciones...');
+
+        const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+
+        // Listener para cuando se toca una notificación
+        LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
+            console.log('🔔 [NOTIFICACIÓN] Usuario tocó notificación:', notification);
+
+            // Extraer información del PDF
+            const filePath = notification.notification?.extra?.filePath;
+            const action = notification.notification?.extra?.action;
+
+            if (action === 'open_pdf' && filePath) {
+                console.log('📄 [NOTIFICACIÓN] Intentando abrir PDF:', filePath);
+
+                // Abrir PDF con FileOpener
+                if (window.Capacitor.Plugins.FileOpener) {
+                    window.Capacitor.Plugins.FileOpener.open({
+                        filePath: filePath,
+                        contentType: 'application/pdf',
+                        openWithDefault: true
+                    }).then(() => {
+                        console.log('✅ [NOTIFICACIÓN] PDF abierto desde notificación');
+                    }).catch((error) => {
+                        console.error('❌ [NOTIFICACIÓN] Error abriendo PDF:', error);
+                        alert('Error al abrir el PDF. Puedes encontrarlo en la carpeta Documentos.');
+                    });
+                } else {
+                    console.warn('⚠️ [NOTIFICACIÓN] FileOpener no disponible');
+                    alert('El PDF fue descargado en la carpeta Documentos de tu teléfono.');
+                }
+            }
+        });
+
+        console.log('✅ [NOTIFICACIÓN] Listener registrado correctamente');
+    }
 });
 
 // ========================================
