@@ -3120,18 +3120,34 @@ async function mostrarNotificacionDescarga(nombreArchivo, fileUri) {
                 await LocalNotifications.requestPermissions();
             }
 
-            // Crear notificación de descarga completa
+            // Crear canal de notificaciones (requerido Android 8+)
+            try {
+                await LocalNotifications.createChannel({
+                    id: 'downloads',
+                    name: 'Descargas',
+                    description: 'Notificaciones de descargas de archivos',
+                    importance: 4, // High importance
+                    visibility: 1, // Public
+                    sound: 'default.wav',
+                    vibration: true
+                });
+                console.log('✅ [NOTIFICACIÓN] Canal creado/verificado');
+            } catch (channelError) {
+                console.warn('⚠️ [NOTIFICACIÓN] Canal ya existe o error:', channelError.message);
+            }
+
             // Generar ID válido para Java int (max 2147483647)
             const notificationId = Math.floor(Date.now() % 2147483647);
+            console.log(`📱 [NOTIFICACIÓN] ID generado: ${notificationId}`);
 
+            // Crear notificación INMEDIATA (sin schedule)
             await LocalNotifications.schedule({
                 notifications: [{
                     title: '📄 PDF Descargado',
-                    body: `${nombreArchivo}\nToca para abrir`,
+                    body: `${nombreArchivo} - Toca para abrir`,
                     id: notificationId,
-                    schedule: { at: new Date(Date.now()) },
-                    sound: 'default',
-                    smallIcon: 'ic_stat_download',
+                    // NO incluir 'schedule' para notificación inmediata
+                    sound: 'default.wav',
                     channelId: 'downloads',
                     extra: {
                         action: 'open_pdf',
@@ -3139,7 +3155,7 @@ async function mostrarNotificacionDescarga(nombreArchivo, fileUri) {
                     }
                 }]
             });
-            console.log('✅ [NOTIFICACIÓN] Notificación nativa mostrada');
+            console.log('✅ [NOTIFICACIÓN] Notificación nativa mostrada inmediatamente');
             return;
         }
 
