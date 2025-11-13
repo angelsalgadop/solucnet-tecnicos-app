@@ -3104,6 +3104,91 @@ async function asignarEquipoAlCompletar(visitaId, serialEquipo, costoEquipo = 18
     }
 }
 
+// 🔔 FIX v1.53: Función para mostrar notificaciones de descarga (Web o Nativa)
+async function mostrarNotificacionDescarga(nombreArchivo, fileUri) {
+    try {
+        console.log('🔔 [NOTIFICACIÓN] Intentando mostrar notificación de descarga...');
+
+        // Opción 1: Capacitor LocalNotifications (APK nativa)
+        if (window.Capacitor?.Plugins?.LocalNotifications) {
+            console.log('📱 [NOTIFICACIÓN] Usando LocalNotifications de Capacitor...');
+            const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+
+            // Solicitar permisos si es necesario
+            const permResult = await LocalNotifications.checkPermissions();
+            if (permResult.display !== 'granted') {
+                await LocalNotifications.requestPermissions();
+            }
+
+            // Crear notificación de descarga completa
+            await LocalNotifications.schedule({
+                notifications: [{
+                    title: '📄 PDF Descargado',
+                    body: `${nombreArchivo}\nToca para abrir`,
+                    id: Date.now(),
+                    schedule: { at: new Date(Date.now()) },
+                    sound: 'default',
+                    smallIcon: 'ic_stat_download',
+                    channelId: 'downloads',
+                    extra: {
+                        action: 'open_pdf',
+                        filePath: fileUri
+                    }
+                }]
+            });
+            console.log('✅ [NOTIFICACIÓN] Notificación nativa mostrada');
+            return;
+        }
+
+        // Opción 2: Web Notifications API (Navegador móvil/desktop)
+        if ('Notification' in window) {
+            console.log('🌐 [NOTIFICACIÓN] Usando Web Notifications API...');
+
+            // Verificar permisos
+            let permission = Notification.permission;
+
+            if (permission === 'default') {
+                console.log('🔔 [NOTIFICACIÓN] Solicitando permisos...');
+                permission = await Notification.requestPermission();
+            }
+
+            if (permission === 'granted') {
+                // Crear notificación web
+                const notificacion = new Notification('📄 PDF Descargado', {
+                    body: `${nombreArchivo}\nArchivo guardado en Documentos`,
+                    icon: '/favicon.ico',
+                    badge: '/favicon.ico',
+                    tag: 'pdf-download',
+                    requireInteraction: false,
+                    silent: false,
+                    vibrate: [200, 100, 200]
+                });
+
+                // Click handler para abrir el archivo
+                notificacion.onclick = function() {
+                    console.log('🔔 [NOTIFICACIÓN] Usuario hizo clic en notificación');
+                    window.focus();
+                    notificacion.close();
+                };
+
+                // Auto-cerrar después de 5 segundos
+                setTimeout(() => notificacion.close(), 5000);
+
+                console.log('✅ [NOTIFICACIÓN] Notificación web mostrada');
+            } else {
+                console.warn('⚠️ [NOTIFICACIÓN] Permisos denegados:', permission);
+            }
+            return;
+        }
+
+        console.warn('⚠️ [NOTIFICACIÓN] No hay soporte para notificaciones en este dispositivo');
+
+    } catch (notifError) {
+        console.error('❌ [NOTIFICACIÓN] Error mostrando notificación:', notifError);
+        console.error('❌ [NOTIFICACIÓN] Stack:', notifError.stack);
+    }
+}
+
 // 🔧 FIX v1.52: Función para descargar y abrir PDFs en app nativa (CON PERMISOS)
 async function abrirPdfEnApp(blobUrl, nombreArchivo) {
     try {
@@ -3204,38 +3289,8 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
             });
             console.log(`📄 [ABRIR PDF] URI del archivo: ${fileUri.uri}`);
 
-            // 6. Mostrar notificación de Android de descarga completa
-            try {
-                if (window.Capacitor.Plugins.LocalNotifications) {
-                    const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
-
-                    // Solicitar permisos si es necesario
-                    const permResult = await LocalNotifications.checkPermissions();
-                    if (permResult.display !== 'granted') {
-                        await LocalNotifications.requestPermissions();
-                    }
-
-                    // Crear notificación de descarga completa
-                    await LocalNotifications.schedule({
-                        notifications: [{
-                            title: '📄 PDF Descargado',
-                            body: `${nombreArchivo}\nToca para abrir`,
-                            id: Date.now(),
-                            schedule: { at: new Date(Date.now()) },
-                            sound: 'default',
-                            smallIcon: 'ic_stat_download',
-                            channelId: 'downloads',
-                            extra: {
-                                action: 'open_pdf',
-                                filePath: fileUri.uri
-                            }
-                        }]
-                    });
-                    console.log('✅ [NOTIFICACIÓN] Notificación de descarga mostrada');
-                }
-            } catch (notifError) {
-                console.warn('⚠️ [NOTIFICACIÓN] No se pudo mostrar notificación:', notifError.message);
-            }
+            // 6. Mostrar notificación de descarga completa (Capacitor o Web)
+            await mostrarNotificacionDescarga(nombreArchivo, fileUri.uri);
 
             // 7. Intentar abrir con FileOpener
             if (window.Capacitor.Plugins.FileOpener) {
@@ -3262,8 +3317,12 @@ async function abrirPdfEnApp(blobUrl, nombreArchivo) {
                 alert(`PDF descargado exitosamente en Documentos:\n${fileName}\n\nBusca el archivo en la carpeta de Documentos de tu teléfono.`);
             }
         } else {
-            // En web, abrir en nueva pestaña
+            // En web, mostrar notificación y abrir en nueva pestaña
             console.log('🌐 [ABRIR PDF] Abriendo en navegador web...');
+
+            // Mostrar notificación web
+            await mostrarNotificacionDescarga(nombreArchivo, blobUrl);
+
             const nuevaVentana = window.open(blobUrl, '_blank');
             if (!nuevaVentana) {
                 throw new Error('No se pudo abrir el PDF. Tu navegador puede estar bloqueando ventanas emergentes.');
