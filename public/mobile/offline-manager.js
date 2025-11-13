@@ -47,7 +47,7 @@ class OfflineManager {
     // Abrir base de datos IndexedDB
     openDatabase() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('solucnet-offline-db', 2);
+            const request = indexedDB.open('solucnet-offline-db', 3);
 
             request.onerror = () => reject(request.error);
             request.onsuccess = () => resolve(request.result);
@@ -88,6 +88,14 @@ class OfflineManager {
                     const ubicacionesStore = db.createObjectStore('offline-ubicaciones', { autoIncrement: true, keyPath: 'localId' });
                     ubicacionesStore.createIndex('visita_id', 'visita_id', { unique: false });
                     ubicacionesStore.createIndex('sincronizado', 'sincronizado', { unique: false });
+                }
+
+                // 🔧 FIX v1.48: Store para PDFs offline (descargar y eliminar al completar visita)
+                if (!db.objectStoreNames.contains('offline-pdfs')) {
+                    const pdfsStore = db.createObjectStore('offline-pdfs', { keyPath: 'id', autoIncrement: true });
+                    pdfsStore.createIndex('visita_id', 'visita_id', { unique: false });
+                    pdfsStore.createIndex('nombre_archivo', 'nombre_archivo', { unique: false });
+                    pdfsStore.createIndex('timestamp', 'timestamp', { unique: false });
                 }
             };
         });
@@ -855,6 +863,104 @@ class OfflineManager {
         }
 
         console.log('🧹 [OFFLINE MANAGER] Datos antiguos limpiados');
+    }
+
+    // 🔧 FIX v1.48: Funciones para manejar PDFs offline
+
+    // Guardar PDF en IndexedDB
+    async savePdfOffline(visitaId, nombreArchivo, nombreOriginal, pdfBlob) {
+        try {
+            if (!this.db) {
+                throw new Error('Base de datos no inicializada');
+            }
+
+            const tx = this.db.transaction('offline-pdfs', 'readwrite');
+            const store = tx.objectStore('offline-pdfs');
+
+            const pdfData = {
+                visita_id: visitaId,
+                nombre_archivo: nombreArchivo,
+                nombre_original: nombreOriginal,
+                blob: pdfBlob,
+                timestamp: Date.now()
+            };
+
+            await store.add(pdfData);
+            console.log(`📥 [OFFLINE MANAGER] PDF guardado: ${nombreArchivo} (visita ${visitaId})`);
+            return true;
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error guardando PDF:', error);
+            return false;
+        }
+    }
+
+    // Obtener PDF específico desde IndexedDB
+    async getPdfOffline(visitaId, nombreArchivo) {
+        try {
+            if (!this.db) return null;
+
+            const tx = this.db.transaction('offline-pdfs', 'readonly');
+            const store = tx.objectStore('offline-pdfs');
+            const index = store.index('visita_id');
+            const pdfs = await index.getAll(visitaId);
+
+            const pdf = pdfs.find(p => p.nombre_archivo === nombreArchivo);
+            if (pdf) {
+                console.log(`📄 [OFFLINE MANAGER] PDF encontrado en cache: ${nombreArchivo}`);
+                return pdf.blob;
+            }
+
+            return null;
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error obteniendo PDF:', error);
+            return null;
+        }
+    }
+
+    // Obtener todos los PDFs de una visita
+    async getPdfsForVisita(visitaId) {
+        try {
+            if (!this.db) return [];
+
+            const tx = this.db.transaction('offline-pdfs', 'readonly');
+            const store = tx.objectStore('offline-pdfs');
+            const index = store.index('visita_id');
+            const pdfs = await index.getAll(visitaId);
+
+            console.log(`📄 [OFFLINE MANAGER] ${pdfs.length} PDFs encontrados para visita ${visitaId}`);
+            return pdfs;
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error obteniendo PDFs:', error);
+            return [];
+        }
+    }
+
+    // Eliminar todos los PDFs de una visita (al completar)
+    async deletePdfsForVisita(visitaId) {
+        try {
+            if (!this.db) return false;
+
+            const tx = this.db.transaction('offline-pdfs', 'readwrite');
+            const store = tx.objectStore('offline-pdfs');
+            const index = store.index('visita_id');
+            const pdfs = await index.getAll(visitaId);
+
+            for (const pdf of pdfs) {
+                await store.delete(pdf.id);
+            }
+
+            console.log(`🗑️ [OFFLINE MANAGER] ${pdfs.length} PDFs eliminados para visita ${visitaId}`);
+            return true;
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error eliminando PDFs:', error);
+            return false;
+        }
+    }
+
+    // Verificar si un PDF existe en caché
+    async hasPdfCached(visitaId, nombreArchivo) {
+        const pdf = await this.getPdfOffline(visitaId, nombreArchivo);
+        return pdf !== null;
     }
 }
 

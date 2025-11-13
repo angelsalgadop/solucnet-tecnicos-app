@@ -1196,6 +1196,14 @@ async function guardarReporteVisita() {
                 // CRÍTICO: Eliminar la visita del cache de IndexedDB
                 await window.offlineManager.deleteVisitaOffline(formData.visita_id);
 
+                // 🔧 FIX v1.48: Eliminar PDFs al completar visita
+                try {
+                    await window.offlineManager.deletePdfsForVisita(formData.visita_id);
+                    console.log(`🗑️ [PDFS] PDFs eliminados para visita ${formData.visita_id}`);
+                } catch (error) {
+                    console.warn('⚠️ [PDFS] Error eliminando PDFs:', error);
+                }
+
                 // Cerrar modal
                 bootstrap.Modal.getInstance(document.getElementById('modalCompletarVisita')).hide();
             } else {
@@ -1250,6 +1258,14 @@ async function guardarReporteVisita() {
             // Remover la visita de la lista local
             visitasAsignadas = visitasAsignadas.filter(v => v.id != formData.visita_id);
             mostrarVisitasAsignadas();
+
+            // 🔧 FIX v1.48: Eliminar PDFs al completar visita para liberar espacio
+            try {
+                await window.offlineManager.deletePdfsForVisita(formData.visita_id);
+                console.log(`🗑️ [PDFS] PDFs eliminados para visita ${formData.visita_id}`);
+            } catch (error) {
+                console.warn('⚠️ [PDFS] Error eliminando PDFs:', error);
+            }
 
             // Cerrar modal
             bootstrap.Modal.getInstance(document.getElementById('modalCompletarVisita')).hide();
@@ -1313,6 +1329,14 @@ async function guardarReporteVisita() {
 
                 // CRÍTICO: Eliminar la visita del cache de IndexedDB
                 await window.offlineManager.deleteVisitaOffline(formData.visita_id);
+
+                // 🔧 FIX v1.48: Eliminar PDFs al completar visita
+                try {
+                    await window.offlineManager.deletePdfsForVisita(formData.visita_id);
+                    console.log(`🗑️ [PDFS] PDFs eliminados para visita ${formData.visita_id}`);
+                } catch (error) {
+                    console.warn('⚠️ [PDFS] Error eliminando PDFs:', error);
+                }
 
                 // Cerrar modal
                 bootstrap.Modal.getInstance(document.getElementById('modalCompletarVisita')).hide();
@@ -1620,20 +1644,71 @@ async function cargarPdfsVisita(visitaId) {
 
         if (resultado.success && resultado.archivos.length > 0) {
             console.log(`📄 [PDFS] ${resultado.archivos.length} archivos encontrados`);
-            const listaHtml = resultado.archivos.map(archivo => `
-                <div class="d-flex justify-content-between align-items-center py-1 px-2 bg-light rounded mb-2">
-                    <div>
-                        <i class="fas fa-file-pdf text-danger me-2"></i>
-                        <span class="small">${archivo.nombre_original}</span>
-                        <small class="text-muted ms-2">(${(archivo.tamaño / 1024).toFixed(1)} KB)</small>
+
+            // 🔧 FIX v1.48: Descargar PDFs automáticamente para acceso offline
+            const archivosConUrl = [];
+            for (const archivo of resultado.archivos) {
+                try {
+                    // Verificar si ya está en caché
+                    const pdfCached = await window.offlineManager.getPdfOffline(visitaId, archivo.nombre_archivo);
+
+                    if (pdfCached) {
+                        // Usar PDF desde caché
+                        const blobUrl = URL.createObjectURL(pdfCached);
+                        archivosConUrl.push({ ...archivo, url: blobUrl, fromCache: true });
+                        console.log(`📄 [PDFS] Usando PDF desde caché: ${archivo.nombre_archivo}`);
+                    } else if (navigator.onLine) {
+                        // Descargar y guardar en caché
+                        console.log(`📥 [PDFS] Descargando PDF: ${archivo.nombre_archivo}`);
+                        const pdfUrl = APP_CONFIG.getApiUrl(`/uploads/pdfs_visitas/${archivo.nombre_archivo}`);
+                        const pdfResponse = await fetch(pdfUrl, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+
+                        if (pdfResponse.ok) {
+                            const pdfBlob = await pdfResponse.blob();
+                            await window.offlineManager.savePdfOffline(visitaId, archivo.nombre_archivo, archivo.nombre_original, pdfBlob);
+                            const blobUrl = URL.createObjectURL(pdfBlob);
+                            archivosConUrl.push({ ...archivo, url: blobUrl, fromCache: false });
+                            console.log(`✅ [PDFS] PDF descargado y guardado: ${archivo.nombre_archivo}`);
+                        } else {
+                            console.warn(`⚠️ [PDFS] Error descargando PDF: ${archivo.nombre_archivo}`);
+                            archivosConUrl.push({ ...archivo, url: null, fromCache: false });
+                        }
+                    } else {
+                        // Offline y no hay caché
+                        console.warn(`⚠️ [PDFS] Offline, PDF no disponible: ${archivo.nombre_archivo}`);
+                        archivosConUrl.push({ ...archivo, url: null, fromCache: false });
+                    }
+                } catch (error) {
+                    console.error(`❌ [PDFS] Error procesando PDF ${archivo.nombre_archivo}:`, error);
+                    archivosConUrl.push({ ...archivo, url: null, fromCache: false });
+                }
+            }
+
+            // Generar HTML con URLs de blob o mensaje de offline
+            const listaHtml = archivosConUrl.map(archivo => {
+                const iconoEstado = archivo.fromCache ? '💾' : '📄';
+                const botonHtml = archivo.url
+                    ? `<a href="${archivo.url}" target="_blank" download="${archivo.nombre_original}" class="btn btn-sm btn-outline-primary">
+                           <i class="fas fa-download"></i>
+                       </a>`
+                    : `<span class="btn btn-sm btn-outline-secondary disabled">
+                           <i class="fas fa-wifi-slash"></i> Offline
+                       </span>`;
+
+                return `
+                    <div class="d-flex justify-content-between align-items-center py-1 px-2 bg-light rounded mb-2">
+                        <div>
+                            <span>${iconoEstado}</span>
+                            <i class="fas fa-file-pdf text-danger me-2"></i>
+                            <span class="small">${archivo.nombre_original}</span>
+                            <small class="text-muted ms-2">(${(archivo.tamaño / 1024).toFixed(1)} KB)</small>
+                        </div>
+                        ${botonHtml}
                     </div>
-                    <a href="/uploads/pdfs_visitas/${archivo.nombre_archivo}"
-                       target="_blank"
-                       class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-download"></i>
-                    </a>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             document.getElementById(`lista-pdfs-${visitaId}`).innerHTML = listaHtml;
         } else {
