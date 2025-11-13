@@ -26,6 +26,7 @@
     "@capacitor/core": "^7.4.4",
     "@capacitor/filesystem": "^7.1.4",
     "@capacitor/geolocation": "^7.1.5",
+    "@capacitor/local-notifications": "^7.0.3",
     "@capacitor/network": "^7.0.2",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
