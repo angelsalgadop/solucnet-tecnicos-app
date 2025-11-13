@@ -2405,6 +2405,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// 🔧 FIX v1.58: Listener para descargar PDFs cuando la conexión vuelve
+window.addEventListener('online', function() {
+    console.log('🌐 [CONEXIÓN] Conexión restaurada - Descargando PDFs pendientes...');
+
+    // Esperar un momento para asegurar que la conexión esté estable
+    setTimeout(() => {
+        if (visitasAsignadas && visitasAsignadas.length > 0) {
+            descargarPDFsEnBackground().catch(err => {
+                console.warn('⚠️ [PDFS AUTO] Error en descarga tras reconexión:', err);
+            });
+        }
+    }, 1000);
+});
+
+// Log cuando se pierde la conexión
+window.addEventListener('offline', function() {
+    console.log('📴 [CONEXIÓN] Conexión perdida - Modo offline activado');
+});
+
 // ========================================
 // MAPA DE CLIENTES
 // ========================================
