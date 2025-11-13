@@ -96,8 +96,11 @@ class OfflineManager {
     // Registrar Service Worker
     async registerServiceWorker() {
         try {
-            // Usar ruta relativa para que funcione en app nativa y web
-            const registration = await navigator.serviceWorker.register('sw-offline.js');
+            // 🔧 FIX v1.46: Usar ruta absoluta para que funcione en app nativa
+            // El archivo sw-offline.js debe estar en public/mobile/ para incluirse en el bundle
+            const registration = await navigator.serviceWorker.register('/sw-offline.js', {
+                scope: '/'
+            });
             console.log('✅ [OFFLINE MANAGER] Service Worker registrado:', registration.scope);
 
             // Escuchar mensajes del service worker
