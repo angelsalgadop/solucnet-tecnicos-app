@@ -8938,6 +8938,78 @@ app.get('/api/mis-visitas', async (req, res) => {
     }
 });
 
+// 🔧 v1.68: Endpoint ligero para verificar si hay cambios en visitas (evita descarga innecesaria)
+app.get('/api/mis-visitas/check-updates', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: 'Token no proporcionado'
+            });
+        }
+
+        // Verificar el token
+        const usuario = await verificarToken(token);
+
+        if (!usuario) {
+            return res.status(401).json({
+                success: false,
+                message: 'Token inválido o expirado'
+            });
+        }
+
+        // Verificar que sea un técnico
+        if (usuario.rol !== 'tecnico') {
+            return res.status(403).json({
+                success: false,
+                message: 'Acceso denegado. Solo técnicos pueden acceder a esta ruta.'
+            });
+        }
+
+        // Consulta ligera: solo obtener IDs y timestamps
+        const [visitas] = await dbPool.execute(`
+            SELECT id, fecha_modificacion, estado
+            FROM visitas_tecnicas
+            WHERE tecnico_asignado_id = ? AND estado IN ('asignada', 'en_progreso')
+            ORDER BY fecha_programada ASC
+        `, [usuario.id]);
+
+        // Filtrar completadas/canceladas de memoria
+        const idsActivos = [];
+        for (const visita of visitas) {
+            const estadoMemoria = visitasEnMemoria[visita.id];
+            const estadoFinal = estadoMemoria?.estado || visita.estado;
+
+            if (estadoFinal !== 'completada' && estadoFinal !== 'cancelada') {
+                idsActivos.push(visita.id);
+            }
+        }
+
+        // Calcular hash simple de los IDs
+        const hash = require('crypto')
+            .createHash('md5')
+            .update(idsActivos.sort().join(','))
+            .digest('hex');
+
+        console.log(`✅ [CHECK-UPDATES] Usuario ${usuario.id}: ${idsActivos.length} visitas activas, hash: ${hash.substring(0, 8)}...`);
+
+        res.json({
+            success: true,
+            count: idsActivos.length,
+            hash: hash,
+            visita_ids: idsActivos // IDs para comparación detallada
+        });
+    } catch (error) {
+        console.error('❌ [CHECK-UPDATES] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Error verificando actualizaciones'
+        });
+    }
+});
+
 // API para obtener archivos PDF de una visita técnica
 app.get('/api/visitas/:id/archivos-pdf', async (req, res) => {
     try {

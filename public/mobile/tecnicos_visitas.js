@@ -148,7 +148,7 @@ function ocultarBarraProgresoInline() {
     }
 }
 
-// 🔧 v1.62: Cargar visitas con descarga incremental de PDFs
+// 🔧 v1.68: Cargar visitas con validación previa (solo descarga si hay cambios)
 async function cargarVisitasTecnico(mostrarSpinner = true) {
     try {
         const token = localStorage.getItem('token_tecnico');
@@ -164,6 +164,50 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             visitasContainer.innerHTML = ''; // Limpiar contenedor
             mostrarBarraProgresoInline();
             actualizarBarraProgresoInline('Conectando con el servidor...', 0, 'Iniciando...');
+        }
+
+        // 🔧 v1.68: VALIDACIÓN PREVIA - Solo descargar si hay cambios reales
+        if (!esCargaInicial && navigator.onLine) {
+            console.log('🔍 [VALIDACIÓN] Verificando si hay cambios en el servidor...');
+
+            try {
+                const checkResponse = await fetch(APP_CONFIG.getApiUrl('/api/mis-visitas/check-updates'), {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    cache: 'no-cache'
+                });
+
+                if (checkResponse.ok) {
+                    const checkResult = await checkResponse.json();
+
+                    if (checkResult.success) {
+                        const hashAnterior = localStorage.getItem('visitas_hash');
+                        const hashActual = checkResult.hash;
+
+                        console.log(`🔍 [VALIDACIÓN] Hash anterior: ${hashAnterior?.substring(0, 8) || 'ninguno'}, Hash actual: ${hashActual.substring(0, 8)}`);
+
+                        // Si los hashes coinciden, NO hay cambios
+                        if (hashAnterior === hashActual) {
+                            console.log('✅ [VALIDACIÓN] No hay cambios. Usando visitas en caché.');
+
+                            // Renderizar visitas actuales sin recargar
+                            renderizarVisitas(visitasAsignadas);
+
+                            // Actualizar contadores
+                            const pendientes = visitasAsignadas.filter(v => v.estado !== 'completada' && v.estado !== 'cancelada').length;
+                            totalVisitas.textContent = visitasAsignadas.length;
+                            visitasPendientes.textContent = pendientes;
+
+                            return; // ⚠️ SALIR - No descargar nada
+                        }
+
+                        console.log('🔄 [VALIDACIÓN] Cambios detectados. Descargando visitas actualizadas...');
+                    }
+                }
+            } catch (checkError) {
+                console.warn('⚠️ [VALIDACIÓN] Error verificando cambios, descargando de todos modos:', checkError.message);
+                // Si falla la verificación, continuar con descarga normal
+            }
         }
 
         // Descargar visitas del servidor
@@ -380,6 +424,27 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
 
         ultimaActualizacion = Date.now();
         actualizarIndicadorActualizacion();
+
+        // 🔧 v1.68: Guardar hash de visitas para futuras validaciones
+        if (navigator.onLine) {
+            try {
+                const checkResponse = await fetch(APP_CONFIG.getApiUrl('/api/mis-visitas/check-updates'), {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    cache: 'no-cache'
+                });
+
+                if (checkResponse.ok) {
+                    const checkResult = await checkResponse.json();
+                    if (checkResult.success && checkResult.hash) {
+                        localStorage.setItem('visitas_hash', checkResult.hash);
+                        console.log(`💾 [VALIDACIÓN] Hash guardado: ${checkResult.hash.substring(0, 8)}...`);
+                    }
+                }
+            } catch (hashError) {
+                console.warn('⚠️ [VALIDACIÓN] No se pudo guardar hash:', hashError.message);
+            }
+        }
 
     } catch (error) {
         console.error('Error cargando visitas:', error);
