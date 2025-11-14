@@ -4330,3 +4330,41 @@ window.iniciarDescargaMapaOffline = iniciarDescargaMapaOffline;
         console.error('❌ [WEBSOCKET] Error conectando:', error);
     }
 })();
+
+// 🆕 v1.79: Solicitar permisos SECUENCIALMENTE al abrir la app
+(async function solicitarPermisos() {
+    try {
+        // Esperar a que Cordova esté listo (si es APK)
+        if (typeof cordova !== 'undefined') {
+            await new Promise(resolve => {
+                document.addEventListener('deviceready', resolve, false);
+            });
+        }
+
+        // Esperar 3 segundos después de que la app inicie
+        // para que el usuario vea la interfaz primero
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        console.log('🔐 [PERMISOS] Iniciando solicitud de permisos...');
+
+        // Verificar si ya se solicitaron antes
+        if (window.permissionsManager && !window.permissionsManager.yaSeSolicitaron()) {
+            console.log('🔐 [PERMISOS] Primera vez - solicitando todos los permisos');
+            const resultado = await window.permissionsManager.solicitarTodosLosPermisos();
+            console.log('🔐 [PERMISOS] Resultado:', resultado);
+        } else {
+            console.log('✅ [PERMISOS] Ya se solicitaron anteriormente');
+            // Aunque ya se solicitaron, habilitar background mode si está disponible
+            if (window.backgroundModeManager && !window.backgroundModeManager.isEnabled) {
+                try {
+                    await window.backgroundModeManager.enableManually();
+                } catch (e) {
+                    console.error('❌ [BACKGROUND] Error habilitando:', e);
+                }
+            }
+        }
+
+    } catch (error) {
+        console.error('❌ [PERMISOS] Error solicitando permisos:', error);
+    }
+})();
