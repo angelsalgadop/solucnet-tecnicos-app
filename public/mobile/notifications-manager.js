@@ -181,6 +181,12 @@ class NotificationsManager {
      * Enviar notificación de nueva visita
      */
     async sendVisitaNotification(visita) {
+        // 🔧 v1.76.1: VALIDAR permisos ANTES de enviar (evita cierres)
+        if (!this.isInitialized) {
+            console.log('ℹ️ [NOTIFICACIONES] Sin permisos - no se enviará notificación de visita');
+            return;
+        }
+
         try {
             const notification = {
                 title: '🆕 Nueva Visita Asignada',
@@ -223,6 +229,12 @@ class NotificationsManager {
      * Enviar notificación de observación urgente
      */
     async sendObservacionUrgentNotification(visita) {
+        // 🔧 v1.76.1: VALIDAR permisos ANTES de enviar (evita cierres)
+        if (!this.isInitialized) {
+            console.log('ℹ️ [NOTIFICACIONES] Sin permisos - no se enviará notificación de observación');
+            return;
+        }
+
         try {
             const notification = {
                 title: '⚠️ OBSERVACIÓN URGENTE',
