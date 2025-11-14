@@ -1,5 +1,5 @@
 // Service Worker para SolucNet Técnicos - Modo Offline Completo
-const CACHE_NAME = 'solucnet-tecnicos-v1.68.0-VALIDACION-INTELIGENTE';
+const CACHE_NAME = 'solucnet-tecnicos-v1.69.0-MAPAS-OFFLINE-COMPLETO';
 const OFFLINE_DATA_STORE = 'solucnet-offline-data';
 const SYNC_TAG = 'sync-visitas';
 
@@ -18,7 +18,7 @@ const CRITICAL_RESOURCES = [
 
 // Install: Cachear recursos críticos
 self.addEventListener('install', (event) => {
-    console.log('[SW] 🔄 Instalando Service Worker v1.68 - VALIDACIÓN INTELIGENTE...');
+    console.log('[SW] 🔄 Instalando Service Worker v1.69 - MAPAS OFFLINE COMPLETO...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             // Eliminar TODAS las cachés antiguas inmediatamente
@@ -32,7 +32,7 @@ self.addEventListener('install', (event) => {
             console.log('[SW] 💾 Cacheando recursos críticos con versión nueva');
             return cache.addAll(CRITICAL_RESOURCES);
         }).then(() => {
-            console.log('[SW] ✅ Service Worker v1.68 instalado correctamente');
+            console.log('[SW] ✅ Service Worker v1.69 instalado correctamente');
             return self.skipWaiting();
         })
     );
@@ -244,7 +244,20 @@ function saveMapTileToIDB(key, blob, zoom) {
     const dbName = 'solucnet-offline-maps';
     const storeName = 'map-tiles';
 
-    indexedDB.open(dbName, 1).onsuccess = (event) => {
+    const request = indexedDB.open(dbName, 1);
+
+    // 🔧 v1.69: Crear object store si no existe
+    request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(storeName)) {
+            const tileStore = db.createObjectStore(storeName, { keyPath: 'key' });
+            tileStore.createIndex('zoom', 'zoom', { unique: false });
+            tileStore.createIndex('timestamp', 'timestamp', { unique: false });
+            console.log('[SW] 📦 Object store map-tiles creado');
+        }
+    };
+
+    request.onsuccess = (event) => {
         const db = event.target.result;
         if (db.objectStoreNames.contains(storeName)) {
             const tx = db.transaction(storeName, 'readwrite');
@@ -258,6 +271,10 @@ function saveMapTileToIDB(key, blob, zoom) {
         }
         db.close();
     };
+
+    request.onerror = (event) => {
+        console.error('[SW] ❌ Error guardando tile:', event.target.error);
+    };
 }
 
 // Obtener tile desde IndexedDB
@@ -268,10 +285,22 @@ function getMapTileFromIDB(key) {
 
         const request = indexedDB.open(dbName, 1);
 
+        // 🔧 v1.69: Crear object store si no existe (mismo que saveMapTileToIDB)
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(storeName)) {
+                const tileStore = db.createObjectStore(storeName, { keyPath: 'key' });
+                tileStore.createIndex('zoom', 'zoom', { unique: false });
+                tileStore.createIndex('timestamp', 'timestamp', { unique: false });
+                console.log('[SW] 📦 Object store map-tiles creado (desde get)');
+            }
+        };
+
         request.onsuccess = (event) => {
             const db = event.target.result;
 
             if (!db.objectStoreNames.contains(storeName)) {
+                console.warn('[SW] ⚠️ Object store map-tiles no existe');
                 db.close();
                 resolve(null);
                 return;
@@ -284,19 +313,25 @@ function getMapTileFromIDB(key) {
             getRequest.onsuccess = () => {
                 db.close();
                 if (getRequest.result) {
+                    console.log(`[SW] ✅ Tile encontrado offline: ${key}`);
                     resolve(getRequest.result.blob);
                 } else {
+                    console.log(`[SW] ⚠️ Tile no encontrado en IDB: ${key}`);
                     resolve(null);
                 }
             };
 
             getRequest.onerror = () => {
+                console.error('[SW] ❌ Error leyendo tile:', getRequest.error);
                 db.close();
                 resolve(null);
             };
         };
 
-        request.onerror = () => resolve(null);
+        request.onerror = () => {
+            console.error('[SW] ❌ Error abriendo DB para tile:', request.error);
+            resolve(null);
+        };
     });
 }
 
@@ -424,4 +459,4 @@ function notifyClientsSyncComplete() {
 }
 
 // Mensaje de log
-console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.68 CARGADO - Validación Inteligente + Mapas Offline');
+console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.69 CARGADO - Mapas Offline Completo + Marcadores');

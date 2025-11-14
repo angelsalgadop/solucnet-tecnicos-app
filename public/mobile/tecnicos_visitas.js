@@ -2992,27 +2992,67 @@ async function cargarUbicacionesClientes() {
             return;
         }
 
-        // Obtener ubicaciones de clientes desde el servidor
-        const response = await fetch(APP_CONFIG.getApiUrl('/api/ubicaciones-clientes-asignados'), {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
+        let ubicaciones = [];
+
+        // 🔧 v1.69: Intentar cargar desde servidor (online) o localStorage (offline)
+        if (navigator.onLine) {
+            try {
+                console.log('🌐 [ONLINE] Descargando ubicaciones desde servidor...');
+
+                // Obtener ubicaciones de clientes desde el servidor
+                const response = await fetch(APP_CONFIG.getApiUrl('/api/ubicaciones-clientes-asignados'), {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    console.error('❌ Error del servidor:', data.message);
+                    return;
+                }
+
+                ubicaciones = data.ubicaciones || [];
+                console.log(`📍 ${ubicaciones.length} ubicaciones de clientes descargadas`);
+
+                // 🔧 v1.69: GUARDAR en localStorage para uso offline
+                if (ubicaciones.length > 0) {
+                    localStorage.setItem('ubicaciones_clientes_cache', JSON.stringify(ubicaciones));
+                    localStorage.setItem('ubicaciones_clientes_timestamp', Date.now().toString());
+                    console.log(`💾 [CACHE] ${ubicaciones.length} ubicaciones guardadas para modo offline`);
+                }
+
+            } catch (fetchError) {
+                console.warn('⚠️ [FETCH] Error descargando ubicaciones, intentando desde caché:', fetchError.message);
+                // Fallback a localStorage si el fetch falla
+                const cachedData = localStorage.getItem('ubicaciones_clientes_cache');
+                if (cachedData) {
+                    ubicaciones = JSON.parse(cachedData);
+                    console.log(`💾 [CACHE] ${ubicaciones.length} ubicaciones cargadas desde caché (fetch falló)`);
+                }
             }
-        });
+        } else {
+            // 🔧 v1.69: MODO OFFLINE - Cargar desde localStorage
+            console.log('📴 [OFFLINE] Cargando ubicaciones desde caché local...');
+            const cachedData = localStorage.getItem('ubicaciones_clientes_cache');
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            if (cachedData) {
+                ubicaciones = JSON.parse(cachedData);
+                const timestamp = localStorage.getItem('ubicaciones_clientes_timestamp');
+                const fecha = timestamp ? new Date(parseInt(timestamp)).toLocaleString() : 'desconocida';
+                console.log(`💾 [OFFLINE] ${ubicaciones.length} ubicaciones cargadas desde caché (última actualización: ${fecha})`);
+            } else {
+                console.warn('⚠️ [OFFLINE] No hay ubicaciones en caché. Descarga el mapa en modo online primero.');
+                alert('⚠️ No hay ubicaciones guardadas. Abre el mapa con conexión para descargar las ubicaciones.');
+                return;
+            }
         }
-
-        const data = await response.json();
-
-        if (!data.success) {
-            console.error('❌ Error del servidor:', data.message);
-            return;
-        }
-
-        const ubicaciones = data.ubicaciones || [];
-        console.log(`📍 ${ubicaciones.length} ubicaciones de clientes cargadas`);
 
         // Limpiar marcadores anteriores usando LayerGroup
         if (grupoMarcadoresClientes) {
