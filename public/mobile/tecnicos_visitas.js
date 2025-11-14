@@ -1424,6 +1424,9 @@ async function guardarReporteVisita() {
                 mostrarVisitasAsignadas();
                 console.log(`🗑️ [OFFLINE] Visita ${formData.visita_id} eliminada de la lista local`);
 
+                // 🔧 v1.71: CRÍTICO - Marcar visita como completada permanentemente ANTES de eliminar del cache
+                await window.offlineManager.marcarVisitaCompletada(formData.visita_id, tecnicoId);
+
                 // CRÍTICO: Eliminar la visita del cache de IndexedDB
                 await window.offlineManager.deleteVisitaOffline(formData.visita_id);
 
@@ -1485,6 +1488,9 @@ async function guardarReporteVisita() {
                 window.serialEquipoCapturado = null;
                 window.tipoEquipoCapturado = null;
             }
+
+            // 🔧 v1.71: Marcar visita como completada permanentemente (online mode)
+            await window.offlineManager.marcarVisitaCompletada(formData.visita_id, tecnicoId);
 
             // Remover la visita de la lista local
             visitasAsignadas = visitasAsignadas.filter(v => v.id != formData.visita_id);
@@ -1557,6 +1563,9 @@ async function guardarReporteVisita() {
                 visitasSinFiltrar = visitasSinFiltrar.filter(v => v.id != formData.visita_id);
                 mostrarVisitasAsignadas();
                 console.log(`🗑️ [OFFLINE] Visita ${formData.visita_id} eliminada de la lista local`);
+
+                // 🔧 v1.71: CRÍTICO - Marcar visita como completada permanentemente ANTES de eliminar del cache
+                await window.offlineManager.marcarVisitaCompletada(formData.visita_id, tecnicoId);
 
                 // CRÍTICO: Eliminar la visita del cache de IndexedDB
                 await window.offlineManager.deleteVisitaOffline(formData.visita_id);
