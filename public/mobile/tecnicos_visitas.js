@@ -162,6 +162,21 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             return;
         }
 
+        // 🔧 v1.78: Cargar desde cache si existe para evitar "carga inicial" innecesaria
+        if (visitasAsignadas.length === 0) {
+            try {
+                const visitasCache = localStorage.getItem('visitas_cache');
+                if (visitasCache) {
+                    const visitasCargadas = JSON.parse(visitasCache);
+                    visitasAsignadas = visitasCargadas;
+                    visitasSinFiltrar = [...visitasCargadas];
+                    console.log(`📦 [CACHE] ${visitasCargadas.length} visitas cargadas desde localStorage`);
+                }
+            } catch (e) {
+                console.warn('⚠️ [CACHE] Error cargando visitas desde cache:', e);
+            }
+        }
+
         const esCargaInicial = visitasAsignadas.length === 0;
 
         // 🔧 v1.63: CARGA INICIAL con barra de progreso inline
@@ -415,6 +430,14 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
 
             visitasAsignadas = visitasNuevas;
             visitasSinFiltrar = [...visitasNuevas];
+
+            // 🔧 v1.78: Guardar visitas en localStorage para evitar recarga inicial
+            try {
+                localStorage.setItem('visitas_cache', JSON.stringify(visitasNuevas));
+                console.log(`💾 [CACHE] ${visitasNuevas.length} visitas guardadas en localStorage`);
+            } catch (e) {
+                console.warn('⚠️ [CACHE] Error guardando visitas:', e);
+            }
 
             // 🆕 v1.75.1: Verificar y enviar notificaciones de nuevas visitas y observaciones urgentes
             if (window.notificationsManager && window.notificationsManager.isInitialized) {

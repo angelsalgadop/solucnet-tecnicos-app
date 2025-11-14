@@ -15,19 +15,19 @@ class BackgroundModeManager {
     }
 
     /**
-     * 🔧 v1.77: Inicializar Y HABILITAR automáticamente (necesario para segundo plano)
+     * 🔧 v1.78: Solo CONFIGURAR - NO habilitar automáticamente para evitar cierres
      */
     async initialize() {
-        console.log('🔄 [BACKGROUND] Inicializando modo background...');
+        console.log('🔄 [BACKGROUND] Configurando modo background (NO habilitando aún)...');
 
         // Verificar si el plugin está disponible
         if (typeof cordova === 'undefined' || !cordova.plugins || !cordova.plugins.backgroundMode) {
-            console.warn('⚠️ [BACKGROUND] Plugin no disponible - La app NO funcionará en segundo plano');
+            console.warn('⚠️ [BACKGROUND] Plugin no disponible');
             return false;
         }
 
         try {
-            // Configurar el modo background
+            // Solo CONFIGURAR, NO habilitar
             cordova.plugins.backgroundMode.setDefaults({
                 title: 'SolucNet Técnicos',
                 text: 'App activa - Enviando ubicación',
@@ -46,26 +46,10 @@ class BackgroundModeManager {
                 silent: false
             });
 
-            // Configurar eventos primero
+            // Configurar eventos
             this.setupEvents();
 
-            // 🔧 v1.77: HABILITAR automáticamente después de 3 segundos
-            // (necesario para que funcione en segundo plano)
-            setTimeout(() => {
-                try {
-                    cordova.plugins.backgroundMode.enable();
-                    this.isEnabled = true;
-                    console.log('✅ [BACKGROUND] Modo background HABILITADO');
-
-                    // Solicitar desactivar optimización de batería después de 10 segundos
-                    setTimeout(() => {
-                        this.requestBatteryOptimizationDisable();
-                    }, 10000);
-                } catch (enableError) {
-                    console.error('❌ [BACKGROUND] Error habilitando:', enableError);
-                }
-            }, 3000);
-
+            console.log('✅ [BACKGROUND] Configurado (esperando activación manual)');
             return true;
         } catch (error) {
             console.error('❌ [BACKGROUND] Error configurando:', error);
