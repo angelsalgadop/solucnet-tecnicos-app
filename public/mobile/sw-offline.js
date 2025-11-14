@@ -1,5 +1,5 @@
 // Service Worker para SolucNet Técnicos - Modo Offline Completo
-const CACHE_NAME = 'solucnet-tecnicos-v1.73.0-FILTRADO-ROBUSTO';
+const CACHE_NAME = 'solucnet-tecnicos-v1.74.0-NAP-OFFLINE';
 const OFFLINE_DATA_STORE = 'solucnet-offline-data';
 const SYNC_TAG = 'sync-visitas';
 
@@ -18,7 +18,7 @@ const CRITICAL_RESOURCES = [
 
 // Install: Cachear recursos críticos
 self.addEventListener('install', (event) => {
-    console.log('[SW] 🔄 Instalando Service Worker v1.73 - FILTRADO ROBUSTO...');
+    console.log('[SW] 🔄 Instalando Service Worker v1.74 - NAP OFFLINE...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             // Eliminar TODAS las cachés antiguas inmediatamente
@@ -32,7 +32,7 @@ self.addEventListener('install', (event) => {
             console.log('[SW] 💾 Cacheando recursos críticos con versión nueva');
             return cache.addAll(CRITICAL_RESOURCES);
         }).then(() => {
-            console.log('[SW] ✅ Service Worker v1.73 instalado correctamente');
+            console.log('[SW] ✅ Service Worker v1.74 instalado correctamente');
             return self.skipWaiting();
         })
     );
@@ -459,4 +459,4 @@ function notifyClientsSyncComplete() {
 }
 
 // Mensaje de log
-console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.73 CARGADO - Filtrado Robusto con Validaciones');
+console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.74 CARGADO - Soporte NAP Offline + Filtrado Robusto');

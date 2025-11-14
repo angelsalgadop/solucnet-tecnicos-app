@@ -47,7 +47,7 @@ class OfflineManager {
     // Abrir base de datos IndexedDB
     openDatabase() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('solucnet-offline-db', 4); // 🔧 v1.65: Incrementado a v4 para nueva tabla
+            const request = indexedDB.open('solucnet-offline-db', 5); // 🔧 v1.74: Incrementado a v5 para soporte NAPs offline
 
             request.onerror = () => reject(request.error);
             request.onsuccess = () => resolve(request.result);
@@ -103,6 +103,14 @@ class OfflineManager {
                     const completadasStore = db.createObjectStore('visitas-completadas', { keyPath: 'visita_id' });
                     completadasStore.createIndex('timestamp_completado', 'timestamp_completado', { unique: false });
                     completadasStore.createIndex('tecnico_id', 'tecnico_id', { unique: false });
+                }
+
+                // 🔧 v1.74: Store para cajas NAP offline
+                if (!db.objectStoreNames.contains('offline-naps')) {
+                    const napsStore = db.createObjectStore('offline-naps', { autoIncrement: true, keyPath: 'localId' });
+                    napsStore.createIndex('zona', 'zona', { unique: false });
+                    napsStore.createIndex('sincronizado', 'sincronizado', { unique: false });
+                    napsStore.createIndex('timestamp', 'timestamp', { unique: false });
                 }
             };
         });
@@ -695,6 +703,9 @@ class OfflineManager {
             // Sincronizar fotos
             await this.syncFotos();
 
+            // 🆕 v1.74: Sincronizar cajas NAP
+            await this.syncNaps();
+
             console.log('✅ [OFFLINE MANAGER] Sincronización completada');
 
             // Actualizar UI
@@ -1095,6 +1106,120 @@ class OfflineManager {
     async hasPdfCached(visitaId, nombreArchivo) {
         const pdf = await this.getPdfOffline(visitaId, nombreArchivo);
         return pdf !== null;
+    }
+
+    // 🆕 v1.74: Guardar caja NAP offline
+    async guardarNapOffline(napData) {
+        await this.waitForDB();
+        if (!this.db) {
+            throw new Error('Base de datos no disponible');
+        }
+
+        try {
+            const tx = this.db.transaction('offline-naps', 'readwrite');
+            const store = tx.objectStore('offline-naps');
+
+            // Agregar campos de control
+            const napOffline = {
+                ...napData,
+                sincronizado: false,
+                timestamp: Date.now()
+            };
+
+            await new Promise((resolve, reject) => {
+                const request = store.add(napOffline);
+                request.onsuccess = () => {
+                    console.log('💾 [OFFLINE MANAGER] Caja NAP guardada offline:', napData.zona);
+                    resolve(request.result);
+                };
+                request.onerror = () => reject(request.error);
+            });
+
+            return true;
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error guardando NAP offline:', error);
+            throw error;
+        }
+    }
+
+    // 🆕 v1.74: Sincronizar cajas NAP pendientes
+    async syncNaps() {
+        if (!this.db) return;
+
+        try {
+            // Leer NAPs pendientes
+            const tx = this.db.transaction('offline-naps', 'readonly');
+            const store = tx.objectStore('offline-naps');
+
+            const allNaps = await new Promise((resolve) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => resolve([]);
+            });
+
+            // Filtrar NAPs no sincronizados
+            const naps = allNaps.filter(n => n.sincronizado === false);
+
+            console.log(`📤 [OFFLINE MANAGER] Sincronizando ${naps.length} cajas NAP...`);
+
+            for (const nap of naps) {
+                try {
+                    // Obtener token para autorización
+                    const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
+                    if (!token) {
+                        console.error('❌ No hay token disponible para sincronizar NAP');
+                        continue;
+                    }
+
+                    // Preparar datos para enviar
+                    const napData = {
+                        zona: nap.zona,
+                        puertos: nap.puertos,
+                        ubicacion: nap.ubicacion,
+                        detalles: nap.detalles,
+                        latitud: nap.latitud,
+                        longitud: nap.longitud,
+                        precision: nap.precision
+                    };
+
+                    // Enviar al servidor
+                    const response = await fetch(APP_CONFIG.getApiUrl('/api/cajas-nap'), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(napData)
+                    });
+
+                    const resultado = await response.json();
+
+                    if (resultado.success) {
+                        console.log(`✅ [OFFLINE MANAGER] NAP sincronizada: ${nap.zona}`);
+
+                        // Marcar como sincronizado
+                        const txUpdate = this.db.transaction('offline-naps', 'readwrite');
+                        const storeUpdate = txUpdate.objectStore('offline-naps');
+
+                        await new Promise((resolve, reject) => {
+                            nap.sincronizado = true;
+                            const updateRequest = storeUpdate.put(nap);
+                            updateRequest.onsuccess = () => resolve();
+                            updateRequest.onerror = () => reject(updateRequest.error);
+                        });
+                    } else {
+                        console.error(`❌ [OFFLINE MANAGER] Error sincronizando NAP:`, resultado.message);
+                    }
+                } catch (error) {
+                    console.error(`❌ [OFFLINE MANAGER] Error sincronizando NAP ${nap.zona}:`, error);
+                    // No marcar como sincronizado, reintentar en próximo sync
+                }
+            }
+
+            console.log('✅ [OFFLINE MANAGER] Sincronización de NAPs completada');
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error en syncNaps:', error);
+        }
     }
 }
 

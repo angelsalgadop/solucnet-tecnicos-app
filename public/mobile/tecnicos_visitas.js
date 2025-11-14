@@ -3532,7 +3532,7 @@ async function obtenerUbicacionPorCoordenadas(latitud, longitud) {
     }
 }
 
-// Guardar nueva caja NAP
+// 🔧 v1.74: Guardar nueva caja NAP (con soporte offline)
 async function guardarNuevaNap() {
     const zona = document.getElementById('zonaNap').value;
     const puertos = document.getElementById('puertosNap').value;
@@ -3570,21 +3570,37 @@ async function guardarNuevaNap() {
     try {
         const token = localStorage.getItem('token_tecnico') || sessionStorage.getItem('token_tecnico');
 
+        const napData = {
+            zona,
+            puertos: parseInt(puertos),
+            ubicacion,
+            detalles,
+            latitud: parseFloat(latitud),
+            longitud: parseFloat(longitud),
+            precision: parseFloat(precision)
+        };
+
+        // 🆕 v1.74: Detectar si estamos offline
+        if (!navigator.onLine || !window.offlineManager.isOnline) {
+            console.log('📴 [NAP] Sin conexión, guardando offline');
+
+            // Guardar en IndexedDB
+            await window.offlineManager.guardarNapOffline(napData);
+
+            mostrarAlerta('📴 Sin conexión. Caja NAP guardada localmente y se sincronizará automáticamente cuando haya internet.', 'info');
+            bootstrap.Modal.getInstance(document.getElementById('modalNuevaNap')).hide();
+            limpiarFormularioNap();
+            return;
+        }
+
+        // 🟢 Online: Enviar directamente al servidor
         const response = await fetch(APP_CONFIG.getApiUrl('/api/cajas-nap'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({
-                zona,
-                puertos: parseInt(puertos),
-                ubicacion,
-                detalles,
-                latitud: parseFloat(latitud),
-                longitud: parseFloat(longitud),
-                precision: parseFloat(precision)
-            })
+            body: JSON.stringify(napData)
         });
 
         const resultado = await response.json();
@@ -3597,8 +3613,28 @@ async function guardarNuevaNap() {
             mostrarAlerta(resultado.message || 'Error creando caja NAP', 'danger');
         }
     } catch (error) {
-        console.error('Error guardando caja NAP:', error);
-        mostrarAlerta('Error de conexión al guardar la caja NAP', 'danger');
+        console.error('❌ [NAP] Error guardando caja NAP:', error);
+
+        // Si falló la conexión, guardar offline como fallback
+        try {
+            const napData = {
+                zona,
+                puertos: parseInt(puertos),
+                ubicacion,
+                detalles,
+                latitud: parseFloat(latitud),
+                longitud: parseFloat(longitud),
+                precision: parseFloat(precision)
+            };
+
+            await window.offlineManager.guardarNapOffline(napData);
+            mostrarAlerta('📴 Error de conexión. Caja NAP guardada localmente y se sincronizará cuando haya internet.', 'warning');
+            bootstrap.Modal.getInstance(document.getElementById('modalNuevaNap')).hide();
+            limpiarFormularioNap();
+        } catch (offlineError) {
+            console.error('❌ [NAP] Error guardando offline:', offlineError);
+            mostrarAlerta('Error guardando la caja NAP. Verifica tu conexión e intenta nuevamente.', 'danger');
+        }
     }
 }
 
