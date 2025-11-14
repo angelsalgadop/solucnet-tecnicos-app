@@ -476,7 +476,7 @@ async function buscarUsuario(username, password) {
             await conexion.query('USE solucnet_auth_system');
 
             const [usuarios] = await conexion.execute(
-                'SELECT id, username, password, nombre, rol, activo FROM usuarios_sistema WHERE username = ? AND activo = TRUE LIMIT 1',
+                'SELECT id, username, password, nombre, rol, activo, puede_agregar_naps FROM usuarios_sistema WHERE username = ? AND activo = TRUE LIMIT 1',
                 [username]
             );
 
