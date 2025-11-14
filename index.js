@@ -15116,6 +15116,43 @@ async function inicializarSistemaCompleto() {
             server.timeout = 120000; // 120 segundos
             server.keepAliveTimeout = 65000; // 65 segundos
             server.headersTimeout = 66000; // 66 segundos
+            server.requestTimeout = 120000; // 120 segundos para requests
+
+            // 🔧 v1.74.1: Rastrear y limpiar conexiones para prevenir CLOSE-WAIT
+            const connections = new Set();
+
+            server.on('connection', (socket) => {
+                connections.add(socket);
+
+                // Remover cuando se cierre
+                socket.on('close', () => {
+                    connections.delete(socket);
+                });
+
+                // Forzar cierre después de timeout de inactividad
+                socket.setTimeout(180000, () => { // 3 minutos de inactividad
+                    if (!socket.destroyed) {
+                        socket.destroy();
+                        connections.delete(socket);
+                    }
+                });
+            });
+
+            // 🔧 v1.74.1: Limpieza periódica de conexiones huérfanas cada 5 minutos
+            setInterval(() => {
+                let cleaned = 0;
+                connections.forEach(socket => {
+                    // Si el socket está en CLOSE-WAIT o destruido, eliminarlo
+                    if (socket.destroyed || socket.readyState === 'closed') {
+                        socket.destroy();
+                        connections.delete(socket);
+                        cleaned++;
+                    }
+                });
+                if (cleaned > 0) {
+                    console.log(`🧹 [CLEANUP] ${cleaned} conexiones huérfanas limpiadas. Total activas: ${connections.size}`);
+                }
+            }, 300000); // Cada 5 minutos
 
             server.on('error', (err) => {
                 if (err.code === 'EADDRINUSE') {
@@ -15140,6 +15177,43 @@ async function inicializarSistemaCompleto() {
             server.timeout = 120000; // 120 segundos
             server.keepAliveTimeout = 65000; // 65 segundos
             server.headersTimeout = 66000; // 66 segundos
+            server.requestTimeout = 120000; // 120 segundos para requests
+
+            // 🔧 v1.74.1: Rastrear y limpiar conexiones para prevenir CLOSE-WAIT
+            const connections = new Set();
+
+            server.on('connection', (socket) => {
+                connections.add(socket);
+
+                // Remover cuando se cierre
+                socket.on('close', () => {
+                    connections.delete(socket);
+                });
+
+                // Forzar cierre después de timeout de inactividad
+                socket.setTimeout(180000, () => { // 3 minutos de inactividad
+                    if (!socket.destroyed) {
+                        socket.destroy();
+                        connections.delete(socket);
+                    }
+                });
+            });
+
+            // 🔧 v1.74.1: Limpieza periódica de conexiones huérfanas cada 5 minutos
+            setInterval(() => {
+                let cleaned = 0;
+                connections.forEach(socket => {
+                    // Si el socket está en CLOSE-WAIT o destruido, eliminarlo
+                    if (socket.destroyed || socket.readyState === 'closed') {
+                        socket.destroy();
+                        connections.delete(socket);
+                        cleaned++;
+                    }
+                });
+                if (cleaned > 0) {
+                    console.log(`🧹 [CLEANUP] ${cleaned} conexiones huérfanas limpiadas. Total activas: ${connections.size}`);
+                }
+            }, 300000); // Cada 5 minutos
 
             server.on('error', (err) => {
                 if (err.code === 'EADDRINUSE') {
