@@ -2534,6 +2534,10 @@ function iniciarActualizacionAutomatica() {
     intervaloActualizacion = setInterval(async () => {
         console.log('🔄 Actualizando visitas automáticamente...');
         await cargarVisitasTecnico(false); // No mostrar spinner en actualizaciones automáticas
+
+        // 🆕 v1.74.3: Reverificar permisos NAP en cada actualización automática
+        console.log('🔄 [NAP] Reverificando permisos en actualización automática...');
+        await verificarPermisoAgregarNaps();
     }, 30000);
 
     console.log('✅ Actualización automática iniciada (cada 30 segundos)');

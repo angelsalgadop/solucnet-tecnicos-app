@@ -1,5 +1,5 @@
 // Service Worker para SolucNet Técnicos - Modo Offline Completo
-const CACHE_NAME = 'solucnet-tecnicos-v1.74.3-NAP-REALTIME-PERMISOS';
+const CACHE_NAME = 'solucnet-tecnicos-v1.74.3a-NAP-REALTIME-PERMISOS';
 const OFFLINE_DATA_STORE = 'solucnet-offline-data';
 const SYNC_TAG = 'sync-visitas';
 
@@ -18,7 +18,7 @@ const CRITICAL_RESOURCES = [
 
 // Install: Cachear recursos críticos
 self.addEventListener('install', (event) => {
-    console.log('[SW] 🔄 Instalando Service Worker v1.74.3 - NAP PERMISOS REALTIME...');
+    console.log('[SW] 🔄 Instalando Service Worker v1.74.3a - NAP PERMISOS REALTIME...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             // Eliminar TODAS las cachés antiguas inmediatamente
@@ -32,7 +32,7 @@ self.addEventListener('install', (event) => {
             console.log('[SW] 💾 Cacheando recursos críticos con versión nueva');
             return cache.addAll(CRITICAL_RESOURCES);
         }).then(() => {
-            console.log('[SW] ✅ Service Worker v1.74.3 instalado correctamente');
+            console.log('[SW] ✅ Service Worker v1.74.3a instalado correctamente');
             return self.skipWaiting();
         })
     );
@@ -459,4 +459,4 @@ function notifyClientsSyncComplete() {
 }
 
 // Mensaje de log
-console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.74.3 CARGADO - NAP Permisos en Tiempo Real');
+console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.74.3a CARGADO - NAP Permisos en Tiempo Real');
