@@ -3231,9 +3231,30 @@ async function verificarPermisoAgregarNaps() {
     try {
         console.log('🔍 [NAP] Verificando permisos para agregar cajas NAP...');
 
-        // Si está offline, omitir verificación
+        // 🆕 v1.74.2: Si está offline, verificar permiso guardado en localStorage
         if (!navigator.onLine) {
-            console.log('📴 [NAP] Offline: Omitiendo verificación de permisos');
+            console.log('📴 [NAP] Offline: Verificando permiso guardado localmente');
+            const permisoGuardado = localStorage.getItem('puede_agregar_naps');
+            console.log('🔍 [NAP] Permiso guardado:', permisoGuardado);
+
+            if (permisoGuardado === '1') {
+                const btnNap = document.getElementById('btnNuevaNap');
+                if (btnNap) {
+                    btnNap.style.display = 'inline-block';
+                    console.log('✅ [NAP] Offline: Botón mostrado usando permiso guardado');
+                }
+
+                // Cargar última zona seleccionada
+                const ultimaZona = localStorage.getItem('ultimaZonaNap');
+                if (ultimaZona) {
+                    const selectZona = document.getElementById('zonaNap');
+                    if (selectZona) {
+                        selectZona.value = ultimaZona;
+                    }
+                }
+            } else {
+                console.log('📴 [NAP] Offline: Sin permiso guardado o permiso denegado');
+            }
             return;
         }
 
@@ -3248,6 +3269,13 @@ async function verificarPermisoAgregarNaps() {
         console.log('🔍 [NAP] Respuesta del servidor:', resultado);
         console.log('🔍 [NAP] puede_agregar_naps:', resultado.usuario?.puede_agregar_naps);
         console.log('🔍 [NAP] Tipo de puede_agregar_naps:', typeof resultado.usuario?.puede_agregar_naps);
+
+        // 🆕 v1.74.2: Guardar permiso en localStorage para uso offline
+        if (resultado.success && resultado.usuario) {
+            const permiso = resultado.usuario.puede_agregar_naps === 1 ? '1' : '0';
+            localStorage.setItem('puede_agregar_naps', permiso);
+            console.log('💾 [NAP] Permiso guardado en localStorage:', permiso);
+        }
 
         if (resultado.success && resultado.usuario.puede_agregar_naps === 1) {
             const btnNap = document.getElementById('btnNuevaNap');
