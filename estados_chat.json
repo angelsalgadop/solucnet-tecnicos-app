@@ -1,12 +1,94 @@
 {
-  "timestamp": 1763048104462,
+  "timestamp": 1763133793135,
   "estados": {
-    "573126693599@c.us": {
+    "573203638170@c.us": {
+      "enEsperaHumano": null,
+      "clienteEncontrado": null,
+      "seguimiento": null,
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": true,
+      "ultimaInteraccion": 1763133385787
+    },
+    "573148855336@c.us": {
+      "enEsperaHumano": null,
+      "clienteEncontrado": null,
+      "seguimiento": null,
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": true,
+      "ultimaInteraccion": 1763133385787
+    },
+    "573233625505@c.us": {
+      "enEsperaHumano": null,
+      "clienteEncontrado": null,
+      "seguimiento": null,
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": true,
+      "ultimaInteraccion": 1763133385787
+    },
+    "573217280119@c.us": {
+      "enEsperaHumano": null,
+      "clienteEncontrado": null,
+      "seguimiento": null,
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": true,
+      "ultimaInteraccion": 1763133385787
+    },
+    "573148881295@c.us": {
+      "enEsperaHumano": null,
+      "clienteEncontrado": null,
+      "seguimiento": null,
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": true,
+      "ultimaInteraccion": 1763133385787
+    },
+    "573205185647@c.us": {
+      "enEsperaHumano": null,
+      "clienteEncontrado": null,
+      "seguimiento": null,
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": true,
+      "ultimaInteraccion": 1763133385787
+    },
+    "573127631325@c.us": {
+      "enEsperaHumano": null,
+      "clienteEncontrado": null,
+      "seguimiento": null,
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": true,
+      "ultimaInteraccion": 1763133385787
+    },
+    "573106782534@c.us": {
       "enEsperaHumano": {
         "contador": 0,
-        "ultimaRespuesta": 1763044438157,
-        "iniciado": 1763042342985,
-        "motivo": "Modo restaurado desde persistencia"
+        "ultimaRespuesta": 1763133439322
       },
       "clienteEncontrado": null,
       "seguimiento": null,
@@ -16,129 +98,80 @@
       "mensajeSolEnviado": false,
       "ultimoMenuEnviado": null,
       "primeraInteraccion": true,
-      "ultimaInteraccion": 1763044438157
-    },
-    "573117418534@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": {
-        "cliente": {
-          "id": 425,
-          "nombre": "VIVIANA MARIA SEGURA CORREA",
-          "estado": "ACTIVO",
-          "cedula": "1027999144",
-          "telefono": "",
-          "movil": "3117418534",
-          "direccion_principal": "B/ salvador calle 113 carr 74-26 - CONT: 406287"
-        },
-        "facturas": [
-          {
-            "vencimiento": "15/11/2025",
-            "total": "42160.00",
-            "estado": "No pagado",
-            "situacion": "No pagado"
-          }
-        ],
-        "cuenta": {
-          "cuenta": "Bancolombia Ahorros *549-000016-75*.   *Recuerda que no aceptamos pago por nequi*"
-        },
-        "bd": {
-          "host": "192.168.99.50",
-          "user": "root",
-          "password": "Y9T1Q6P39YI6TJ2",
-          "database": "Mikrowisp6"
-        }
-      },
-      "seguimiento": {
-        "paso": "traslado_direccion",
-        "localidad": "Apartado barrio salvador"
-      },
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "primerErrorTimestamp": null,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": false,
-      "ultimaInteraccion": 1763045229844
-    },
-    "573113004079@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": {
-        "cliente": {
-          "id": 496,
-          "nombre": "RUTH ESTRADA GRANDET",
-          "estado": "ACTIVO",
-          "cedula": "1003467751",
-          "telefono": "",
-          "movil": "3113004079",
-          "direccion_principal": "CHURIDO - CONT: "
-        },
-        "facturas": [
-          {
-            "vencimiento": "15/11/2025",
-            "total": "68380.00",
-            "estado": "No pagado",
-            "situacion": "No pagado"
-          }
-        ],
-        "cuenta": {
-          "cuenta": "Nequi *3025961131*"
-        },
-        "bd": {
-          "host": "192.168.99.11",
-          "user": "root",
-          "password": "Y9T1Q6P39YI6TJ2",
-          "database": "Mikrowisp6"
-        }
-      },
-      "seguimiento": {
-        "paso": "menu_usuario"
-      },
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": false,
-      "ultimaInteraccion": 1763047508010
+      "ultimaInteraccion": 1763133439322
     }
   },
-  "chatsFinalizados": [
-    "573148855336@c.us",
-    "573233625505@c.us",
-    "573215399052@c.us",
-    "573137319562@c.us",
-    "573134140374@c.us",
-    "573122726716@c.us",
-    "573214808704@c.us",
-    "573217280119@c.us",
-    "573203638170@c.us",
-    "573147022974@c.us",
-    "573105074909@c.us",
-    "573028564997@c.us"
-  ],
+  "chatsFinalizados": [],
   "chatsActivos": {
-    "573126693599@c.us": {
-      "id": "573126693599@c.us",
-      "phone": "573126693599",
-      "name": "+573126693599",
-      "lastActivity": 1763044438157,
-      "mode": "human",
-      "pendiente": true
-    },
-    "573117418534@c.us": {
-      "id": "573117418534@c.us",
-      "phone": "573117418534",
-      "name": "+573117418534",
-      "lastActivity": 1763045230130,
+    "573122849028@c.us": {
+      "id": "573122849028@c.us",
+      "phone": "573122849028",
+      "name": "Marley - Esposa De Yuri",
+      "lastActivity": 1763132271000,
       "mode": "bot",
       "pendiente": true
     },
-    "573113004079@c.us": {
-      "id": "573113004079@c.us",
-      "phone": "573113004079",
-      "name": "+573113004079",
-      "lastActivity": 1763047508009,
+    "573106782534@c.us": {
+      "id": "573106782534@c.us",
+      "phone": "573106782534",
+      "name": "+57 310 6782534",
+      "lastActivity": 1763133439320,
+      "mode": "human",
+      "pendiente": true
+    },
+    "573206064374@c.us": {
+      "id": "573206064374@c.us",
+      "phone": "573206064374",
+      "name": "Asesora Salvador",
+      "lastActivity": 1763129442000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573127631325@c.us": {
+      "id": "573127631325@c.us",
+      "phone": "573127631325",
+      "name": "+57 312 7631325",
+      "lastActivity": 1763123298000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573225408150@c.us": {
+      "id": "573225408150@c.us",
+      "phone": "573225408150",
+      "name": "+57 322 5408150",
+      "lastActivity": 1763133391452,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573225695874@c.us": {
+      "id": "573225695874@c.us",
+      "phone": "573225695874",
+      "name": "+57 322 5695874",
+      "lastActivity": 1763122203000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573226790752@c.us": {
+      "id": "573226790752@c.us",
+      "phone": "573226790752",
+      "name": "+57 322 6790752",
+      "lastActivity": 1763122199000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573217847011@c.us": {
+      "id": "573217847011@c.us",
+      "phone": "573217847011",
+      "name": "+57 321 7847011",
+      "lastActivity": 1763121804000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573207771799@c.us": {
+      "id": "573207771799@c.us",
+      "phone": "573207771799",
+      "name": "+57 320 7771799",
+      "lastActivity": 1763121791000,
       "mode": "bot",
       "pendiente": true
     }
@@ -534,7 +567,7 @@
     "573137648756@c.us": "bot",
     "573235042428@c.us": "bot",
     "573136189440@c.us": "bot",
-    "573215399052@c.us": "human",
+    "573215399052@c.us": "bot",
     "573046763287@c.us": "bot",
     "573206800094@c.us": "bot",
     "573103768094@c.us": "bot",
@@ -815,7 +848,7 @@
     "573127031426@c.us": "bot",
     "573135896302@c.us": "bot",
     "573116575817@c.us": "bot",
-    "573126693599@c.us": "human",
+    "573126693599@c.us": "bot",
     "573216882187@c.us": "bot",
     "573148889007@c.us": "bot",
     "573148822559@c.us": "bot",
@@ -851,6 +884,10 @@
     "573203638170@c.us": "bot",
     "573148855336@c.us": "bot",
     "573233625505@c.us": "bot",
-    "573217280119@c.us": "bot"
+    "573217280119@c.us": "bot",
+    "573148881295@c.us": "bot",
+    "573205185647@c.us": "bot",
+    "573127631325@c.us": "bot",
+    "573106782534@c.us": "human"
   }
 }

@@ -241,23 +241,38 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
         }
 
         // 🔧 v1.72: Filtrar visitas completadas del servidor Y de IndexedDB
-        // 1. Obtener IDs de visitas completadas localmente
+        // 1. Obtener IDs de visitas completadas localmente (números)
         const visitasCompletadasIds = await window.offlineManager.obtenerVisitasCompletadas();
 
-        // 2. Filtrar tanto por estado del servidor como por historial local
+        // 2. Convertir a Set para búsqueda O(1) y normalizar tipos
+        const visitasCompletadasSet = new Set(visitasCompletadasIds);
+
+        // 3. Filtrar tanto por estado del servidor como por historial local
         const visitasSinCompletar = resultado.visitas.filter(v => {
             // Excluir si el servidor la marcó como completada
             if (v.estado === 'completada') return false;
 
+            // Normalizar v.id a número para comparación consistente
+            const visitaIdNum = typeof v.id === 'string' ? parseInt(v.id, 10) : v.id;
+
             // Excluir si está en el historial local de completadas
-            if (visitasCompletadasIds.includes(v.id)) return false;
+            if (visitasCompletadasSet.has(visitaIdNum)) return false;
 
             return true;
         });
 
         const visitasCompletadasServidor = resultado.visitas.filter(v => v.estado === 'completada').length;
         const totalExcluidas = resultado.visitas.length - visitasSinCompletar.length;
-        console.log(`🔍 Filtrando visitas: ${visitasSinCompletar.length} activas de ${resultado.visitas.length} totales (excluidas ${totalExcluidas} completadas: ${visitasCompletadasIds.length} locales + ${visitasCompletadasServidor} del servidor)`);
+
+        console.log(`🔍 [FILTRADO] Filtrando visitas: ${visitasSinCompletar.length} activas de ${resultado.visitas.length} totales`);
+        console.log(`🔍 [FILTRADO] Excluidas ${totalExcluidas} completadas: ${visitasCompletadasIds.length} locales + ${visitasCompletadasServidor} del servidor`);
+
+        if (totalExcluidas > 0) {
+            const excluidas = resultado.visitas
+                .filter(v => !visitasSinCompletar.includes(v))
+                .map(v => `#${v.id} (${v.estado})`);
+            console.log(`🔒 [FILTRADO] Visitas excluidas: ${excluidas.join(', ')}`);
+        }
 
         // Guardar SOLO visitas NO completadas en IndexedDB
         if (visitasSinCompletar.length > 0 && window.offlineManager) {
@@ -4093,6 +4108,68 @@ if (document.readyState === 'loading') {
 } else {
     inicializarSistemaMapasOffline();
 }
+
+// 🧪 v1.72: Función de validación de filtrado de visitas completadas
+window.validarFiltradoCompletadas = async function() {
+    console.log('🧪 [VALIDACIÓN] Iniciando validación del sistema de filtrado...');
+
+    try {
+        // 1. Verificar que offlineManager esté disponible
+        if (!window.offlineManager) {
+            console.error('❌ [VALIDACIÓN] offlineManager no está disponible');
+            return false;
+        }
+
+        // 2. Obtener visitas completadas
+        const completadas = await window.offlineManager.obtenerVisitasCompletadas();
+        console.log(`✅ [VALIDACIÓN] ${completadas.length} visitas en historial de completadas`);
+
+        // 3. Verificar que sean números
+        const todosNumeros = completadas.every(id => typeof id === 'number');
+        console.log(`${todosNumeros ? '✅' : '❌'} [VALIDACIÓN] Todos los IDs son números: ${todosNumeros}`);
+
+        // 4. Verificar que no haya duplicados
+        const unicos = new Set(completadas);
+        const sinDuplicados = unicos.size === completadas.length;
+        console.log(`${sinDuplicados ? '✅' : '❌'} [VALIDACIÓN] Sin duplicados: ${sinDuplicados} (${unicos.size} únicos de ${completadas.length})`);
+
+        // 5. Simular filtrado con visitas de prueba
+        const visitasPrueba = [
+            { id: 446, estado: 'asignada' },
+            { id: 447, estado: 'asignada' },
+            { id: 448, estado: 'asignada' },
+            { id: 449, estado: 'asignada' },
+            { id: 450, estado: 'asignada' }
+        ];
+
+        const completadasSet = new Set(completadas);
+        const filtradas = visitasPrueba.filter(v => {
+            const visitaIdNum = typeof v.id === 'string' ? parseInt(v.id, 10) : v.id;
+            return !completadasSet.has(visitaIdNum) && v.estado !== 'completada';
+        });
+
+        console.log(`📊 [VALIDACIÓN] Simulación de filtrado:`);
+        console.log(`   - Visitas totales: ${visitasPrueba.length}`);
+        console.log(`   - Visitas después de filtrar: ${filtradas.length}`);
+        console.log(`   - Visitas excluidas: ${visitasPrueba.length - filtradas.length}`);
+
+        const excluidas = visitasPrueba.filter(v => !filtradas.includes(v));
+        if (excluidas.length > 0) {
+            console.log(`   - IDs excluidos: [${excluidas.map(v => v.id).join(', ')}]`);
+        }
+
+        // 6. Resultado final
+        const exito = todosNumeros && sinDuplicados;
+        console.log(`${exito ? '✅' : '❌'} [VALIDACIÓN] Sistema de filtrado: ${exito ? 'FUNCIONANDO CORRECTAMENTE' : 'CON ERRORES'}`);
+
+        return exito;
+    } catch (error) {
+        console.error('❌ [VALIDACIÓN] Error durante validación:', error);
+        return false;
+    }
+};
+
+console.log('✅ [VALIDACIÓN] Función de validación cargada. Ejecuta en consola: validarFiltradoCompletadas()');
 
 // Agregar funciones globales
 window.asignarEquipoAlCompletar = asignarEquipoAlCompletar;

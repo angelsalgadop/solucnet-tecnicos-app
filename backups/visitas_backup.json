@@ -1,37 +1,141 @@
 {
-  "timestamp": "2025-11-13T15:30:04.368Z",
+  "timestamp": "2025-11-14T15:22:47.915Z",
   "visitas": {
-    "422": {
+    "431": {
       "estado": "completada",
-      "fechaInicio": "2025-11-13T14:21:16.338Z",
-      "fechaCompletada": "2025-11-13T14:22:37.630Z",
+      "fechaInicio": "2025-11-14T15:03:36.775Z",
+      "fechaCompletada": "2025-11-14T15:05:54.826Z",
       "reporte": {
-        "visita_id": "422",
+        "visita_id": "431",
         "tecnico_id": 21,
-        "problemas_encontrados": "Conector ",
-        "solucion_aplicada": "Cambio ",
-        "materiales_utilizados": "Conector",
+        "problemas_encontrados": "Traslado",
+        "solucion_aplicada": "Instalación de fibra ",
+        "materiales_utilizados": "Fibra",
         "cliente_satisfecho": "si",
         "requiere_seguimiento": false,
-        "notas": ""
+        "notas": "",
+        "latitud": 7.8655019,
+        "longitud": -76.6663469,
+        "precision_gps": 2.191999912261963
       },
-      "backupId": "backup_1763043757612_a4aw7qry7"
+      "backupId": "backup_1763132754788_c3movvnt5"
     },
-    "428": {
+    "434": {
+      "estado": "en_progreso",
+      "fechaInicio": "2025-11-14T12:27:50.811Z"
+    },
+    "439": {
       "estado": "completada",
-      "fechaInicio": "2025-11-13T14:08:06.019Z",
-      "fechaCompletada": "2025-11-13T14:10:03.172Z",
+      "fechaInicio": "2025-11-14T12:09:16.723Z",
+      "fechaCompletada": "2025-11-14T12:18:22.126Z",
       "reporte": {
-        "visita_id": "428",
+        "visita_id": "439",
         "tecnico_id": 21,
-        "problemas_encontrados": "Moden",
-        "solucion_aplicada": "Cambio",
-        "materiales_utilizados": "Moden",
+        "problemas_encontrados": "Tyr",
+        "solucion_aplicada": "Tyry",
+        "materiales_utilizados": "",
         "cliente_satisfecho": "si",
         "requiere_seguimiento": false,
-        "notas": ""
+        "notas": "",
+        "latitud": 7.9302338,
+        "longitud": -76.6259941,
+        "precision_gps": 0.41999998688697815,
+        "serialEquipo": "I573HA",
+        "tipoEquipo": "Onu CData",
+        "costoEquipo": 180000,
+        "sincronizado": false,
+        "timestamp": 1763122591253,
+        "localId": 3
       },
-      "backupId": "backup_1763043003135_l159r4rn8"
+      "backupId": "backup_1763122702105_jwd85mrdj"
+    },
+    "440": {
+      "estado": "completada",
+      "fechaInicio": "2025-11-14T12:18:21.817Z",
+      "fechaCompletada": "2025-11-14T12:18:21.896Z",
+      "reporte": {
+        "visita_id": "440",
+        "tecnico_id": 21,
+        "problemas_encontrados": "N",
+        "solucion_aplicada": "N",
+        "materiales_utilizados": "N",
+        "cliente_satisfecho": "si",
+        "requiere_seguimiento": false,
+        "notas": "",
+        "latitud": 7.930161,
+        "longitud": -76.6259514,
+        "precision_gps": 8.220999717712402,
+        "serialEquipo": "ABD1636272723",
+        "tipoEquipo": "Onu CData",
+        "costoEquipo": 180000,
+        "sincronizado": false,
+        "timestamp": 1763122396340,
+        "localId": 1
+      },
+      "backupId": "backup_1763122701852_5d2e9w4ea"
+    },
+    "441": {
+      "estado": "completada",
+      "fechaInicio": "2025-11-14T12:22:54.507Z",
+      "fechaCompletada": "2025-11-14T12:23:34.848Z",
+      "reporte": {
+        "visita_id": "441",
+        "tecnico_id": 21,
+        "problemas_encontrados": "N",
+        "solucion_aplicada": "N",
+        "materiales_utilizados": "N",
+        "cliente_satisfecho": "si",
+        "requiere_seguimiento": false,
+        "notas": "",
+        "latitud": 7.9302368,
+        "longitud": -76.6261417,
+        "precision_gps": 8.390999794006348
+      },
+      "backupId": "backup_1763123014824_6q3whqef2"
+    },
+    "447": {
+      "estado": "completada",
+      "fechaInicio": "2025-11-14T15:22:47.515Z",
+      "fechaCompletada": "2025-11-14T15:22:47.655Z",
+      "reporte": {
+        "visita_id": "447",
+        "tecnico_id": 25,
+        "problemas_encontrados": "R",
+        "solucion_aplicada": "R",
+        "materiales_utilizados": "T",
+        "cliente_satisfecho": "si",
+        "requiere_seguimiento": false,
+        "notas": "",
+        "serialEquipo": "83848585HF83848585HFKKF",
+        "tipoEquipo": "Onu CData",
+        "costoEquipo": 180000,
+        "sincronizado": false,
+        "timestamp": 1763132377364,
+        "localId": 1
+      },
+      "backupId": "backup_1763133767593_kyabillyo"
+    },
+    "450": {
+      "estado": "completada",
+      "fechaInicio": "2025-11-14T15:22:47.560Z",
+      "fechaCompletada": "2025-11-14T15:22:47.915Z",
+      "reporte": {
+        "visita_id": "450",
+        "tecnico_id": 25,
+        "problemas_encontrados": "Hgkfk",
+        "solucion_aplicada": "Hgkfke",
+        "materiales_utilizados": "",
+        "cliente_satisfecho": "si",
+        "requiere_seguimiento": false,
+        "notas": "",
+        "serialEquipo": "849495JG",
+        "tipoEquipo": "Onu CData",
+        "costoEquipo": 180000,
+        "sincronizado": false,
+        "timestamp": 1763132408873,
+        "localId": 2
+      },
+      "backupId": "backup_1763133767829_t8ta2azhu"
     }
   }
 }

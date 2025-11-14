@@ -473,7 +473,10 @@ class OfflineManager {
     // 🔧 v1.65: Obtener IDs de visitas completadas permanentemente
     async obtenerVisitasCompletadas() {
         await this.waitForDB();
-        if (!this.db) return [];
+        if (!this.db) {
+            console.warn('⚠️ [OFFLINE MANAGER] DB no disponible, retornando array vacío');
+            return [];
+        }
 
         try {
             const tx = this.db.transaction('visitas-completadas', 'readonly');
@@ -482,12 +485,28 @@ class OfflineManager {
             const completadas = await new Promise((resolve) => {
                 const request = store.getAll();
                 request.onsuccess = () => resolve(request.result || []);
-                request.onerror = () => resolve([]);
+                request.onerror = () => {
+                    console.error('❌ Error leyendo visitas completadas de IndexedDB');
+                    resolve([]);
+                };
             });
 
-            const ids = completadas.map(v => v.visita_id);
-            console.log(`📋 [OFFLINE MANAGER] ${ids.length} visitas completadas en historial permanente`);
-            return ids;
+            // Validar y normalizar IDs (asegurar que sean números válidos)
+            const ids = completadas
+                .map(v => v.visita_id)
+                .filter(id => id != null && !isNaN(id)) // Filtrar null, undefined, NaN
+                .map(id => typeof id === 'string' ? parseInt(id, 10) : id); // Normalizar a número
+
+            // Eliminar duplicados usando Set (por si acaso)
+            const idsUnicos = [...new Set(ids)];
+
+            console.log(`📋 [OFFLINE MANAGER] ${idsUnicos.length} visitas completadas en historial permanente`);
+
+            if (idsUnicos.length > 0) {
+                console.log(`🔒 [OFFLINE MANAGER] IDs completados: [${idsUnicos.join(', ')}]`);
+            }
+
+            return idsUnicos;
         } catch (error) {
             console.error('❌ [OFFLINE MANAGER] Error obteniendo visitas completadas:', error);
             return [];
