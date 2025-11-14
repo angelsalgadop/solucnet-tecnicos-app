@@ -1,5 +1,5 @@
 // Service Worker para SolucNet Técnicos - Modo Offline Completo
-const CACHE_NAME = 'solucnet-tecnicos-v1.71.0-FIX-VISITAS-COMPLETADAS';
+const CACHE_NAME = 'solucnet-tecnicos-v1.72.0-FIX-FILTRADO-VISITAS';
 const OFFLINE_DATA_STORE = 'solucnet-offline-data';
 const SYNC_TAG = 'sync-visitas';
 
@@ -18,7 +18,7 @@ const CRITICAL_RESOURCES = [
 
 // Install: Cachear recursos críticos
 self.addEventListener('install', (event) => {
-    console.log('[SW] 🔄 Instalando Service Worker v1.71 - FIX VISITAS COMPLETADAS...');
+    console.log('[SW] 🔄 Instalando Service Worker v1.72 - FIX FILTRADO VISITAS...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             // Eliminar TODAS las cachés antiguas inmediatamente
@@ -32,7 +32,7 @@ self.addEventListener('install', (event) => {
             console.log('[SW] 💾 Cacheando recursos críticos con versión nueva');
             return cache.addAll(CRITICAL_RESOURCES);
         }).then(() => {
-            console.log('[SW] ✅ Service Worker v1.71 instalado correctamente');
+            console.log('[SW] ✅ Service Worker v1.72 instalado correctamente');
             return self.skipWaiting();
         })
     );
@@ -459,4 +459,4 @@ function notifyClientsSyncComplete() {
 }
 
 // Mensaje de log
-console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.71 CARGADO - Fix Visitas Completadas (no reaparecen)');
+console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.72 CARGADO - Fix Filtrado de Visitas Completadas');

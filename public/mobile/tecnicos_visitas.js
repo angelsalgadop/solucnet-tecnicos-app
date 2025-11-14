@@ -240,9 +240,24 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             nombreTecnico.textContent = resultado.tecnico.nombre;
         }
 
-        // 🔧 v1.63: Filtrar visitas completadas ANTES de guardar en IndexedDB
-        const visitasSinCompletar = resultado.visitas.filter(v => v.estado !== 'completada');
-        console.log(`🔍 Filtrando visitas: ${visitasSinCompletar.length} activas de ${resultado.visitas.length} totales (excluidas ${resultado.visitas.length - visitasSinCompletar.length} completadas)`);
+        // 🔧 v1.72: Filtrar visitas completadas del servidor Y de IndexedDB
+        // 1. Obtener IDs de visitas completadas localmente
+        const visitasCompletadasIds = await window.offlineManager.obtenerVisitasCompletadas();
+
+        // 2. Filtrar tanto por estado del servidor como por historial local
+        const visitasSinCompletar = resultado.visitas.filter(v => {
+            // Excluir si el servidor la marcó como completada
+            if (v.estado === 'completada') return false;
+
+            // Excluir si está en el historial local de completadas
+            if (visitasCompletadasIds.includes(v.id)) return false;
+
+            return true;
+        });
+
+        const visitasCompletadasServidor = resultado.visitas.filter(v => v.estado === 'completada').length;
+        const totalExcluidas = resultado.visitas.length - visitasSinCompletar.length;
+        console.log(`🔍 Filtrando visitas: ${visitasSinCompletar.length} activas de ${resultado.visitas.length} totales (excluidas ${totalExcluidas} completadas: ${visitasCompletadasIds.length} locales + ${visitasCompletadasServidor} del servidor)`);
 
         // Guardar SOLO visitas NO completadas en IndexedDB
         if (visitasSinCompletar.length > 0 && window.offlineManager) {
