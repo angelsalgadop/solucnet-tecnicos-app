@@ -11212,107 +11212,158 @@ app.get('/api/enviar', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'Falta el parametro numero' });
         }
 
-        // Normalizar el número agregando prefijo 57 si es necesario
-        const numeroOriginal = numero;
-        numero = normalizarNumero(numero);
+        // 🆕 v1.74: Soportar múltiples números separados por comas
+        const numerosOriginales = numero.split(',').map(n => n.trim()).filter(n => n.length > 0);
 
-        console.log(`📱 [API ENVIAR] Número original: ${numeroOriginal} → Normalizado: ${numero}`);
+        if (numerosOriginales.length === 0) {
+            await registrarLogAPI(ipOrigen, 'N/A', mensaje, 'error_parametros');
+            return res.status(400).json({ error: 'No se proporcionaron números válidos' });
+        }
 
+        console.log(`📱 [API ENVIAR] Recibidos ${numerosOriginales.length} números: ${numerosOriginales.join(', ')}`);
+
+        // 🆕 v1.74: Modo simulación para múltiples números
         if (!whatsappListo) {
-            // Modo de prueba: responder como si el mensaje se enviara
             console.log(`⚠️ [API ENVIAR] WhatsApp no listo - Modo simulación activado`);
-            console.log(`📱 Número: ${numeroOriginal} → ${numero}`);
+
+            const numerosNormalizados = numerosOriginales.map(n => normalizarNumero(n));
+            console.log(`📱 Números normalizados (${numerosNormalizados.length}): ${numerosNormalizados.join(', ')}`);
             console.log(`💬 Mensaje: ${mensaje}`);
 
-            // Registrar como si se enviara
-            await registrarLogAPI(ipOrigen, numero, mensaje, 'simulado_whatsapp_no_listo');
+            // Registrar cada número
+            for (const numNormalizado of numerosNormalizados) {
+                await registrarLogAPI(ipOrigen, numNormalizado, mensaje, 'simulado_whatsapp_no_listo');
+            }
 
             return res.json({
-                status: 'Mensaje simulado (WhatsApp no conectado)',
-                numeroOriginal: numeroOriginal,
-                numeroNormalizado: numero,
+                status: 'Mensajes simulados (WhatsApp no conectado)',
+                totalNumeros: numerosOriginales.length,
+                numerosOriginales: numerosOriginales,
+                numerosNormalizados: numerosNormalizados,
                 mensaje: mensaje,
-                nota: 'WhatsApp no está listo. Mensaje simulado para pruebas.',
+                nota: 'WhatsApp no está listo. Mensajes simulados para pruebas.',
                 timestamp: new Date().toISOString()
             });
         }
 
-        const chatId = `${numero}@c.us`;
+        // 🆕 v1.74: Procesar envío a múltiples números
+        const resultados = [];
+        let exitosos = 0;
+        let fallidos = 0;
 
-        // ===== FAILSAFE: Guardar INMEDIATAMENTE en BD antes de intentar envío =====
-        let messageIdBD = null;
-        try {
-            const [result] = await dbPool.execute(
-                `INSERT INTO cola_mensajes_api (chat_id, mensaje, tipo_mensaje, estado, intentos)
-                 VALUES (?, ?, 'text', 'procesando', 0)`,
-                [chatId, mensaje]
-            );
-            messageIdBD = result.insertId;
-            console.log(`💾 [API FAILSAFE /enviar] Mensaje guardado en BD (id=${messageIdBD}) ANTES de intentar envío`);
-        } catch (error) {
-            console.error(`❌ [API FAILSAFE /enviar] Error guardando en BD: ${error.message}`);
+        for (const numeroOriginal of numerosOriginales) {
+            const numeroNormalizado = normalizarNumero(numeroOriginal);
+            const chatId = `${numeroNormalizado}@c.us`;
+
+            console.log(`📤 [API ENVIAR] Procesando ${numeroOriginal} → ${numeroNormalizado}`);
+
+            // ===== FAILSAFE: Guardar INMEDIATAMENTE en BD antes de intentar envío =====
+            let messageIdBD = null;
+            try {
+                const [result] = await dbPool.execute(
+                    `INSERT INTO cola_mensajes_api (chat_id, mensaje, tipo_mensaje, estado, intentos)
+                     VALUES (?, ?, 'text', 'procesando', 0)`,
+                    [chatId, mensaje]
+                );
+                messageIdBD = result.insertId;
+                console.log(`💾 [API FAILSAFE] ${numeroNormalizado}: Guardado en BD (id=${messageIdBD})`);
+            } catch (error) {
+                console.error(`❌ [API FAILSAFE] ${numeroNormalizado}: Error guardando en BD: ${error.message}`);
+            }
+
+            const exito = await enviarMensaje(chatId, mensaje, null, true);
+
+            if (exito) {
+                // Si se envió exitosamente y está en BD, actualizar estado a 'enviado'
+                if (messageIdBD) {
+                    try {
+                        await dbPool.execute(
+                            `UPDATE cola_mensajes_api SET estado = 'enviado', fecha_envio = NOW() WHERE id = ?`,
+                            [messageIdBD]
+                        );
+                        console.log(`✅ [API FAILSAFE] ${numeroNormalizado}: Marcado como enviado (BD id=${messageIdBD})`);
+                    } catch (error) {
+                        console.error(`❌ [API FAILSAFE] ${numeroNormalizado}: Error actualizando BD: ${error.message}`);
+                    }
+                }
+                // Registrar envío exitoso
+                await registrarLogAPI(ipOrigen, numeroNormalizado, mensaje, 'enviado');
+
+                resultados.push({
+                    numeroOriginal,
+                    numeroNormalizado,
+                    estado: 'enviado',
+                    messageIdBD
+                });
+                exitosos++;
+                console.log(`✅ [API ENVIAR] ${numeroNormalizado}: Mensaje enviado`);
+            } else {
+                // Si falló, el mensaje YA está en BD con estado 'procesando'
+                // Actualizar a 'pendiente' para que el procesador lo retome
+                if (messageIdBD) {
+                    try {
+                        await dbPool.execute(
+                            `UPDATE cola_mensajes_api SET estado = 'pendiente' WHERE id = ?`,
+                            [messageIdBD]
+                        );
+                        console.log(`⚠️ [API FAILSAFE] ${numeroNormalizado}: Marcado como pendiente (BD id=${messageIdBD})`);
+                    } catch (error) {
+                        console.error(`❌ [API FAILSAFE] ${numeroNormalizado}: Error actualizando BD: ${error.message}`);
+                    }
+                }
+                // Registrar envío fallido
+                await registrarLogAPI(ipOrigen, numeroNormalizado, mensaje, 'error_envio');
+
+                resultados.push({
+                    numeroOriginal,
+                    numeroNormalizado,
+                    estado: 'error',
+                    messageIdBD
+                });
+                fallidos++;
+                console.error(`❌ [API ENVIAR] ${numeroNormalizado}: Error enviando mensaje`);
+            }
         }
 
-        const exito = await enviarMensaje(chatId, mensaje, null, true);
+        // 🆕 v1.74: Respuesta con resumen de envíos múltiples
+        const respuesta = {
+            status: exitosos === numerosOriginales.length ? 'Todos los mensajes enviados' :
+                    fallidos === numerosOriginales.length ? 'Todos los mensajes fallaron' :
+                    'Algunos mensajes enviados',
+            total: numerosOriginales.length,
+            exitosos,
+            fallidos,
+            mensaje,
+            resultados
+        };
 
-        if (exito) {
-            // Si se envió exitosamente y está en BD, actualizar estado a 'enviado'
-            if (messageIdBD) {
-                try {
-                    await dbPool.execute(
-                        `UPDATE cola_mensajes_api SET estado = 'enviado', fecha_envio = NOW() WHERE id = ?`,
-                        [messageIdBD]
-                    );
-                    console.log(`✅ [API FAILSAFE /enviar] Mensaje BD id=${messageIdBD} marcado como enviado`);
-                } catch (error) {
-                    console.error(`❌ [API FAILSAFE /enviar] Error actualizando BD: ${error.message}`);
-                }
-            }
-            // Registrar envío exitoso
-            await registrarLogAPI(ipOrigen, numero, mensaje, 'enviado');
-            return res.json({
-                status: 'Mensaje enviado',
-                numeroOriginal: numeroOriginal,
-                numeroNormalizado: numero,
-                mensaje
-            });
+        console.log(`📊 [API ENVIAR] Resumen: ${exitosos}/${numerosOriginales.length} exitosos, ${fallidos} fallidos`);
+
+        // Retornar 200 si al menos uno se envió, 500 si todos fallaron
+        if (exitosos > 0) {
+            return res.json(respuesta);
         } else {
-            // Si falló, el mensaje YA está en BD con estado 'procesando'
-            // Actualizar a 'pendiente' para que el procesador lo retome
-            if (messageIdBD) {
-                try {
-                    await dbPool.execute(
-                        `UPDATE cola_mensajes_api SET estado = 'pendiente' WHERE id = ?`,
-                        [messageIdBD]
-                    );
-                    console.log(`⚠️ [API FAILSAFE /enviar] Mensaje BD id=${messageIdBD} marcado como pendiente para reintento`);
-                } catch (error) {
-                    console.error(`❌ [API FAILSAFE /enviar] Error actualizando BD: ${error.message}`);
-                }
-            }
-            // Registrar envío fallido
-            await registrarLogAPI(ipOrigen, numero, mensaje, 'error_envio');
-            return res.status(500).json({ error: 'Error enviando mensaje' });
+            return res.status(500).json(respuesta);
         }
     } catch (err) {
         const ipOrigen = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
-        let numero = req.query.numero || 'N/A';
+        const numero = req.query.numero || 'N/A';
         const mensaje = req.query.mensaje || '';
 
-        // Normalizar el número para los logs de error también
-        const numeroOriginal = numero;
-        if (numero !== 'N/A') {
-            numero = normalizarNumero(numero);
+        // 🆕 v1.74: Manejar error con múltiples números
+        const numerosOriginales = numero !== 'N/A' ? numero.split(',').map(n => n.trim()).filter(n => n.length > 0) : ['N/A'];
+        const numerosNormalizados = numerosOriginales.map(n => n !== 'N/A' ? normalizarNumero(n) : 'N/A');
+
+        // Registrar error de excepción para cada número
+        for (const numNormalizado of numerosNormalizados) {
+            await registrarLogAPI(ipOrigen, numNormalizado, mensaje, 'error_excepcion');
         }
 
-        // Registrar error de excepción
-        await registrarLogAPI(ipOrigen, numero, mensaje, 'error_excepcion');
-
-        console.error(`❌ [API ENVIAR ERROR] Número original: ${numeroOriginal} → Normalizado: ${numero}`, err);
+        console.error(`❌ [API ENVIAR ERROR] Números: ${numerosOriginales.join(', ')}`, err);
         return res.status(500).json({
             error: 'Error enviando mensaje',
-            numeroOriginal: numeroOriginal,
-            numeroNormalizado: numero,
+            numerosOriginales: numerosOriginales,
+            numerosNormalizados: numerosNormalizados,
             details: err.message
         });
     }
