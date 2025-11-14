@@ -4269,3 +4269,41 @@ window.abrirPdfEnApp = abrirPdfEnApp;
 window.abrirPDFConFileOpener = abrirPDFConFileOpener;
 window.toggleMapaOfflineSelector = toggleMapaOfflineSelector;
 window.iniciarDescargaMapaOffline = iniciarDescargaMapaOffline;
+
+// 🆕 v1.76: Conectar WebSocket para actualizaciones en tiempo real
+(async function conectarWebSocket() {
+    try {
+        // Esperar a que Cordova esté listo (si es APK)
+        if (typeof cordova !== 'undefined') {
+            await new Promise(resolve => {
+                document.addEventListener('deviceready', resolve, false);
+            });
+        }
+
+        // Obtener ID del técnico desde localStorage
+        const userTecnico = localStorage.getItem('user_tecnico');
+        if (!userTecnico) {
+            console.warn('⚠️ [WEBSOCKET] No hay usuario técnico en localStorage');
+            return;
+        }
+
+        const tecnico = JSON.parse(userTecnico);
+        const tecnicoId = tecnico.id;
+
+        if (!tecnicoId) {
+            console.warn('⚠️ [WEBSOCKET] No se pudo obtener ID del técnico');
+            return;
+        }
+
+        console.log(`🔌 [WEBSOCKET] Conectando para técnico ID: ${tecnicoId}...`);
+
+        // Conectar al servidor WebSocket
+        if (window.websocketClient) {
+            await window.websocketClient.connect(tecnicoId);
+        } else {
+            console.warn('⚠️ [WEBSOCKET] Cliente WebSocket no disponible');
+        }
+    } catch (error) {
+        console.error('❌ [WEBSOCKET] Error conectando:', error);
+    }
+})();

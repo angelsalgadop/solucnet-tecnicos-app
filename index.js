@@ -1946,6 +1946,28 @@ function emitirActualizacionChats() {
     }, 2000); // Debounce de 2 segundos
 }
 
+// 🆕 v1.76: Función para emitir actualizaciones de visitas en tiempo real
+function emitirActualizacionVisitas(tecnicoId) {
+    if (!io) return;
+
+    try {
+        console.log(`📡 [SOCKET.IO] Emitiendo actualización de visitas para técnico:`, tecnicoId);
+
+        // Emitir a todos los clientes conectados
+        // El cliente filtrará por su tecnicoId
+        io.emit('visitas-update', {
+            success: true,
+            tecnicoId: tecnicoId,
+            timestamp: new Date().toISOString(),
+            message: 'Actualización de visitas disponible'
+        });
+
+        console.log(`✅ [SOCKET.IO] Actualización de visitas emitida para técnico ${tecnicoId}`);
+    } catch (error) {
+        console.error('❌ [SOCKET.IO] Error emitiendo actualización de visitas:', error);
+    }
+}
+
 async function iniciarCliente() {
     console.log('🔍 [DEBUG] Entrando a iniciarCliente()');
 
