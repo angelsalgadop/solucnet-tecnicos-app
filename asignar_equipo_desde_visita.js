@@ -91,13 +91,13 @@ async function asignarEquipoDesdeVisita(visitaId, serialEquipo, costoEquipo = 18
             console.log(`✅ [ASIGNAR EQUIPO] Zona determinada: ${bdOrigen}`);
         } else {
             bdConfig = basesDatos.find(bd => bd.host === bdOrigen);
-        }
 
-        if (!bdConfig) {
-            return {
-                success: false,
-                message: 'Configuración de base de datos no encontrada'
-            };
+            // 🔧 v1.66: Si no se encuentra la BD (ej: sistema_pruebas, null, etc), usar Reposo por defecto
+            if (!bdConfig) {
+                console.warn(`⚠️ [ASIGNAR EQUIPO] BD origen "${bdOrigen}" no encontrada en configuración, usando Reposo (192.168.99.50) por defecto`);
+                bdConfig = basesDatos[0]; // Reposo
+                bdOrigen = bdConfig.host;
+            }
         }
 
         // Conectar a la BD externa (Mikrowisp)
@@ -430,15 +430,13 @@ async function verificarSerialEquipo(serialEquipo, visitaId = null) {
                 console.log(`✅ [VERIFICAR SERIAL] Zona determinada: ${bdOrigen}`);
             } else {
                 bdConfig = basesDatos.find(bd => bd.host === bdOrigen);
-            }
 
-            if (!bdConfig) {
-                return {
-                    success: false,
-                    message: 'Configuración de base de datos no encontrada',
-                    existe: false,
-                    equipos: []
-                };
+                // 🔧 v1.66: Si no se encuentra la BD (ej: sistema_pruebas, null, etc), usar Reposo por defecto
+                if (!bdConfig) {
+                    console.warn(`⚠️ [VERIFICAR SERIAL] BD origen "${bdOrigen}" no encontrada en configuración, usando Reposo (192.168.99.50) por defecto`);
+                    bdConfig = basesDatos[0]; // Reposo
+                    bdOrigen = bdConfig.host;
+                }
             }
 
             // Conectar a la BD externa
