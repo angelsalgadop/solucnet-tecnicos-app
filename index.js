@@ -76,10 +76,14 @@ const dbPool = mysql.createPool({
     password: process.env.DB_SYSTEM_PASSWORD,
     database: process.env.DB_SYSTEM_DATABASE,
     waitForConnections: true,
-    connectionLimit: 10, // Máximo 10 conexiones concurrentes
-    queueLimit: 0,
+    connectionLimit: 30, // 🔧 v1.64: Aumentado de 10 a 30 para manejar más carga
+    queueLimit: 100, // 🔧 v1.64: Limitar cola a 100 para evitar memory leaks
     enableKeepAlive: true,
-    keepAliveInitialDelay: 0
+    keepAliveInitialDelay: 0,
+    idleTimeout: 60000, // 🔧 v1.64: Cerrar conexiones inactivas después de 60 segundos
+    maxIdle: 10, // 🔧 v1.64: Mantener máximo 10 conexiones inactivas
+    acquireTimeout: 30000, // 🔧 v1.64: Timeout de 30 segundos para adquirir conexión
+    connectTimeout: 10000 // 🔧 v1.64: Timeout de 10 segundos para conectar
 });
 
 // Importar rutas del historial de chat
@@ -87,6 +91,36 @@ const chatHistoryRoutes = require('./chat-history-routes');
 
 // Importar funciones para asignar equipos desde visitas
 const { asignarEquipoDesdeVisita, verificarSerialEquipo } = require('./asignar_equipo_desde_visita');
+
+// 🔧 v1.64: Sistema de monitoreo del pool de conexiones MySQL
+setInterval(() => {
+    const poolState = dbPool.pool;
+    if (poolState) {
+        const allConnections = poolState._allConnections ? poolState._allConnections.length : 0;
+        const freeConnections = poolState._freeConnections ? poolState._freeConnections.length : 0;
+        const acquiringConnections = poolState._acquiringConnections ? poolState._acquiringConnections.length : 0;
+
+        if (allConnections >= 25) { // Alerta si llega a 25 de 30
+            console.log(`⚠️ [POOL MYSQL] Alto uso: ${allConnections}/30 conexiones (${freeConnections} libres, ${acquiringConnections} adquiriendo)`);
+        }
+    }
+}, 60000); // Verificar cada minuto
+
+// 🔧 v1.64: Manejadores de errores para el pool
+dbPool.on('connection', (connection) => {
+    console.log('🔌 [POOL MYSQL] Nueva conexión establecida');
+    connection.on('error', (err) => {
+        console.error('❌ [POOL MYSQL] Error en conexión:', err.message);
+    });
+});
+
+dbPool.on('acquire', (connection) => {
+    // Conexión adquirida del pool
+});
+
+dbPool.on('release', (connection) => {
+    // Conexión liberada al pool
+});
 
 let clienteIniciando = false;
 let ultimoIntento = 0;
@@ -99,10 +133,10 @@ const browserHealthCheck = {
     lastCheck: Date.now(),
     checkInterval: 120000, // Verificar cada 120 segundos (reducir sobrecarga)
     consecutiveFailures: 0,
-    maxFailures: 3, // Reiniciar después de 3 fallas consecutivas (6 minutos) - REDUCIDO para detectar crashes más rápido
+    maxFailures: 5, // 🔧 v1.64: Aumentado de 3 a 5 para evitar reinicios prematuros (10 minutos)
     zombieStateDetected: false,
     sessionClosedErrors: 0, // Contador específico para errores "Session closed"
-    maxSessionClosedErrors: 2, // Reiniciar inmediatamente después de 2 errores "Session closed" consecutivos
+    maxSessionClosedErrors: 3, // 🔧 v1.64: Aumentado de 2 a 3 para evitar reinicios prematuros
     lastSuccessfulOperation: Date.now()
 };
 
@@ -3936,15 +3970,9 @@ async function procesarMensajeRealInterno(msg) {
 async function persistirModoChat(chatId, modo) {
     try {
         const numero = chatId.replace('@c.us', '').replace('@lid', '');
-        const conexion = await mysql.createConnection({
-            host: process.env.DB_SYSTEM_HOST,
-            user: process.env.DB_SYSTEM_USER,
-            password: process.env.DB_SYSTEM_PASSWORD,
-            database: process.env.DB_SYSTEM_DATABASE
-        });
 
-        // Insertar o actualizar el modo del chat en la BD
-        await conexion.execute(`
+        // 🔧 v1.64: Usar pool en vez de conexión individual para evitar "Too many connections"
+        await dbPool.execute(`
             INSERT INTO chat_sync_status (numero_telefono, modo_chat, updated_at)
             VALUES (?, ?, NOW())
             ON DUPLICATE KEY UPDATE
@@ -3952,7 +3980,6 @@ async function persistirModoChat(chatId, modo) {
                 updated_at = NOW()
         `, [numero, modo]);
 
-        await conexion.end();
         console.log(`✅ [PERSISTENCIA] Modo '${modo}' guardado en BD para ${numero}`);
     } catch (error) {
         console.error(`❌ [PERSISTENCIA] Error guardando modo chat:`, error.message);
@@ -3961,21 +3988,12 @@ async function persistirModoChat(chatId, modo) {
 
 async function restaurarModosChat() {
     try {
-        const conexion = await mysql.createConnection({
-            host: process.env.DB_SYSTEM_HOST,
-            user: process.env.DB_SYSTEM_USER,
-            password: process.env.DB_SYSTEM_PASSWORD,
-            database: process.env.DB_SYSTEM_DATABASE
-        });
-
-        // Obtener todos los chats con modo persistido (incluir 'human' además de 'humano')
-        const [chatsConModo] = await conexion.execute(`
+        // 🔧 v1.64: Usar pool en vez de conexión individual para evitar "Too many connections"
+        const [chatsConModo] = await dbPool.execute(`
             SELECT numero_telefono, nombre_contacto, modo_chat
             FROM chat_sync_status
             WHERE modo_chat IN ('humano', 'human', 'bot')
         `);
-
-        await conexion.end();
 
         let restauradosHumano = 0;
         let restauradosBot = 0;
