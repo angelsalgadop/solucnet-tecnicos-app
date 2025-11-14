@@ -11220,28 +11220,7 @@ app.get('/api/enviar', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'No se proporcionaron números válidos' });
         }
 
-        // 🔒 v1.74: Whitelist - Solo números autorizados para pruebas
-        const NUMEROS_AUTORIZADOS = ['3025961131', '3135648878', '3024019208', '573025961131', '573135648878', '573024019208'];
-
-        const numerosNoAutorizados = numerosOriginales.filter(num => {
-            const numNormalizado = normalizarNumero(num);
-            return !NUMEROS_AUTORIZADOS.includes(num) && !NUMEROS_AUTORIZADOS.includes(numNormalizado);
-        });
-
-        if (numerosNoAutorizados.length > 0) {
-            console.warn(`⚠️ [API ENVIAR] Números NO autorizados rechazados: ${numerosNoAutorizados.join(', ')}`);
-            console.log(`✅ [API ENVIAR] Números autorizados: ${NUMEROS_AUTORIZADOS.slice(0, 3).join(', ')}`);
-
-            await registrarLogAPI(ipOrigen, numerosNoAutorizados.join(','), mensaje, 'rechazado_no_autorizado');
-
-            return res.status(403).json({
-                error: 'Números no autorizados',
-                numerosRechazados: numerosNoAutorizados,
-                mensaje: 'Solo se permiten envíos a números autorizados: 3025961131, 3135648878, 3024019208'
-            });
-        }
-
-        console.log(`📱 [API ENVIAR] Recibidos ${numerosOriginales.length} números autorizados: ${numerosOriginales.join(', ')}`);
+        console.log(`📱 [API ENVIAR] Recibidos ${numerosOriginales.length} números: ${numerosOriginales.join(', ')}`);
 
         // 🆕 v1.74: Modo simulación para múltiples números
         if (!whatsappListo) {
