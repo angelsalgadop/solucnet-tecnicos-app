@@ -15,20 +15,19 @@ class BackgroundModeManager {
     }
 
     /**
-     * 🔧 v1.76: Inicializar SIN solicitar permisos automáticamente
-     * Los permisos se solicitarán manualmente cuando el usuario habilite el tracking
+     * 🔧 v1.77: Inicializar Y HABILITAR automáticamente (necesario para segundo plano)
      */
     async initialize() {
-        console.log('🔄 [BACKGROUND] Inicializando modo background (sin solicitar permisos aún)...');
+        console.log('🔄 [BACKGROUND] Inicializando modo background...');
 
         // Verificar si el plugin está disponible
         if (typeof cordova === 'undefined' || !cordova.plugins || !cordova.plugins.backgroundMode) {
-            console.warn('⚠️ [BACKGROUND] Plugin no disponible');
+            console.warn('⚠️ [BACKGROUND] Plugin no disponible - La app NO funcionará en segundo plano');
             return false;
         }
 
         try {
-            // Solo CONFIGURAR, NO habilitar aún
+            // Configurar el modo background
             cordova.plugins.backgroundMode.setDefaults({
                 title: 'SolucNet Técnicos',
                 text: 'App activa - Enviando ubicación',
@@ -43,13 +42,30 @@ class BackgroundModeManager {
                 closeIcon: 'power',
                 closeTitle: 'Cerrar',
                 showWhen: true,
-                visibility: 'public'
+                visibility: 'public',
+                silent: false
             });
 
-            // Configurar eventos
+            // Configurar eventos primero
             this.setupEvents();
 
-            console.log('✅ [BACKGROUND] Configurado (esperando habilitación manual)');
+            // 🔧 v1.77: HABILITAR automáticamente después de 3 segundos
+            // (necesario para que funcione en segundo plano)
+            setTimeout(() => {
+                try {
+                    cordova.plugins.backgroundMode.enable();
+                    this.isEnabled = true;
+                    console.log('✅ [BACKGROUND] Modo background HABILITADO');
+
+                    // Solicitar desactivar optimización de batería después de 10 segundos
+                    setTimeout(() => {
+                        this.requestBatteryOptimizationDisable();
+                    }, 10000);
+                } catch (enableError) {
+                    console.error('❌ [BACKGROUND] Error habilitando:', enableError);
+                }
+            }, 3000);
+
             return true;
         } catch (error) {
             console.error('❌ [BACKGROUND] Error configurando:', error);

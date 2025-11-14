@@ -8443,6 +8443,9 @@ Gracias por su comprensión.
         result.clienteNombre = visitaData.cliente_nombre;
         result.clienteNotificado = visitaData.cliente_notificado; // Incluir estado original
 
+        // 🆕 v1.77: Emitir actualización via WebSocket para notificar al técnico
+        emitirActualizacionVisitas(tecnicoId);
+
         res.json(result);
     } catch (error) {
         console.error('Error asignando técnico:', error.message);

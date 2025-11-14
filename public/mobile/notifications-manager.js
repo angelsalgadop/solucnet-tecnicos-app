@@ -17,10 +17,10 @@ class NotificationsManager {
     }
 
     /**
-     * 🔧 v1.76: Inicializar SIN solicitar permisos automáticamente
+     * 🔧 v1.77: Inicializar Y solicitar permisos automáticamente (necesario para notificaciones)
      */
     async initialize() {
-        console.log('🔔 [NOTIFICACIONES] Inicializando sistema (sin solicitar permisos aún)...');
+        console.log('🔔 [NOTIFICACIONES] Inicializando sistema...');
 
         try {
             // Verificar si el plugin está disponible
@@ -29,15 +29,35 @@ class NotificationsManager {
                 return false;
             }
 
-            // Verificar si ya tenemos permisos (pero NO solicitar)
+            // Verificar si ya tenemos permisos
             const currentPermission = await Capacitor.Plugins.LocalNotifications.checkPermissions();
 
             if (currentPermission.display === 'granted') {
                 console.log('✅ [NOTIFICACIONES] Permisos ya concedidos');
                 this.isInitialized = true;
-            } else {
-                console.log('ℹ️ [NOTIFICACIONES] Permisos no concedidos aún (se solicitarán manualmente)');
+                this.loadNotifiedIds();
+                this.setupNotificationListeners();
+                return true;
             }
+
+            // 🔧 v1.77: Solicitar permisos después de 8 segundos
+            // (después de background mode pero antes de battery optimization)
+            console.log('⏳ [NOTIFICACIONES] Solicitando permisos en 8 segundos...');
+
+            setTimeout(async () => {
+                try {
+                    const permission = await Capacitor.Plugins.LocalNotifications.requestPermissions();
+
+                    if (permission.display === 'granted') {
+                        console.log('✅ [NOTIFICACIONES] Permisos concedidos');
+                        this.isInitialized = true;
+                    } else {
+                        console.warn('⚠️ [NOTIFICACIONES] Permisos denegados - notificaciones no funcionarán');
+                    }
+                } catch (error) {
+                    console.error('❌ [NOTIFICACIONES] Error solicitando permisos:', error);
+                }
+            }, 8000);
 
             this.loadNotifiedIds();
             this.setupNotificationListeners();
