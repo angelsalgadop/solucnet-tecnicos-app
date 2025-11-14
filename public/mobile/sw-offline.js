@@ -1,5 +1,5 @@
 // Service Worker para SolucNet Técnicos - Modo Offline Completo
-const CACHE_NAME = 'solucnet-tecnicos-v1.62.0-INCREMENTAL';
+const CACHE_NAME = 'solucnet-tecnicos-v1.63.0-GPS-REINTENTOS';
 const OFFLINE_DATA_STORE = 'solucnet-offline-data';
 const SYNC_TAG = 'sync-visitas';
 
@@ -18,7 +18,7 @@ const CRITICAL_RESOURCES = [
 
 // Install: Cachear recursos críticos
 self.addEventListener('install', (event) => {
-    console.log('[SW] 🔄 Instalando Service Worker v1.62 - FORZANDO ACTUALIZACIÓN...');
+    console.log('[SW] 🔄 Instalando Service Worker v1.63 - FORZANDO ACTUALIZACIÓN...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             // Eliminar TODAS las cachés antiguas inmediatamente
@@ -32,7 +32,7 @@ self.addEventListener('install', (event) => {
             console.log('[SW] 💾 Cacheando recursos críticos con versión nueva');
             return cache.addAll(CRITICAL_RESOURCES);
         }).then(() => {
-            console.log('[SW] ✅ Service Worker v1.62 instalado correctamente');
+            console.log('[SW] ✅ Service Worker v1.63 instalado correctamente');
             return self.skipWaiting();
         })
     );
@@ -288,4 +288,4 @@ function notifyClientsSyncComplete() {
 }
 
 // Mensaje de log
-console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.62 CARGADO - Cache limpiado');
+console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.63 CARGADO - Cache limpiado');

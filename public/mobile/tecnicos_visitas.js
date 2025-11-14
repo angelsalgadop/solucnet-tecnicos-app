@@ -7,6 +7,8 @@ let intervaloActualizacion = null; // Intervalo para actualización automática
 let ultimaActualizacion = null; // Timestamp de última actualización
 let hashVisitasAnterior = null; // Hash para detectar cambios
 let visitasConPdfsDescargados = new Set(); // 🔧 v1.62: IDs de visitas con PDFs ya descargados
+let intentosGpsUsuario = 0; // 🔧 v1.63: Contador de intentos del usuario para GPS (máximo 3)
+const MAX_INTENTOS_GPS_USUARIO = 3; // 🔧 v1.63: Máximo de intentos permitidos
 
 // Elementos del DOM
 const visitasContainer = document.getElementById('visitasAsignadas');
@@ -157,19 +159,18 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
 
         const esCargaInicial = visitasAsignadas.length === 0;
 
-        // CARGA INICIAL: Mostrar spinner tradicional
+        // 🔧 v1.63: CARGA INICIAL con barra de progreso inline
         if (esCargaInicial) {
-            visitasContainer.innerHTML = `
-                <div class="text-center">
-                    <div class="spinner-border text-success" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                    <p class="mt-2 text-muted">Cargando visitas asignadas...</p>
-                </div>
-            `;
+            visitasContainer.innerHTML = ''; // Limpiar contenedor
+            mostrarBarraProgresoInline();
+            actualizarBarraProgresoInline('Conectando con el servidor...', 0, 'Iniciando...');
         }
 
         // Descargar visitas del servidor
+        if (esCargaInicial) {
+            actualizarBarraProgresoInline('Descargando lista de visitas...', 5, 'Consultando servidor...');
+        }
+
         const response = await fetch(APP_CONFIG.getApiUrl('/api/mis-visitas'), {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` },
@@ -195,8 +196,12 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             nombreTecnico.textContent = resultado.tecnico.nombre;
         }
 
-        // Guardar visitas en IndexedDB
-        if (resultado.visitas && resultado.visitas.length > 0 && window.offlineManager) {
+        // 🔧 v1.63: Filtrar visitas completadas ANTES de guardar en IndexedDB
+        const visitasSinCompletar = resultado.visitas.filter(v => v.estado !== 'completada');
+        console.log(`🔍 Filtrando visitas: ${visitasSinCompletar.length} activas de ${resultado.visitas.length} totales (excluidas ${resultado.visitas.length - visitasSinCompletar.length} completadas)`);
+
+        // Guardar SOLO visitas NO completadas en IndexedDB
+        if (visitasSinCompletar.length > 0 && window.offlineManager) {
             let tecnicoId = resultado.tecnico?.id || tecnicoActual?.id;
             if (!tecnicoId) {
                 const userStorage = localStorage.getItem('user_tecnico');
@@ -208,12 +213,12 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                 }
             }
             tecnicoId = tecnicoId || 'unknown';
-            await window.offlineManager.saveVisitasOffline(resultado.visitas, tecnicoId);
-            console.log(`💾 [CACHE] ${resultado.visitas.length} visitas guardadas en IndexedDB`);
+            await window.offlineManager.saveVisitasOffline(visitasSinCompletar, tecnicoId);
+            console.log(`💾 [CACHE] ${visitasSinCompletar.length} visitas NO completadas guardadas en IndexedDB`);
         }
 
-        // Filtrar visitas completadas
-        const visitasNuevas = resultado.visitas.filter(v => v.estado !== 'completada');
+        // Usar visitas ya filtradas
+        const visitasNuevas = visitasSinCompletar;
 
         // DETECTAR VISITAS NUEVAS (comparar IDs)
         const idsActuales = new Set(visitasAsignadas.map(v => v.id));
@@ -364,6 +369,11 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             mostrarVisitasAsignadas();
             setTimeout(restaurarCronometros, 100);
             hashVisitasAnterior = hashNuevo;
+
+            // 🔧 v1.63: Ocultar barra inline después de mostrar visitas
+            if (esCargaInicial) {
+                setTimeout(() => ocultarBarraProgresoInline(), 1500);
+            }
         } else {
             console.log('⏭️ Sin cambios en los datos');
         }
@@ -792,6 +802,9 @@ function completarVisita(visitaId) {
 
     // Resetear serial capturado
     window.serialEquipoCapturado = null;
+
+    // 🔧 v1.63: Resetear contador de intentos GPS
+    intentosGpsUsuario = 0;
 
     // Determinar si se requieren coordenadas GPS según el motivo de visita
     const seccionCoordenadas = document.getElementById('seccionCoordenadas');
@@ -1285,9 +1298,20 @@ async function guardarReporteVisita() {
                 return;
             }
 
+            // 🔧 v1.63: Validar precisión GPS con sistema de reintentos
             if (coordenadasCapturadas.accuracy > 9) {
-                mostrarAlerta(`❌ ERROR DE COORDENADAS: La precisión actual es de ${coordenadasCapturadas.accuracy.toFixed(2)} metros. Se requiere una precisión de 9 metros o menor para completar la visita. Por favor, intenta capturar las coordenadas nuevamente en un lugar con mejor señal GPS.`, 'danger');
-                return;
+                // Si aún no alcanzó los 3 intentos, no permitir completar
+                if (intentosGpsUsuario < MAX_INTENTOS_GPS_USUARIO) {
+                    const intentosRestantes = MAX_INTENTOS_GPS_USUARIO - intentosGpsUsuario;
+                    mostrarAlerta(`❌ ERROR DE COORDENADAS: La precisión actual es de ${coordenadasCapturadas.accuracy.toFixed(2)} metros. Se requiere 9 metros o menos.<br><strong>⏳ Te quedan ${intentosRestantes} ${intentosRestantes === 1 ? 'intento' : 'intentos'}.</strong> Intenta capturar las coordenadas nuevamente en un lugar con mejor señal GPS.`, 'danger');
+                    return;
+                } else {
+                    // Después de 3 intentos, permitir completar con advertencia
+                    console.log(`⚠️ [GPS] Permitiendo completar después de ${intentosGpsUsuario} intentos con precisión ${coordenadasCapturadas.accuracy.toFixed(2)}m`);
+                    formData.excepcion_gps = true; // Marcar como excepción
+                    formData.observacion_gps = `Coordenadas capturadas con precisión de ${coordenadasCapturadas.accuracy.toFixed(2)}m después de ${intentosGpsUsuario} intentos (máximo permitido)`;
+                    mostrarAlerta(`⚠️ EXCEPCIÓN GPS: Se completará la visita con precisión de ${coordenadasCapturadas.accuracy.toFixed(2)} metros (máximo de intentos alcanzado).`, 'warning');
+                }
             }
 
             // Agregar coordenadas al reporte
@@ -1532,6 +1556,12 @@ async function capturarCoordenadasManual() {
     const btnCapturar = document.getElementById('btnTomarCoordenadas');
     const estadoCoordenadas = document.getElementById('estadoCoordenadas');
 
+    // 🔧 v1.63: Incrementar contador de intentos del usuario
+    intentosGpsUsuario++;
+    const intentosRestantes = MAX_INTENTOS_GPS_USUARIO - intentosGpsUsuario;
+
+    console.log(`🔄 [GPS] Intento ${intentosGpsUsuario}/${MAX_INTENTOS_GPS_USUARIO} del usuario`);
+
     btnCapturar.disabled = true;
     btnCapturar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Capturando...';
 
@@ -1556,9 +1586,18 @@ async function capturarCoordenadasManual() {
                     </div>
                 `;
             } else {
+                // 🔧 v1.63: Mostrar intentos restantes
+                let mensajeIntentos = '';
+                if (intentosRestantes > 0) {
+                    mensajeIntentos = `<br><strong>⏳ Te quedan ${intentosRestantes} ${intentosRestantes === 1 ? 'intento' : 'intentos'} para obtener mejor precisión.</strong>`;
+                } else {
+                    mensajeIntentos = '<br><strong>✓ Has alcanzado el máximo de intentos. Podrás completar la visita con estas coordenadas.</strong>';
+                }
+
                 estadoPrecision.innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i> <strong>Precisión insuficiente:</strong> ${coordenadas.accuracy.toFixed(2)} metros. Se requiere 9 metros o menos. Por favor, intenta nuevamente en un lugar con mejor señal GPS.
+                    <div class="alert alert-${intentosRestantes > 0 ? 'danger' : 'warning'}">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Precisión insuficiente:</strong> ${coordenadas.accuracy.toFixed(2)} metros. Se requiere 9 metros o menos.
+                        ${mensajeIntentos}
                     </div>
                 `;
             }
