@@ -1,170 +1,27 @@
 {
-  "timestamp": 1763145077389,
+  "timestamp": 1763152275261,
   "estados": {
-    "573203638170@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": null,
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": true,
-      "ultimaInteraccion": 1763143528432
-    },
-    "573148855336@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": null,
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": true,
-      "ultimaInteraccion": 1763143528432
-    },
-    "573233625505@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": null,
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": true,
-      "ultimaInteraccion": 1763143528432
-    },
-    "573217280119@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": null,
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": true,
-      "ultimaInteraccion": 1763143528432
-    },
-    "573148881295@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": null,
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": true,
-      "ultimaInteraccion": 1763143528432
-    },
-    "573205185647@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": null,
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": true,
-      "ultimaInteraccion": 1763143528432
-    },
-    "573127631325@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": null,
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": true,
-      "ultimaInteraccion": 1763143528432
-    },
-    "573106782534@c.us": {
+    "573226686256@c.us": {
       "enEsperaHumano": {
         "contador": 0,
-        "ultimaRespuesta": 1763143528432
-      },
-      "clienteEncontrado": null,
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": true,
-      "ultimaInteraccion": 1763143528432
-    },
-    "573145273932@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": null,
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": true,
-      "ultimaInteraccion": 1763143528433
-    },
-    "573122849028@c.us": {
-      "enEsperaHumano": {
-        "contador": 0,
-        "ultimaRespuesta": 1763143928955
+        "ultimaRespuesta": 1763151519612
       },
       "clienteEncontrado": {
         "cliente": {
-          "id": 125,
-          "nombre": "YURI ELIAS DIAZ BUSTAMANTE",
-          "estado": "ACTIVO",
-          "cedula": "71978948",
-          "telefono": "3137560682",
-          "movil": "3122849028",
-          "direccion_principal": "Cr 115 # 78-138 Barrio buenos aires CONT 483256"
-        },
-        "facturas": [],
-        "cuenta": {
-          "cuenta": "Bancolombia Ahorros *549-000016-75*.   *Recuerda que no aceptamos pago por nequi*"
-        },
-        "bd": {
-          "host": "192.168.99.50",
-          "user": "root",
-          "password": "Y9T1Q6P39YI6TJ2",
-          "database": "Mikrowisp6"
-        }
-      },
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": false,
-      "ultimaInteraccion": 1763143928955
-    },
-    "573146445904@c.us": {
-      "enEsperaHumano": null,
-      "clienteEncontrado": {
-        "cliente": {
-          "id": 46,
-          "nombre": "DEISY YULIETH BENITEZ MADRIGAL",
-          "estado": "ACTIVO",
-          "cedula": "1192766035",
+          "id": 113,
+          "nombre": "RAFAEL LUGO PEÑATA",
+          "estado": "SUSPENDIDO",
+          "cedula": "8186272",
           "telefono": "",
-          "movil": "3104618965,3146445904",
-          "direccion_principal": "V/ El osito"
+          "movil": "3226686256",
+          "direccion_principal": "V/ el osito - CONT:"
         },
         "facturas": [
           {
-            "vencimiento": "15/11/2025",
-            "total": "77700.00",
+            "vencimiento": "01/11/2025",
+            "total": "68380.00",
             "estado": "No pagado",
-            "situacion": "No pagado"
+            "situacion": "Vencida"
           }
         ],
         "cuenta": {
@@ -177,28 +34,29 @@
           "database": "Mikrowisp6"
         }
       },
-      "seguimiento": {
-        "paso": "menu_usuario"
-      },
+      "seguimiento": null,
       "esperandoCedula": false,
       "esperandoCedula2": false,
       "erroresConsecutivos": 0,
       "mensajeSolEnviado": false,
       "ultimoMenuEnviado": null,
       "primeraInteraccion": false,
-      "ultimaInteraccion": 1763144151591
+      "ultimaInteraccion": 1763151519612
     },
-    "573146754910@c.us": {
-      "enEsperaHumano": null,
+    "573136189440@c.us": {
+      "enEsperaHumano": {
+        "contador": 0,
+        "ultimaRespuesta": 1763148548071
+      },
       "clienteEncontrado": {
         "cliente": {
-          "id": 121,
-          "nombre": "YAMILED CÓRDOBA BOLÍVAR ",
+          "id": 92,
+          "nombre": "ANDERSON ROJAS SANCHEZ ",
           "estado": "ACTIVO",
-          "cedula": "10277956662",
-          "telefono": "3107387894",
-          "movil": "3146754910",
-          "direccion_principal": "VERDAD SALSIPUEDES BAJA POR EL BILLAR  DESPUÉS DE LA FERRETERÍA"
+          "cedula": "71943379",
+          "telefono": "",
+          "movil": "3136189440",
+          "direccion_principal": "V/ Salsipuedes - CONT:"
         },
         "facturas": [
           {
@@ -218,66 +76,139 @@
           "database": "Mikrowisp6"
         }
       },
-      "seguimiento": {
-        "paso": "menu_usuario"
-      },
+      "seguimiento": null,
       "esperandoCedula": false,
       "esperandoCedula2": false,
       "erroresConsecutivos": 0,
+      "primerErrorTimestamp": null,
       "mensajeSolEnviado": false,
       "ultimoMenuEnviado": null,
       "primeraInteraccion": false,
-      "ultimaInteraccion": 1763144631188
+      "ultimaInteraccion": 1763148548071
     },
-    "573117735622@c.us": {
-      "enEsperaHumano": null,
+    "573054861169@c.us": {
+      "enEsperaHumano": {
+        "contador": 0,
+        "ultimaRespuesta": 1763151779811
+      },
       "clienteEncontrado": {
         "cliente": {
-          "id": 25,
-          "nombre": "SINDY YOHANA ARIAS PEREZ",
-          "estado": "ACTIVO",
-          "cedula": "1028018662",
-          "telefono": "",
-          "movil": "3117735622",
-          "direccion_principal": "V: El Osito"
+          "id": 63,
+          "nombre": "CRISTIAN MANUEL NARVAEZ SELLA",
+          "estado": "RETIRADO",
+          "cedula": "1040375403",
+          "telefono": "3106998642",
+          "movil": "3106998642",
+          "direccion_principal": "Calle 2 al fondo  Cont 628590"
         },
         "facturas": [
           {
-            "vencimiento": "15/11/2025",
-            "total": "68360.00",
+            "vencimiento": "15/02/2023",
+            "total": "67785.00",
             "estado": "No pagado",
-            "situacion": "No pagado"
+            "situacion": "Vencida"
+          },
+          {
+            "vencimiento": "15/03/2023",
+            "total": "40000.00",
+            "estado": "No pagado",
+            "situacion": "Vencida"
           }
         ],
         "cuenta": {
-          "cuenta": "Nequi *3025961131*"
+          "cuenta": "Bancolombia Ahorros *549-000016-75*.   *Recuerda que no aceptamos pago por nequi*"
         },
         "bd": {
-          "host": "192.168.99.2",
+          "host": "192.168.99.50",
           "user": "root",
           "password": "Y9T1Q6P39YI6TJ2",
           "database": "Mikrowisp6"
         }
       },
-      "seguimiento": {
-        "paso": "menu_usuario"
-      },
+      "seguimiento": null,
       "esperandoCedula": false,
       "esperandoCedula2": false,
       "erroresConsecutivos": 0,
+      "primerErrorTimestamp": null,
       "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
+      "ultimoMenuEnviado": 1763151726253,
       "primeraInteraccion": false,
-      "ultimaInteraccion": 1763144864719
+      "ultimaInteraccion": 1763151779811
     }
   },
-  "chatsFinalizados": [],
+  "chatsFinalizados": [
+    "573203638170@c.us",
+    "573148855336@c.us",
+    "573233625505@c.us",
+    "573217280119@c.us",
+    "573148881295@c.us",
+    "573205185647@c.us",
+    "573127631325@c.us",
+    "573106782534@c.us",
+    "573145273932@c.us"
+  ],
   "chatsActivos": {
     "573024019208@c.us": {
       "id": "573024019208@c.us",
       "phone": "573024019208",
       "name": "Amor",
-      "lastActivity": 1763138045000,
+      "lastActivity": 1763145955000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573117735622@c.us": {
+      "id": "573117735622@c.us",
+      "phone": "573117735622",
+      "name": "Sindy Yohana Arias Perez - OSITO",
+      "lastActivity": 1763146156000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573145935781@c.us": {
+      "id": "573145935781@c.us",
+      "phone": "573145935781",
+      "name": "+57 314 5935781",
+      "lastActivity": 1763146098000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573122849028@c.us": {
+      "id": "573122849028@c.us",
+      "phone": "573122849028",
+      "name": "Marley - Esposa De Yuri",
+      "lastActivity": 1763146009000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573113429136@c.us": {
+      "id": "573113429136@c.us",
+      "phone": "573113429136",
+      "name": "+57 311 3429136",
+      "lastActivity": 1763145986000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573146754910@c.us": {
+      "id": "573146754910@c.us",
+      "phone": "573146754910",
+      "name": "+57 314 6754910",
+      "lastActivity": 1763144631000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573226790752@c.us": {
+      "id": "573226790752@c.us",
+      "phone": "573226790752",
+      "name": "+57 322 6790752",
+      "lastActivity": 1763144472000,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573146445904@c.us": {
+      "id": "573146445904@c.us",
+      "phone": "573146445904",
+      "name": "+57 314 6445904",
+      "lastActivity": 1763144151000,
       "mode": "bot",
       "pendiente": true
     },
@@ -294,14 +225,6 @@
       "phone": "573003457093",
       "name": "+57 300 3457093",
       "lastActivity": 1763143358000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573146754910@c.us": {
-      "id": "573146754910@c.us",
-      "phone": "573146754910",
-      "name": "+57 314 6754910",
-      "lastActivity": 1763144631000,
       "mode": "bot",
       "pendiente": true
     },
@@ -341,8 +264,8 @@
       "id": "573136189440@c.us",
       "phone": "573136189440",
       "name": "+57 313 6189440",
-      "lastActivity": 1763143172000,
-      "mode": "bot",
+      "lastActivity": 1763148547000,
+      "mode": "human",
       "pendiente": true
     },
     "573117117811@c.us": {
@@ -409,228 +332,20 @@
       "mode": "bot",
       "pendiente": true
     },
-    "573127428383@c.us": {
-      "id": "573127428383@c.us",
-      "phone": "573127428383",
-      "name": "+57 312 7428383",
-      "lastActivity": 1763142864000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573208772638@c.us": {
-      "id": "573208772638@c.us",
-      "phone": "573208772638",
-      "name": "+57 320 8772638",
-      "lastActivity": 1763142832000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573126087319@c.us": {
-      "id": "573126087319@c.us",
-      "phone": "573126087319",
-      "name": "+57 312 6087319",
-      "lastActivity": 1763142801000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573146445904@c.us": {
-      "id": "573146445904@c.us",
-      "phone": "573146445904",
-      "name": "+57 314 6445904",
-      "lastActivity": 1763144151000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573104618965@c.us": {
-      "id": "573104618965@c.us",
-      "phone": "573104618965",
-      "name": "+57 310 4618965",
-      "lastActivity": 1763142739000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573122849028@c.us": {
-      "id": "573122849028@c.us",
-      "phone": "573122849028",
-      "name": "Marley - Esposa De Yuri",
-      "lastActivity": 1763143929000,
+    "573226686256@c.us": {
+      "id": "573226686256@c.us",
+      "phone": "573226686256",
+      "name": "+57 322 6686256",
+      "lastActivity": 1763151519612,
       "mode": "human",
       "pendiente": true
     },
-    "573127631325@c.us": {
-      "id": "573127631325@c.us",
-      "phone": "573127631325",
-      "name": "+57 312 7631325",
-      "lastActivity": 1763139432000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573226790752@c.us": {
-      "id": "573226790752@c.us",
-      "phone": "573226790752",
-      "name": "+57 322 6790752",
-      "lastActivity": 1763144472000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573122222842@c.us": {
-      "id": "573122222842@c.us",
-      "phone": "573122222842",
-      "name": "312222842",
-      "lastActivity": 1763142676000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573218357364@c.us": {
-      "id": "573218357364@c.us",
-      "phone": "573218357364",
-      "name": "Francisco - Osito",
-      "lastActivity": 1763142496000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573146884590@c.us": {
-      "id": "573146884590@c.us",
-      "phone": "573146884590",
-      "name": "+57 314 6884590",
-      "lastActivity": 1763142467000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573127106635@c.us": {
-      "id": "573127106635@c.us",
-      "phone": "573127106635",
-      "name": "Maria Liliana Marin Gallego",
-      "lastActivity": 1763142433000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573209992695@c.us": {
-      "id": "573209992695@c.us",
-      "phone": "573209992695",
-      "name": "Ana Rosa Manco",
-      "lastActivity": 1763142402000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573103763887@c.us": {
-      "id": "573103763887@c.us",
-      "phone": "573103763887",
-      "name": "Gustavo De Jesus Roman",
-      "lastActivity": 1763142370000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573046763287@c.us": {
-      "id": "573046763287@c.us",
-      "phone": "573046763287",
-      "name": "+57 304 6763287",
-      "lastActivity": 1763142339000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573117735622@c.us": {
-      "id": "573117735622@c.us",
-      "phone": "573117735622",
-      "name": "Sindy Yohana Arias Perez - OSITO",
-      "lastActivity": 1763144864718,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573108391462@c.us": {
-      "id": "573108391462@c.us",
-      "phone": "573108391462",
-      "name": "JOSE DE LA CRUZ SUAREZ RAMOS",
-      "lastActivity": 1763142229000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573117348595@c.us": {
-      "id": "573117348595@c.us",
-      "phone": "573117348595",
-      "name": "+57 311 7348595",
-      "lastActivity": 1763139722000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573205645099@c.us": {
-      "id": "573205645099@c.us",
-      "phone": "573205645099",
-      "name": "Luz Enith Muñoz",
-      "lastActivity": 1763138471000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573135648878@c.us": {
-      "id": "573135648878@c.us",
-      "phone": "573135648878",
-      "name": "Angel",
-      "lastActivity": 1763138432000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573143051187@c.us": {
-      "id": "573143051187@c.us",
-      "phone": "573143051187",
-      "name": "Jonathan Cossio",
-      "lastActivity": 1763138271000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573217584156@c.us": {
-      "id": "573217584156@c.us",
-      "phone": "573217584156",
-      "name": "Maria Elena Sepulveda Pineda",
-      "lastActivity": 1763138140000,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573203638170@c.us": {
-      "id": "573203638170@c.us",
-      "phone": "573203638170",
-      "name": "+573203638170",
-      "lastActivity": 1763143528432,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573148855336@c.us": {
-      "id": "573148855336@c.us",
-      "phone": "573148855336",
-      "name": "+573148855336",
-      "lastActivity": 1763143528432,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573233625505@c.us": {
-      "id": "573233625505@c.us",
-      "phone": "573233625505",
-      "name": "+573233625505",
-      "lastActivity": 1763143528432,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573217280119@c.us": {
-      "id": "573217280119@c.us",
-      "phone": "573217280119",
-      "name": "+573217280119",
-      "lastActivity": 1763143528432,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573148881295@c.us": {
-      "id": "573148881295@c.us",
-      "phone": "573148881295",
-      "name": "+573148881295",
-      "lastActivity": 1763143528432,
-      "mode": "bot",
-      "pendiente": true
-    },
-    "573205185647@c.us": {
-      "id": "573205185647@c.us",
-      "phone": "573205185647",
-      "name": "+573205185647",
-      "lastActivity": 1763143528432,
-      "mode": "bot",
+    "573054861169@c.us": {
+      "id": "573054861169@c.us",
+      "phone": "573054861169",
+      "name": "+573054861169",
+      "lastActivity": 1763151779810,
+      "mode": "human",
       "pendiente": true
     }
   },
@@ -777,7 +492,7 @@
     "573013185191@c.us": "bot",
     "573103783930@c.us": "bot",
     "573116452434@c.us": "bot",
-    "573054861169@c.us": "bot",
+    "573054861169@c.us": "human",
     "573106998642@c.us": "bot",
     "573234582967@c.us": "bot",
     "573003408078@c.us": "bot",
@@ -1024,7 +739,7 @@
     "573234660553@c.us": "bot",
     "573137648756@c.us": "bot",
     "573235042428@c.us": "bot",
-    "573136189440@c.us": "bot",
+    "573136189440@c.us": "human",
     "573215399052@c.us": "bot",
     "573046763287@c.us": "bot",
     "573206800094@c.us": "bot",
@@ -1187,7 +902,7 @@
     "573148769919@c.us": "bot",
     "573106394377@c.us": "bot",
     "573207932581@c.us": "bot",
-    "573122849028@c.us": "human",
+    "573122849028@c.us": "bot",
     "573148720102@c.us": "bot",
     "573003473239@c.us": "bot",
     "573225015784@c.us": "bot",
@@ -1214,7 +929,7 @@
     "573218027521@c.us": "bot",
     "573102575175@c.us": "bot",
     "573103785152@c.us": "bot",
-    "573226686256@c.us": "bot",
+    "573226686256@c.us": "human",
     "573126496043@c.us": "bot",
     "573135671563@c.us": "bot",
     "573226832106@c.us": "bot",
@@ -1346,7 +1061,7 @@
     "573148881295@c.us": "bot",
     "573205185647@c.us": "bot",
     "573127631325@c.us": "bot",
-    "573106782534@c.us": "human",
+    "573106782534@c.us": "bot",
     "573145273932@c.us": "bot"
   }
 }

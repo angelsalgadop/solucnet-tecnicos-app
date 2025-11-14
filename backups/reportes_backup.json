@@ -3650,5 +3650,41 @@
     "precision_gps": 4.123000144958496,
     "backup_timestamp": "2025-11-14T17:17:27.278Z",
     "backup_id": "backup_1763140647278_rd763fh9x"
+  },
+  {
+    "visita_id": "424",
+    "tecnico_id": 21,
+    "problemas_encontrados": "Instalación ",
+    "solucion_aplicada": "Instalación ",
+    "materiales_utilizados": "Clavos fibras y conectores ",
+    "cliente_satisfecho": "si",
+    "requiere_seguimiento": false,
+    "notas": "",
+    "latitud": 7.8808353,
+    "longitud": -76.6476731,
+    "precision_gps": 3.3420000076293945,
+    "backup_timestamp": "2025-11-14T18:49:09.000Z",
+    "backup_id": "backup_1763146149000_kqshpaprn"
+  },
+  {
+    "visita_id": "452",
+    "tecnico_id": 25,
+    "problemas_encontrados": "Y",
+    "solucion_aplicada": "H",
+    "materiales_utilizados": "H",
+    "cliente_satisfecho": "si",
+    "requiere_seguimiento": false,
+    "notas": "",
+    "latitud": 7.9303098,
+    "longitud": -76.6259356,
+    "precision_gps": 6.133999824523926,
+    "serialEquipo": "74894B",
+    "tipoEquipo": "Onu CData",
+    "costoEquipo": 180000,
+    "sincronizado": false,
+    "timestamp": 1763147464745,
+    "localId": 1,
+    "backup_timestamp": "2025-11-14T19:11:14.145Z",
+    "backup_id": "backup_1763147474145_6o38lwg9z"
   }
 ]
