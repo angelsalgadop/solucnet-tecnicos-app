@@ -15,60 +15,63 @@ class BackgroundModeManager {
     }
 
     /**
-     * Inicializar el modo background
+     * 🔧 v1.76: Inicializar SIN solicitar permisos automáticamente
+     * Los permisos se solicitarán manualmente cuando el usuario habilite el tracking
      */
     async initialize() {
-        console.log('🔄 [BACKGROUND] Inicializando modo background...');
+        console.log('🔄 [BACKGROUND] Inicializando modo background (sin solicitar permisos aún)...');
 
         // Verificar si el plugin está disponible
         if (typeof cordova === 'undefined' || !cordova.plugins || !cordova.plugins.backgroundMode) {
-            console.warn('⚠️ [BACKGROUND] Plugin no disponible - La app NO funcionará en segundo plano');
+            console.warn('⚠️ [BACKGROUND] Plugin no disponible');
             return false;
         }
 
         try {
-            // Configurar el modo background
+            // Solo CONFIGURAR, NO habilitar aún
             cordova.plugins.backgroundMode.setDefaults({
                 title: 'SolucNet Técnicos',
                 text: 'App activa - Enviando ubicación',
-                icon: 'icon', // Icono de la app
-                color: '28a745', // Verde de la app
-                resume: true, // Reactivar app al tocar notificación
-                hidden: false, // Mostrar notificación
+                icon: 'icon',
+                color: '28a745',
+                resume: true,
+                hidden: false,
                 bigText: false,
                 channelName: 'SolucNet Background Service',
                 channelDescription: 'Mantiene la app activa para envío de ubicación',
-                allowClose: false, // No permitir cerrar la notificación
+                allowClose: false,
                 closeIcon: 'power',
                 closeTitle: 'Cerrar',
                 showWhen: true,
                 visibility: 'public'
             });
 
-            // Configurar eventos primero (antes de habilitar)
+            // Configurar eventos
             this.setupEvents();
 
-            // 🔧 v1.75.5: Delay MÁS LARGO para evitar cierres
-            setTimeout(() => {
-                cordova.plugins.backgroundMode.enable();
-                this.isEnabled = true;
-                console.log('✅ [BACKGROUND] Modo background habilitado');
-
-                // 🔧 v1.75.5: Solo VERIFICAR batería (NO solicitar automáticamente)
-                // Solicitar solo después de 30 segundos y solo si el usuario está usando la app
-                setTimeout(() => {
-                    this.checkBatteryOptimization();
-
-                    // Solo solicitar si la app lleva más de 1 minuto abierta
-                    setTimeout(() => {
-                        this.requestBatteryOptimizationDisable();
-                    }, 30000); // 30 segundos más = 1 minuto total
-                }, 30000); // 30 segundos después de habilitar background
-            }, 5000); // 5 segundos inicial
-
+            console.log('✅ [BACKGROUND] Configurado (esperando habilitación manual)');
             return true;
         } catch (error) {
-            console.error('❌ [BACKGROUND] Error inicializando:', error);
+            console.error('❌ [BACKGROUND] Error configurando:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 🆕 v1.76: Habilitar background mode manualmente (cuando usuario acepta)
+     */
+    async enableManually() {
+        if (typeof cordova === 'undefined' || !cordova.plugins || !cordova.plugins.backgroundMode) {
+            return false;
+        }
+
+        try {
+            cordova.plugins.backgroundMode.enable();
+            this.isEnabled = true;
+            console.log('✅ [BACKGROUND] Modo background HABILITADO manualmente');
+            return true;
+        } catch (error) {
+            console.error('❌ [BACKGROUND] Error habilitando:', error);
             return false;
         }
     }
@@ -129,48 +132,31 @@ class BackgroundModeManager {
     }
 
     /**
-     * Verificar optimización de batería (sin forzar diálogo)
-     * Solo informa al usuario, no abre diálogo automáticamente
+     * 🆕 v1.76: Solicitar desactivar optimización de batería MANUALMENTE
+     * Se llama desde un botón/diálogo cuando el usuario acepta
      */
-    checkBatteryOptimization() {
-        if (!this.isEnabled) return;
-
+    async requestBatteryOptimizationDisable() {
         try {
-            // Solo verificar el estado, NO forzar el diálogo
-            cordova.plugins.backgroundMode.isIgnoringBatteryOptimizations((isIgnoring) => {
-                if (!isIgnoring) {
-                    console.log('ℹ️ [BACKGROUND] Optimización de batería está activa');
-                    console.log('💡 [BACKGROUND] Para mejor rendimiento, desactívala manualmente en Configuración');
-                } else {
-                    console.log('✅ [BACKGROUND] Optimización de batería desactivada');
-                }
-            });
-        } catch (error) {
-            console.log('ℹ️ [BACKGROUND] Optimización de batería no disponible en este dispositivo');
-        }
-    }
+            if (!cordova.plugins.backgroundMode.isIgnoringBatteryOptimizations) {
+                console.log('ℹ️ [BACKGROUND] Optimización de batería no disponible en este dispositivo');
+                return true; // No disponible = no hay problema
+            }
 
-    /**
-     * Solicitar desactivar optimización de batería
-     * v1.75.3: Ahora se solicita automáticamente para funcionamiento tipo WhatsApp
-     */
-    requestBatteryOptimizationDisable() {
-        if (!this.isEnabled) return;
-
-        try {
-            // Primero verificar si ya está desactivada
-            cordova.plugins.backgroundMode.isIgnoringBatteryOptimizations((isIgnoring) => {
-                if (isIgnoring) {
-                    console.log('✅ [BACKGROUND] Optimización de batería ya desactivada');
-                } else {
-                    // Solo solicitar si NO está desactivada
-                    console.log('🔋 [BACKGROUND] Solicitando desactivar optimización de batería...');
-                    console.log('💡 [BACKGROUND] Esto permite que la app funcione como WhatsApp');
-                    cordova.plugins.backgroundMode.disableBatteryOptimizations();
-                }
+            return new Promise((resolve) => {
+                cordova.plugins.backgroundMode.isIgnoringBatteryOptimizations((isIgnoring) => {
+                    if (isIgnoring) {
+                        console.log('✅ [BACKGROUND] Optimización de batería ya desactivada');
+                        resolve(true);
+                    } else {
+                        console.log('🔋 [BACKGROUND] Solicitando desactivar optimización de batería...');
+                        cordova.plugins.backgroundMode.disableBatteryOptimizations();
+                        resolve(true);
+                    }
+                });
             });
         } catch (error) {
             console.error('❌ [BACKGROUND] Error solicitando desactivación:', error);
+            return false;
         }
     }
 
