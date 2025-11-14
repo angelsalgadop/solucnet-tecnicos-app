@@ -153,8 +153,8 @@ function ocultarBarraProgresoInline() {
     }
 }
 
-// 🔧 v1.68: Cargar visitas con validación previa (solo descarga si hay cambios)
-async function cargarVisitasTecnico(mostrarSpinner = true) {
+// 🔧 v1.81: Cargar visitas - CACHE PRIMERO, actualización silenciosa DESPUÉS
+async function cargarVisitasTecnico(mostrarSpinner = true, esActualizacionBackground = false) {
     try {
         const token = localStorage.getItem('token_tecnico');
         if (!token) {
@@ -162,32 +162,46 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             return;
         }
 
-        // 🔧 v1.78: Cargar desde cache si existe para evitar "carga inicial" innecesaria
+        // 🆕 v1.81: PASO 1 - Cargar y RENDERIZAR cache INMEDIATAMENTE
+        let cacheRenderizado = false;
         if (visitasAsignadas.length === 0) {
             try {
                 const visitasCache = localStorage.getItem('visitas_cache');
                 if (visitasCache) {
                     const visitasCargadas = JSON.parse(visitasCache);
-                    visitasAsignadas = visitasCargadas;
-                    visitasSinFiltrar = [...visitasCargadas];
-                    console.log(`📦 [CACHE] ${visitasCargadas.length} visitas cargadas desde localStorage`);
+                    if (visitasCargadas && visitasCargadas.length > 0) {
+                        visitasAsignadas = visitasCargadas;
+                        visitasSinFiltrar = [...visitasCargadas];
+
+                        console.log(`📦 [CACHE] ${visitasCargadas.length} visitas cargadas desde localStorage`);
+
+                        // RENDERIZAR INMEDIATAMENTE sin spinner
+                        llenarFiltroLocalidades();
+                        mostrarVisitasAsignadas();
+                        setTimeout(restaurarCronometros, 100);
+
+                        cacheRenderizado = true;
+                        console.log('✅ [CACHE] Visitas renderizadas inmediatamente desde cache');
+                    }
                 }
             } catch (e) {
                 console.warn('⚠️ [CACHE] Error cargando visitas desde cache:', e);
             }
         }
 
-        const esCargaInicial = visitasAsignadas.length === 0;
+        // 🆕 v1.81: Si ya renderizamos cache O es actualización de background, NO mostrar spinner
+        const esCargaInicial = !cacheRenderizado && visitasAsignadas.length === 0;
+        const mostrarUI = !esActualizacionBackground && !cacheRenderizado;
 
-        // 🔧 v1.63: CARGA INICIAL con barra de progreso inline
-        if (esCargaInicial) {
+        // 🔧 v1.81: CARGA INICIAL con barra de progreso (solo si no hay cache)
+        if (esCargaInicial && mostrarUI) {
             visitasContainer.innerHTML = ''; // Limpiar contenedor
             mostrarBarraProgresoInline();
             actualizarBarraProgresoInline('Conectando con el servidor...', 0, 'Iniciando...');
         }
 
-        // 🔧 v1.68: VALIDACIÓN PREVIA - Solo descargar si hay cambios reales
-        if (!esCargaInicial && navigator.onLine) {
+        // 🆕 v1.81: PASO 2 - Verificar si hay cambios en el servidor (SIEMPRE, incluso con cache)
+        if (navigator.onLine) {
             console.log('🔍 [VALIDACIÓN] Verificando si hay cambios en el servidor...');
 
             try {
@@ -208,9 +222,15 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
 
                         // Si los hashes coinciden, NO hay cambios
                         if (hashAnterior === hashActual) {
-                            console.log('✅ [VALIDACIÓN] No hay cambios. Usando visitas en caché.');
+                            console.log('✅ [VALIDACIÓN] No hay cambios. Manteniendo visitas actuales.');
 
-                            // Renderizar visitas actuales sin recargar
+                            // 🆕 v1.81: Si ya hay visitas renderizadas, simplemente retornar
+                            if (visitasAsignadas.length > 0) {
+                                console.log('✅ [VALIDACIÓN] Visitas ya en pantalla, sin actualizaciones necesarias');
+                                return; // ⚠️ SALIR - No hacer nada
+                            }
+
+                            // Si no hay visitas renderizadas pero hay cache, renderizar
                             renderizarVisitas(visitasAsignadas);
 
                             // Actualizar contadores
@@ -222,17 +242,26 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                         }
 
                         console.log('🔄 [VALIDACIÓN] Cambios detectados. Descargando visitas actualizadas...');
+                        if (esActualizacionBackground) {
+                            console.log('🔄 [BACKGROUND] Actualización silenciosa en curso...');
+                        }
                     }
                 }
             } catch (checkError) {
-                console.warn('⚠️ [VALIDACIÓN] Error verificando cambios, descargando de todos modos:', checkError.message);
-                // Si falla la verificación, continuar con descarga normal
+                console.warn('⚠️ [VALIDACIÓN] Error verificando cambios:', checkError.message);
+                // 🆕 v1.81: Si es actualización de background y hay error, retornar sin molestar al usuario
+                if (esActualizacionBackground && visitasAsignadas.length > 0) {
+                    console.log('⏭️ [BACKGROUND] Error en validación, manteniendo visitas actuales');
+                    return;
+                }
             }
         }
 
-        // Descargar visitas del servidor
-        if (esCargaInicial) {
+        // 🆕 v1.81: Descargar visitas del servidor (con o sin UI)
+        if (esCargaInicial && mostrarUI) {
             actualizarBarraProgresoInline('Descargando lista de visitas...', 5, 'Consultando servidor...');
+        } else if (esActualizacionBackground) {
+            console.log('🔄 [BACKGROUND] Descargando visitas actualizadas silenciosamente...');
         }
 
         const response = await fetch(APP_CONFIG.getApiUrl('/api/mis-visitas'), {
@@ -324,10 +353,12 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
         if (visitasRealmenteNuevas.length > 0 && navigator.onLine) {
             console.log(`📥 Descargando PDFs de ${visitasRealmenteNuevas.length} visitas nuevas...`);
 
-            // Mostrar barra de progreso inline (solo si NO es carga inicial)
-            if (!esCargaInicial) {
+            // 🆕 v1.81: Mostrar barra de progreso solo si se debe mostrar UI
+            if (mostrarUI) {
                 mostrarBarraProgresoInline();
                 actualizarBarraProgresoInline('Verificando archivos nuevos...', 5, 'Iniciando...');
+            } else if (esActualizacionBackground) {
+                console.log('🔄 [BACKGROUND] Descargando PDFs silenciosamente...');
             }
 
             // Contar PDFs de visitas nuevas
@@ -336,7 +367,7 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
 
             for (let i = 0; i < visitasRealmenteNuevas.length; i++) {
                 const visita = visitasRealmenteNuevas[i];
-                if (!esCargaInicial) {
+                if (mostrarUI) {
                     actualizarBarraProgresoInline(
                         `Verificando visita nueva ${i + 1}/${visitasRealmenteNuevas.length}...`,
                         5 + (i / visitasRealmenteNuevas.length) * 20,
@@ -388,7 +419,7 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
 
                         // Actualizar progreso (25% - 95%)
                         const progreso = 25 + (descargados / totalPdfs) * 70;
-                        if (!esCargaInicial) {
+                        if (mostrarUI) {
                             actualizarBarraProgresoInline(
                                 `Descargando ${archivo.nombre_original}...`,
                                 progreso,
@@ -404,13 +435,13 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                 console.log(`✅ ${descargados} PDFs nuevos descargados`);
 
                 // Completar progreso
-                if (!esCargaInicial) {
+                if (mostrarUI) {
                     actualizarBarraProgresoInline('¡Descarga completada!', 100, `${descargados} archivos descargados`);
                     setTimeout(() => ocultarBarraProgresoInline(), 1500);
                 }
             } else {
                 // No hay PDFs que descargar
-                if (!esCargaInicial) {
+                if (mostrarUI) {
                     ocultarBarraProgresoInline();
                 }
             }
@@ -439,11 +470,15 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
                 console.warn('⚠️ [CACHE] Error guardando visitas:', e);
             }
 
-            // 🆕 v1.75.1: Verificar y enviar notificaciones de nuevas visitas y observaciones urgentes
-            if (window.notificationsManager && window.notificationsManager.isInitialized) {
+            // 🆕 v1.81: SIEMPRE intentar enviar notificaciones (el manager maneja permisos internamente)
+            if (window.notificationsManager) {
                 console.log('🔔 [NOTIFICACIONES] Verificando nuevas visitas y observaciones urgentes...');
+                console.log(`🔔 [NOTIFICACIONES] Estado: isInitialized=${window.notificationsManager.isInitialized}`);
+
                 await window.notificationsManager.checkNewVisits(visitasNuevas);
                 await window.notificationsManager.checkUrgentObservations(visitasNuevas);
+            } else {
+                console.warn('⚠️ [NOTIFICACIONES] NotificationsManager no disponible');
             }
 
             llenarFiltroLocalidades();
@@ -480,8 +515,8 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
             setTimeout(restaurarCronometros, 100);
             hashVisitasAnterior = hashNuevo;
 
-            // 🔧 v1.63: Ocultar barra inline después de mostrar visitas
-            if (esCargaInicial) {
+            // 🔧 v1.81: Ocultar barra inline después de mostrar visitas (solo si se mostró)
+            if (mostrarUI) {
                 setTimeout(() => ocultarBarraProgresoInline(), 1500);
             }
         } else {

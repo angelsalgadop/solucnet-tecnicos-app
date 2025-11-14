@@ -32,24 +32,34 @@ class BackgroundModeManager {
         }
 
         try {
-            // Solo CONFIGURAR, NO habilitar
+            // 🆕 v1.81: Configuración MÁXIMA persistencia (como WhatsApp)
             cordova.plugins.backgroundMode.setDefaults({
                 title: 'SolucNet Técnicos',
-                text: 'App activa - Enviando ubicación',
+                text: 'App activa - Monitoreando visitas',
                 icon: 'icon',
                 color: '28a745',
                 resume: true,
                 hidden: false,
                 bigText: false,
                 channelName: 'SolucNet Background Service',
-                channelDescription: 'Mantiene la app activa para envío de ubicación',
-                allowClose: false,
+                channelDescription: 'Servicio persistente para recibir visitas en tiempo real',
+                allowClose: false, // NO permitir cerrar
                 closeIcon: 'power',
                 closeTitle: 'Cerrar',
                 showWhen: true,
                 visibility: 'public',
-                silent: false
+                silent: false,
+                priority: 2, // 🆕 MAX priority
+                sticky: true // 🆕 Notificación sticky (no se puede deslizar)
             });
+
+            // 🆕 v1.81: Configurar para persistencia MÁXIMA
+            cordova.plugins.backgroundMode.setEnabled(true);
+            cordova.plugins.backgroundMode.overrideBackButton();
+            cordova.plugins.backgroundMode.excludeFromTaskList();
+
+            console.log('✅ [BACKGROUND] Configuración de persistencia máxima aplicada');
+
 
             // Configurar eventos
             this.setupEvents();
@@ -231,24 +241,24 @@ class BackgroundModeManager {
     }
 
     /**
-     * 🆕 v1.80: Iniciar polling de fallback en background
-     * Verifica nuevas visitas cada 60 segundos
+     * 🆕 v1.81: Iniciar polling de fallback en background
+     * Verifica nuevas visitas cada 10 segundos para detección RÁPIDA
      */
     startBackgroundPolling() {
         // Limpiar intervalo anterior si existe
         this.stopBackgroundPolling();
 
-        console.log('🔄 [BACKGROUND] Iniciando polling de fallback (cada 60 segundos)');
+        console.log('🔄 [BACKGROUND] Iniciando polling de fallback (cada 10 segundos)');
 
         // Primera verificación inmediata
         this.checkVisitasEnBackground();
 
-        // Luego cada 60 segundos
+        // Luego cada 10 segundos
         this.backgroundInterval = setInterval(() => {
             this.checkVisitasEnBackground();
-        }, 60000); // Cada 60 segundos
+        }, 10000); // 🆕 v1.81: Reducido de 60s a 10s para detección inmediata
 
-        console.log('✅ [BACKGROUND] Polling de fallback INICIADO');
+        console.log('✅ [BACKGROUND] Polling de fallback INICIADO (intervalo rápido: 10s)');
     }
 
     /**
@@ -263,16 +273,17 @@ class BackgroundModeManager {
     }
 
     /**
-     * 🆕 v1.80: Verificar visitas en background
+     * 🆕 v1.81: Verificar visitas en background (actualización SILENCIOSA)
      */
     async checkVisitasEnBackground() {
         try {
-            console.log('🔍 [BACKGROUND] Verificando nuevas visitas...');
+            console.log('🔍 [BACKGROUND] Verificando nuevas visitas silenciosamente...');
 
-            // Llamar a cargarVisitasTecnico que ya maneja notificaciones
+            // 🆕 v1.81: Llamar con parámetros para actualización silenciosa
+            // Parámetros: mostrarSpinner=false, esActualizacionBackground=true
             if (typeof cargarVisitasTecnico === 'function') {
-                await cargarVisitasTecnico();
-                console.log('✅ [BACKGROUND] Verificación completada');
+                await cargarVisitasTecnico(false, true);
+                console.log('✅ [BACKGROUND] Verificación silenciosa completada');
             } else {
                 console.warn('⚠️ [BACKGROUND] Función cargarVisitasTecnico no disponible');
             }
