@@ -1,5 +1,5 @@
 // Service Worker para SolucNet Técnicos - Modo Offline Completo
-const CACHE_NAME = 'solucnet-tecnicos-v1.69.0-MAPAS-OFFLINE-COMPLETO';
+const CACHE_NAME = 'solucnet-tecnicos-v1.70.0-MAPAS-POR-TECNICO';
 const OFFLINE_DATA_STORE = 'solucnet-offline-data';
 const SYNC_TAG = 'sync-visitas';
 
@@ -18,7 +18,7 @@ const CRITICAL_RESOURCES = [
 
 // Install: Cachear recursos críticos
 self.addEventListener('install', (event) => {
-    console.log('[SW] 🔄 Instalando Service Worker v1.69 - MAPAS OFFLINE COMPLETO...');
+    console.log('[SW] 🔄 Instalando Service Worker v1.70 - MAPAS POR TÉCNICO...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             // Eliminar TODAS las cachés antiguas inmediatamente
@@ -32,7 +32,7 @@ self.addEventListener('install', (event) => {
             console.log('[SW] 💾 Cacheando recursos críticos con versión nueva');
             return cache.addAll(CRITICAL_RESOURCES);
         }).then(() => {
-            console.log('[SW] ✅ Service Worker v1.69 instalado correctamente');
+            console.log('[SW] ✅ Service Worker v1.70 instalado correctamente');
             return self.skipWaiting();
         })
     );
@@ -459,4 +459,4 @@ function notifyClientsSyncComplete() {
 }
 
 // Mensaje de log
-console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.69 CARGADO - Mapas Offline Completo + Marcadores');
+console.log('[SW] ✅ Service Worker SolucNet Técnicos v1.70 CARGADO - Mapas por Técnico (sin mezclas)');

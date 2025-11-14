@@ -8740,9 +8740,9 @@ app.get('/api/ubicaciones-clientes-asignados', async (req, res) => {
         });
         await conexion.query('USE solucnet_auth_system');
 
-        console.log('📍 [UBICACIONES-CLIENTES] Buscando clientes asignados al usuario ID:', usuario.id);
+        console.log('📍 [UBICACIONES-CLIENTES] Buscando clientes asignados al técnico:', usuario.username, '(ID:', usuario.id + ')');
 
-        // Obtener visitas con coordenadas que estén asignadas, en progreso o programadas
+        // 🔧 v1.70: Obtener SOLO visitas del técnico autenticado
         const [visitas] = await conexion.execute(`
             SELECT
                 id,
@@ -8753,7 +8753,9 @@ app.get('/api/ubicaciones-clientes-asignados', async (req, res) => {
                 localidad,
                 observacion,
                 observacion_ultima_hora,
-                motivo_visita
+                motivo_visita,
+                tecnico_asignado_id,
+                tecnico_asignado_nombre
             FROM visitas_tecnicas
             WHERE tecnico_asignado_id = ?
             AND estado IN ('asignada', 'en_progreso', 'programada')
@@ -8762,39 +8764,67 @@ app.get('/api/ubicaciones-clientes-asignados', async (req, res) => {
             ORDER BY fecha_programada ASC
         `, [usuario.id]);
 
-        console.log('📍 [UBICACIONES-CLIENTES] Visitas con coordenadas encontradas:', visitas.length);
+        console.log(`📍 [UBICACIONES-CLIENTES] Visitas encontradas para ${usuario.username}: ${visitas.length}`);
+
+        // 🔧 v1.70: Log de verificación - todas las visitas deben ser del mismo técnico
+        if (visitas.length > 0) {
+            const tecnicosUnicos = [...new Set(visitas.map(v => v.tecnico_asignado_id))];
+            if (tecnicosUnicos.length > 1) {
+                console.error(`❌ [UBICACIONES-CLIENTES] ERROR: Visitas de múltiples técnicos detectadas:`, tecnicosUnicos);
+            } else {
+                console.log(`✅ [UBICACIONES-CLIENTES] Todas las visitas son del técnico ID: ${tecnicosUnicos[0]}`);
+            }
+        }
 
         // Procesar coordenadas y crear array de ubicaciones
         const ubicaciones = [];
 
         for (const visita of visitas) {
             try {
-                // Parsear coordenadas (formato: "lat, lng" o "lat,lng")
-                const coords = visita.cliente_coordenadas.trim().split(',');
+                let latitud, longitud;
 
-                if (coords.length === 2) {
-                    const latitud = parseFloat(coords[0].trim());
-                    const longitud = parseFloat(coords[1].trim());
+                // 🔧 v1.70: Soportar múltiples formatos de coordenadas
+                const coordenadasStr = visita.cliente_coordenadas.trim();
 
-                    // Validar que sean números válidos
-                    if (!isNaN(latitud) && !isNaN(longitud)) {
-                        ubicaciones.push({
-                            visita_id: visita.id,
-                            nombre_cliente: visita.cliente_nombre,
-                            direccion: visita.cliente_direccion,
-                            latitud: latitud,
-                            longitud: longitud,
-                            estado_visita: visita.estado,
-                            localidad: visita.localidad,
-                            observaciones: visita.observacion_ultima_hora || visita.observacion || visita.motivo_visita
-                        });
-
-                        console.log(`✅ [UBICACIONES-CLIENTES] Cliente procesado: ${visita.cliente_nombre} (${latitud}, ${longitud})`);
-                    } else {
-                        console.warn(`⚠️ [UBICACIONES-CLIENTES] Coordenadas inválidas para visita ${visita.id}: ${visita.cliente_coordenadas}`);
+                // Formato 1: JSON {"lat": 7.8939, "lng": -76.2958}
+                if (coordenadasStr.startsWith('{')) {
+                    try {
+                        const coordsJSON = JSON.parse(coordenadasStr);
+                        latitud = parseFloat(coordsJSON.lat);
+                        longitud = parseFloat(coordsJSON.lng);
+                    } catch (jsonError) {
+                        console.warn(`⚠️ [UBICACIONES-CLIENTES] Error parseando JSON de visita ${visita.id}`);
+                        continue;
                     }
+                }
+                // Formato 2: String separado por comas "7.8939,-76.2958" o "7.8939, -76.2958"
+                else {
+                    const coords = coordenadasStr.split(',');
+                    if (coords.length === 2) {
+                        latitud = parseFloat(coords[0].trim());
+                        longitud = parseFloat(coords[1].trim());
+                    } else {
+                        console.warn(`⚠️ [UBICACIONES-CLIENTES] Formato inválido para visita ${visita.id}: ${coordenadasStr}`);
+                        continue;
+                    }
+                }
+
+                // Validar que sean números válidos
+                if (!isNaN(latitud) && !isNaN(longitud)) {
+                    ubicaciones.push({
+                        visita_id: visita.id,
+                        nombre_cliente: visita.cliente_nombre,
+                        direccion: visita.cliente_direccion,
+                        latitud: latitud,
+                        longitud: longitud,
+                        estado_visita: visita.estado,
+                        localidad: visita.localidad,
+                        observaciones: visita.observacion_ultima_hora || visita.observacion || visita.motivo_visita
+                    });
+
+                    console.log(`✅ [UBICACIONES-CLIENTES] Visita ${visita.id} - ${visita.cliente_nombre} (${latitud}, ${longitud}) - Técnico: ${usuario.username}`);
                 } else {
-                    console.warn(`⚠️ [UBICACIONES-CLIENTES] Formato de coordenadas inválido para visita ${visita.id}: ${visita.cliente_coordenadas}`);
+                    console.warn(`⚠️ [UBICACIONES-CLIENTES] Coordenadas inválidas para visita ${visita.id}: ${coordenadasStr}`);
                 }
             } catch (error) {
                 console.error(`❌ [UBICACIONES-CLIENTES] Error procesando coordenadas de visita ${visita.id}:`, error.message);

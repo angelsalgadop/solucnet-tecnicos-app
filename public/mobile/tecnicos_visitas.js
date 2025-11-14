@@ -3021,35 +3021,45 @@ async function cargarUbicacionesClientes() {
                 ubicaciones = data.ubicaciones || [];
                 console.log(`📍 ${ubicaciones.length} ubicaciones de clientes descargadas`);
 
-                // 🔧 v1.69: GUARDAR en localStorage para uso offline
+                // 🔧 v1.70: GUARDAR en localStorage CON ID del técnico (evita mezclar técnicos)
                 if (ubicaciones.length > 0) {
-                    localStorage.setItem('ubicaciones_clientes_cache', JSON.stringify(ubicaciones));
-                    localStorage.setItem('ubicaciones_clientes_timestamp', Date.now().toString());
-                    console.log(`💾 [CACHE] ${ubicaciones.length} ubicaciones guardadas para modo offline`);
+                    const userStorage = localStorage.getItem('user_tecnico');
+                    const tecnicoId = userStorage ? JSON.parse(userStorage).id : 'unknown';
+
+                    localStorage.setItem(`ubicaciones_clientes_cache_${tecnicoId}`, JSON.stringify(ubicaciones));
+                    localStorage.setItem(`ubicaciones_clientes_timestamp_${tecnicoId}`, Date.now().toString());
+                    console.log(`💾 [CACHE] ${ubicaciones.length} ubicaciones guardadas para técnico ${tecnicoId}`);
                 }
 
             } catch (fetchError) {
                 console.warn('⚠️ [FETCH] Error descargando ubicaciones, intentando desde caché:', fetchError.message);
-                // Fallback a localStorage si el fetch falla
-                const cachedData = localStorage.getItem('ubicaciones_clientes_cache');
+
+                // 🔧 v1.70: Fallback a localStorage del técnico específico
+                const userStorage = localStorage.getItem('user_tecnico');
+                const tecnicoId = userStorage ? JSON.parse(userStorage).id : 'unknown';
+                const cachedData = localStorage.getItem(`ubicaciones_clientes_cache_${tecnicoId}`);
+
                 if (cachedData) {
                     ubicaciones = JSON.parse(cachedData);
-                    console.log(`💾 [CACHE] ${ubicaciones.length} ubicaciones cargadas desde caché (fetch falló)`);
+                    console.log(`💾 [CACHE] ${ubicaciones.length} ubicaciones cargadas desde caché del técnico ${tecnicoId} (fetch falló)`);
                 }
             }
         } else {
-            // 🔧 v1.69: MODO OFFLINE - Cargar desde localStorage
+            // 🔧 v1.70: MODO OFFLINE - Cargar desde localStorage del técnico específico
             console.log('📴 [OFFLINE] Cargando ubicaciones desde caché local...');
-            const cachedData = localStorage.getItem('ubicaciones_clientes_cache');
+
+            const userStorage = localStorage.getItem('user_tecnico');
+            const tecnicoId = userStorage ? JSON.parse(userStorage).id : 'unknown';
+            const cachedData = localStorage.getItem(`ubicaciones_clientes_cache_${tecnicoId}`);
 
             if (cachedData) {
                 ubicaciones = JSON.parse(cachedData);
-                const timestamp = localStorage.getItem('ubicaciones_clientes_timestamp');
+                const timestamp = localStorage.getItem(`ubicaciones_clientes_timestamp_${tecnicoId}`);
                 const fecha = timestamp ? new Date(parseInt(timestamp)).toLocaleString() : 'desconocida';
-                console.log(`💾 [OFFLINE] ${ubicaciones.length} ubicaciones cargadas desde caché (última actualización: ${fecha})`);
+                console.log(`💾 [OFFLINE] ${ubicaciones.length} ubicaciones del técnico ${tecnicoId} cargadas desde caché (última actualización: ${fecha})`);
             } else {
-                console.warn('⚠️ [OFFLINE] No hay ubicaciones en caché. Descarga el mapa en modo online primero.');
-                alert('⚠️ No hay ubicaciones guardadas. Abre el mapa con conexión para descargar las ubicaciones.');
+                console.warn(`⚠️ [OFFLINE] No hay ubicaciones en caché para el técnico ${tecnicoId}. Descarga el mapa en modo online primero.`);
+                alert('⚠️ No hay ubicaciones guardadas para este técnico. Abre el mapa con conexión para descargar las ubicaciones.');
                 return;
             }
         }
