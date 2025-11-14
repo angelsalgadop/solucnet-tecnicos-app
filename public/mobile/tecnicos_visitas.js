@@ -415,6 +415,14 @@ async function cargarVisitasTecnico(mostrarSpinner = true) {
 
             visitasAsignadas = visitasNuevas;
             visitasSinFiltrar = [...visitasNuevas];
+
+            // 🆕 v1.75.1: Verificar y enviar notificaciones de nuevas visitas y observaciones urgentes
+            if (window.notificationsManager && window.notificationsManager.isInitialized) {
+                console.log('🔔 [NOTIFICACIONES] Verificando nuevas visitas y observaciones urgentes...');
+                await window.notificationsManager.checkNewVisits(visitasNuevas);
+                await window.notificationsManager.checkUrgentObservations(visitasNuevas);
+            }
+
             llenarFiltroLocalidades();
 
             // Aplicar filtros
