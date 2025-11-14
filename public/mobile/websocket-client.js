@@ -2,7 +2,9 @@
  * Cliente WebSocket para SolucNet Técnicos
  * Detección de cambios en tiempo real usando Socket.IO
  *
- * v1.76.0 - 2025-01-14
+ * v1.80.0 - 2025-01-14
+ * 🆕 Manejo mejorado de conexión en background
+ * 🆕 Reconexión automática más agresiva
  */
 
 class WebSocketClient {
@@ -10,8 +12,9 @@ class WebSocketClient {
         this.socket = null;
         this.isConnected = false;
         this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 5;
+        this.maxReconnectAttempts = 10; // 🆕 Aumentado de 5 a 10
         this.tecnicoId = null;
+        this.isInBackground = false;
     }
 
     /**
@@ -67,20 +70,21 @@ class WebSocketClient {
 
         // Evento: Actualización de visitas
         this.socket.on('visitas-update', (data) => {
-            console.log('📡 [WEBSOCKET] Actualización de visitas recibida:', data);
+            const bgStatus = this.isInBackground ? '[BACKGROUND]' : '[FOREGROUND]';
+            console.log(`📡 [WEBSOCKET] ${bgStatus} Actualización de visitas recibida:`, data);
 
             // Solo recargar si es para este técnico o es una actualización general
             if (!data.tecnicoId || data.tecnicoId == this.tecnicoId) {
-                console.log('🔄 [WEBSOCKET] Recargando visitas del técnico...');
+                console.log(`🔄 [WEBSOCKET] ${bgStatus} Recargando visitas del técnico...`);
 
                 // Llamar a la función de recarga de visitas
                 if (typeof cargarVisitasTecnico === 'function') {
                     cargarVisitasTecnico();
                 } else {
-                    console.warn('⚠️ [WEBSOCKET] Función cargarVisitasTecnico no disponible');
+                    console.warn(`⚠️ [WEBSOCKET] ${bgStatus} Función cargarVisitasTecnico no disponible`);
                 }
             } else {
-                console.log(`ℹ️ [WEBSOCKET] Actualización para otro técnico (${data.tecnicoId}), ignorando`);
+                console.log(`ℹ️ [WEBSOCKET] ${bgStatus} Actualización para otro técnico (${data.tecnicoId}), ignorando`);
             }
         });
 
@@ -161,6 +165,61 @@ class WebSocketClient {
      */
     isSocketConnected() {
         return this.socket && this.isConnected;
+    }
+
+    /**
+     * 🆕 v1.80: Marcar que la app está en background
+     */
+    setBackgroundMode(isBackground) {
+        this.isInBackground = isBackground;
+        const status = isBackground ? 'BACKGROUND' : 'FOREGROUND';
+        console.log(`🔌 [WEBSOCKET] Cambiando a modo ${status}`);
+
+        // Si está en background y NO está conectado, intentar reconectar
+        if (isBackground && !this.isSocketConnected()) {
+            console.log('🔌 [WEBSOCKET] En background sin conexión - intentando reconectar...');
+            this.forceReconnect();
+        }
+    }
+
+    /**
+     * 🆕 v1.80: Forzar reconexión inmediata
+     */
+    forceReconnect() {
+        if (!this.socket) {
+            console.warn('⚠️ [WEBSOCKET] No hay socket para reconectar');
+            return false;
+        }
+
+        try {
+            console.log('🔄 [WEBSOCKET] Forzando reconexión...');
+
+            // Si está desconectado, conectar
+            if (!this.socket.connected) {
+                this.socket.connect();
+            }
+
+            return true;
+        } catch (error) {
+            console.error('❌ [WEBSOCKET] Error en reconexión forzada:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 🆕 v1.80: Obtener estado de conexión detallado
+     */
+    getConnectionStatus() {
+        if (!this.socket) {
+            return { connected: false, status: 'no_socket' };
+        }
+
+        return {
+            connected: this.socket.connected,
+            id: this.socket.id || null,
+            reconnectAttempts: this.reconnectAttempts,
+            isInBackground: this.isInBackground
+        };
     }
 }
 

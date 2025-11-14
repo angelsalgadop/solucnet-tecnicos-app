@@ -5,13 +5,18 @@
  * - Recepción de nuevas visitas asignadas
  * - Notificaciones en tiempo real
  *
- * v1.75 - 2025-01-14
+ * v1.80.0 - 2025-01-14
+ * 🆕 Keep-alive de WebSocket en background
+ * 🆕 Polling de fallback cada 60 segundos
+ * 🆕 Logs mejorados para diagnosticar
  */
 
 class BackgroundModeManager {
     constructor() {
         this.isEnabled = false;
         this.isActive = false;
+        this.backgroundInterval = null;
+        this.keepAliveInterval = null;
     }
 
     /**
@@ -82,20 +87,47 @@ class BackgroundModeManager {
     setupEvents() {
         // Evento: App entra en segundo plano
         cordova.plugins.backgroundMode.on('activate', () => {
-            console.log('📱 [BACKGROUND] App en segundo plano - ACTIVA');
+            console.log('📱 [BACKGROUND] ============================================');
+            console.log('📱 [BACKGROUND] App EN SEGUNDO PLANO - INICIANDO SERVICIOS');
+            console.log('📱 [BACKGROUND] ============================================');
             this.isActive = true;
 
             // Deshabilitar web view optimizations cuando está en background
             cordova.plugins.backgroundMode.disableWebViewOptimizations();
+            console.log('✅ [BACKGROUND] WebView optimizations deshabilitadas');
 
-            // Actualizar notificación
-            this.updateNotification('App activa', 'Enviando ubicación en segundo plano');
+            // Actualizar notificación del foreground service
+            this.updateNotification('SolucNet Activo', 'Monitoreando nuevas visitas');
+
+            // 🆕 v1.80: Notificar al WebSocket que estamos en background
+            if (window.websocketClient) {
+                window.websocketClient.setBackgroundMode(true);
+            }
+
+            // 🆕 v1.80: Iniciar keep-alive del WebSocket
+            this.startWebSocketKeepAlive();
+
+            // 🆕 v1.80: Iniciar polling de fallback cada 60 segundos
+            this.startBackgroundPolling();
+
+            console.log('✅ [BACKGROUND] Servicios de background INICIADOS correctamente');
         });
 
         // Evento: App vuelve al frente
         cordova.plugins.backgroundMode.on('deactivate', () => {
-            console.log('📱 [BACKGROUND] App en primer plano');
+            console.log('📱 [BACKGROUND] App volviendo a PRIMER PLANO');
             this.isActive = false;
+
+            // 🆕 v1.80: Notificar al WebSocket que estamos en foreground
+            if (window.websocketClient) {
+                window.websocketClient.setBackgroundMode(false);
+            }
+
+            // Detener intervalos de background
+            this.stopWebSocketKeepAlive();
+            this.stopBackgroundPolling();
+
+            console.log('✅ [BACKGROUND] Servicios de background DETENIDOS');
         });
 
         // Evento: Habilitado
@@ -161,6 +193,95 @@ class BackgroundModeManager {
     }
 
     /**
+     * 🆕 v1.80: Iniciar keep-alive del WebSocket
+     * Envía un ping cada 25 segundos para mantener la conexión activa
+     */
+    startWebSocketKeepAlive() {
+        // Limpiar intervalo anterior si existe
+        this.stopWebSocketKeepAlive();
+
+        console.log('🔌 [BACKGROUND] Iniciando WebSocket keep-alive (cada 25 segundos)');
+
+        this.keepAliveInterval = setInterval(() => {
+            if (window.websocketClient && window.websocketClient.isSocketConnected()) {
+                console.log('💓 [BACKGROUND] WebSocket keep-alive - Conexión activa');
+                // El ping se envía automáticamente por Socket.IO
+            } else {
+                console.warn('⚠️ [BACKGROUND] WebSocket DESCONECTADO - Intentando reconectar...');
+
+                // Intentar reconectar
+                if (window.websocketClient && window.usuarioActual && window.usuarioActual.id) {
+                    window.websocketClient.connect(window.usuarioActual.id);
+                }
+            }
+        }, 25000); // Cada 25 segundos
+
+        console.log('✅ [BACKGROUND] WebSocket keep-alive INICIADO');
+    }
+
+    /**
+     * 🆕 v1.80: Detener keep-alive del WebSocket
+     */
+    stopWebSocketKeepAlive() {
+        if (this.keepAliveInterval) {
+            clearInterval(this.keepAliveInterval);
+            this.keepAliveInterval = null;
+            console.log('⏸️ [BACKGROUND] WebSocket keep-alive DETENIDO');
+        }
+    }
+
+    /**
+     * 🆕 v1.80: Iniciar polling de fallback en background
+     * Verifica nuevas visitas cada 60 segundos
+     */
+    startBackgroundPolling() {
+        // Limpiar intervalo anterior si existe
+        this.stopBackgroundPolling();
+
+        console.log('🔄 [BACKGROUND] Iniciando polling de fallback (cada 60 segundos)');
+
+        // Primera verificación inmediata
+        this.checkVisitasEnBackground();
+
+        // Luego cada 60 segundos
+        this.backgroundInterval = setInterval(() => {
+            this.checkVisitasEnBackground();
+        }, 60000); // Cada 60 segundos
+
+        console.log('✅ [BACKGROUND] Polling de fallback INICIADO');
+    }
+
+    /**
+     * 🆕 v1.80: Detener polling de fallback
+     */
+    stopBackgroundPolling() {
+        if (this.backgroundInterval) {
+            clearInterval(this.backgroundInterval);
+            this.backgroundInterval = null;
+            console.log('⏸️ [BACKGROUND] Polling de fallback DETENIDO');
+        }
+    }
+
+    /**
+     * 🆕 v1.80: Verificar visitas en background
+     */
+    async checkVisitasEnBackground() {
+        try {
+            console.log('🔍 [BACKGROUND] Verificando nuevas visitas...');
+
+            // Llamar a cargarVisitasTecnico que ya maneja notificaciones
+            if (typeof cargarVisitasTecnico === 'function') {
+                await cargarVisitasTecnico();
+                console.log('✅ [BACKGROUND] Verificación completada');
+            } else {
+                console.warn('⚠️ [BACKGROUND] Función cargarVisitasTecnico no disponible');
+            }
+        } catch (error) {
+            console.error('❌ [BACKGROUND] Error verificando visitas:', error);
+        }
+    }
+
+    /**
      * Verificar si está activo en background
      */
     isInBackground() {
@@ -175,6 +296,11 @@ class BackgroundModeManager {
         if (!this.isEnabled) return;
 
         try {
+            // Detener intervalos
+            this.stopWebSocketKeepAlive();
+            this.stopBackgroundPolling();
+
+            // Deshabilitar el modo background
             cordova.plugins.backgroundMode.disable();
             this.isEnabled = false;
             this.isActive = false;
