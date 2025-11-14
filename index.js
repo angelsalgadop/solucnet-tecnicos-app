@@ -14049,7 +14049,7 @@ const staticOptions = {
         res.header('Access-Control-Allow-Origin', '*');
         res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
         res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-        
+
         // Configurar tipos MIME correctos
         if (path.endsWith('.ogg')) {
             res.setHeader('Content-Type', 'audio/ogg');
@@ -14068,13 +14068,27 @@ const staticOptions = {
         } else if (path.endsWith('.webp')) {
             res.setHeader('Content-Type', 'image/webp');
         }
-        
+
         // Configurar cache para archivos multimedia
         if (path.match(/\.(ogg|webm|mp3|mp4|wav|jpg|jpeg|png|webp)$/)) {
             res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 año
         }
     }
 };
+
+// 🔧 v1.74.3d: Middleware para forzar NO-CACHE en app móvil
+app.use((req, res, next) => {
+    // Forzar no-cache para archivos HTML, JS, CSS de la app móvil
+    if (req.path.match(/\/mobile\/(tecnicos_visitas|login_tecnicos|serial_scanner_native|offline-manager|offline-maps|config)\.(html|js)$/) ||
+        req.path === '/mobile/sw-offline.js') {
+        console.log(`[NO-CACHE] Forzando headers para: ${req.path}`);
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+    }
+    next();
+});
 
 app.use(express.static('public', staticOptions));
 app.use('/images', express.static('images', staticOptions));
