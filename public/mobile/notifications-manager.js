@@ -41,11 +41,10 @@ class NotificationsManager {
                 return true;
             }
 
-            // Si no tenemos permisos, esperar 5 segundos antes de solicitarlos
-            // para no sobrecargar al usuario con múltiples solicitudes
-            console.log('⏳ [NOTIFICACIONES] Esperando para solicitar permisos...');
+            // 🔧 v1.75.5: Esperar 15 segundos para no sobrecargar y evitar cierres
+            console.log('⏳ [NOTIFICACIONES] Esperando 15 segundos para solicitar permisos...');
 
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            await new Promise(resolve => setTimeout(resolve, 15000));
 
             // Solicitar permisos después del delay
             const permission = await Capacitor.Plugins.LocalNotifications.requestPermissions();

@@ -48,19 +48,23 @@ class BackgroundModeManager {
             // Configurar eventos primero (antes de habilitar)
             this.setupEvents();
 
-            // Habilitar el modo background después de un pequeño delay
-            // para evitar que se cierre la app al solicitar permisos
+            // 🔧 v1.75.5: Delay MÁS LARGO para evitar cierres
             setTimeout(() => {
                 cordova.plugins.backgroundMode.enable();
                 this.isEnabled = true;
                 console.log('✅ [BACKGROUND] Modo background habilitado');
 
-                // 🆕 v1.75.3: SÍ solicitar desactivar optimización de batería
-                // (necesario para funcionamiento tipo WhatsApp)
+                // 🔧 v1.75.5: Solo VERIFICAR batería (NO solicitar automáticamente)
+                // Solicitar solo después de 30 segundos y solo si el usuario está usando la app
                 setTimeout(() => {
-                    this.requestBatteryOptimizationDisable();
-                }, 8000); // 8 segundos para no sobrecargar
-            }, 2000);
+                    this.checkBatteryOptimization();
+
+                    // Solo solicitar si la app lleva más de 1 minuto abierta
+                    setTimeout(() => {
+                        this.requestBatteryOptimizationDisable();
+                    }, 30000); // 30 segundos más = 1 minuto total
+                }, 30000); // 30 segundos después de habilitar background
+            }, 5000); // 5 segundos inicial
 
             return true;
         } catch (error) {

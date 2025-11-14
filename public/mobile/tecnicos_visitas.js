@@ -3765,10 +3765,12 @@ async function mostrarNotificacionDescarga(nombreArchivo, fileUri, fileName = nu
             console.log('📱 [NOTIFICACIÓN] Usando LocalNotifications de Capacitor...');
             const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
 
-            // Solicitar permisos si es necesario
+            // 🔧 v1.75.5: Verificar permisos (pero NO solicitar aquí - ya lo hace notifications-manager)
             const permResult = await LocalNotifications.checkPermissions();
             if (permResult.display !== 'granted') {
-                await LocalNotifications.requestPermissions();
+                console.warn('⚠️ [NOTIFICACIÓN] Permisos de notificaciones no concedidos - no se mostrará notificación');
+                // NO solicitar aquí - ya lo hace notifications-manager.js con delay apropiado
+                // Si el usuario no ha concedido permisos aún, simplemente no mostramos notificación
             }
 
             // Crear canal de notificaciones (requerido Android 8+)
