@@ -47,7 +47,7 @@ class OfflineManager {
     // Abrir base de datos IndexedDB
     openDatabase() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('solucnet-offline-db', 3);
+            const request = indexedDB.open('solucnet-offline-db', 4); // 🔧 v1.65: Incrementado a v4 para nueva tabla
 
             request.onerror = () => reject(request.error);
             request.onsuccess = () => resolve(request.result);
@@ -96,6 +96,13 @@ class OfflineManager {
                     pdfsStore.createIndex('visita_id', 'visita_id', { unique: false });
                     pdfsStore.createIndex('nombre_archivo', 'nombre_archivo', { unique: false });
                     pdfsStore.createIndex('timestamp', 'timestamp', { unique: false });
+                }
+
+                // 🔧 v1.65: Store para visitas completadas permanentemente (persiste en datos de app)
+                if (!db.objectStoreNames.contains('visitas-completadas')) {
+                    const completadasStore = db.createObjectStore('visitas-completadas', { keyPath: 'visita_id' });
+                    completadasStore.createIndex('timestamp_completado', 'timestamp_completado', { unique: false });
+                    completadasStore.createIndex('tecnico_id', 'tecnico_id', { unique: false });
                 }
             };
         });
@@ -256,10 +263,22 @@ class OfflineManager {
                 console.log(`⚠️ [OFFLINE MANAGER] ${visitasConReportesPendientes.size} visitas tienen reportes pendientes de sincronización y NO serán agregadas al cache:`, Array.from(visitasConReportesPendientes));
             }
 
-            // Filtrar visitas: excluir las que tienen reportes pendientes
-            const visitasAGuardar = visitas.filter(v => !visitasConReportesPendientes.has(String(v.id)));
+            // 🔧 v1.65: Obtener visitas completadas permanentemente (persisten en datos de app)
+            const visitasCompletadasPermanentes = await this.obtenerVisitasCompletadas();
+            const visitasCompletadasSet = new Set(visitasCompletadasPermanentes);
 
-            console.log(`📋 [OFFLINE MANAGER] Guardando ${visitasAGuardar.length} de ${visitas.length} visitas (${visitas.length - visitasAGuardar.length} excluidas por reportes pendientes)`);
+            if (visitasCompletadasSet.size > 0) {
+                console.log(`🔒 [OFFLINE MANAGER] ${visitasCompletadasSet.size} visitas completadas permanentemente NO se volverán a cargar:`, Array.from(visitasCompletadasSet));
+            }
+
+            // Filtrar visitas: excluir las que tienen reportes pendientes Y las completadas permanentemente
+            const visitasAGuardar = visitas.filter(v => {
+                const id = String(v.id);
+                const num = typeof v.id === 'string' ? parseInt(v.id, 10) : v.id;
+                return !visitasConReportesPendientes.has(id) && !visitasCompletadasSet.has(num);
+            });
+
+            console.log(`📋 [OFFLINE MANAGER] Guardando ${visitasAGuardar.length} de ${visitas.length} visitas (${visitas.length - visitasAGuardar.length} excluidas: ${visitasConReportesPendientes.size} con reportes pendientes + ${visitasCompletadasSet.size} completadas)`);
 
             // Guardar cada visita en transacción separada
             for (const visita of visitasAGuardar) {
@@ -417,6 +436,61 @@ class OfflineManager {
         } catch (error) {
             console.error('❌ [OFFLINE MANAGER] Error eliminando visita offline:', error);
             return false;
+        }
+    }
+
+    // 🔧 v1.65: Marcar visita como completada permanentemente (persiste en datos de app)
+    async marcarVisitaCompletada(visitaId, tecnicoId = null) {
+        await this.waitForDB();
+        if (!this.db) return false;
+
+        try {
+            const visitaIdNum = typeof visitaId === 'string' ? parseInt(visitaId, 10) : visitaId;
+
+            const tx = this.db.transaction('visitas-completadas', 'readwrite');
+            const store = tx.objectStore('visitas-completadas');
+
+            const registro = {
+                visita_id: visitaIdNum,
+                timestamp_completado: Date.now(),
+                tecnico_id: tecnicoId
+            };
+
+            await new Promise((resolve, reject) => {
+                const request = store.put(registro);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+
+            console.log(`✅ [OFFLINE MANAGER] Visita ${visitaIdNum} marcada como completada permanentemente`);
+            return true;
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error marcando visita como completada:', error);
+            return false;
+        }
+    }
+
+    // 🔧 v1.65: Obtener IDs de visitas completadas permanentemente
+    async obtenerVisitasCompletadas() {
+        await this.waitForDB();
+        if (!this.db) return [];
+
+        try {
+            const tx = this.db.transaction('visitas-completadas', 'readonly');
+            const store = tx.objectStore('visitas-completadas');
+
+            const completadas = await new Promise((resolve) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => resolve([]);
+            });
+
+            const ids = completadas.map(v => v.visita_id);
+            console.log(`📋 [OFFLINE MANAGER] ${ids.length} visitas completadas en historial permanente`);
+            return ids;
+        } catch (error) {
+            console.error('❌ [OFFLINE MANAGER] Error obteniendo visitas completadas:', error);
+            return [];
         }
     }
 
@@ -647,6 +721,20 @@ class OfflineManager {
                     continue;
                 }
 
+                // 🔧 v1.65: Fix tecnico_id vacío - completar desde localStorage si está vacío
+                if (!reporte.tecnico_id || reporte.tecnico_id === '' || reporte.tecnico_id === 'unknown') {
+                    const userStorage = localStorage.getItem('user_tecnico');
+                    if (userStorage) {
+                        try {
+                            const user = JSON.parse(userStorage);
+                            reporte.tecnico_id = user.id || '';
+                            console.log(`🔧 [OFFLINE MANAGER] tecnico_id completado desde localStorage: ${reporte.tecnico_id}`);
+                        } catch (e) {
+                            console.error('❌ [OFFLINE MANAGER] Error parseando user_tecnico:', e);
+                        }
+                    }
+                }
+
                 const response = await fetch(APP_CONFIG.getApiUrl('/api/reportes-visitas'), {
                     method: 'POST',
                     headers: {
@@ -699,6 +787,10 @@ class OfflineManager {
                     // 🔧 FIX: Eliminar la visita del cache ahora que el reporte fue sincronizado
                     if (reporte.visita_id) {
                         try {
+                            // 🔧 v1.65: PRIMERO marcar como completada permanentemente
+                            await this.marcarVisitaCompletada(reporte.visita_id, reporte.tecnico_id);
+
+                            // DESPUÉS eliminar del cache
                             await this.deleteVisitaOffline(reporte.visita_id);
                             console.log(`🗑️ [OFFLINE MANAGER] Visita ${reporte.visita_id} eliminada del cache después de sincronizar reporte`);
                         } catch (errorDelete) {

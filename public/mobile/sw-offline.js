@@ -1,5 +1,5 @@
 // Service Worker para SolucNet Técnicos - Modo Offline Completo
-const CACHE_NAME = 'solucnet-tecnicos-v1.63.0-GPS-REINTENTOS';
+const CACHE_NAME = 'solucnet-tecnicos-v1.65.0-PERSISTENCIA-PERMANENTE';
 const OFFLINE_DATA_STORE = 'solucnet-offline-data';
 const SYNC_TAG = 'sync-visitas';
 

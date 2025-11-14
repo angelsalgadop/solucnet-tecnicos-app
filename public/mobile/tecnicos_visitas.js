@@ -1298,20 +1298,25 @@ async function guardarReporteVisita() {
                 return;
             }
 
-            // 🔧 v1.63: Validar precisión GPS con sistema de reintentos
+            // 🔧 v1.65: VALIDACIÓN GPS REFORZADA (online y offline)
+            console.log(`🔍 [GPS VALIDACIÓN] Precisión: ${coordenadasCapturadas.accuracy.toFixed(2)}m, Intentos: ${intentosGpsUsuario}/${MAX_INTENTOS_GPS_USUARIO}, Online: ${navigator.onLine}`);
+
             if (coordenadasCapturadas.accuracy > 9) {
-                // Si aún no alcanzó los 3 intentos, no permitir completar
+                // Si aún no alcanzó los 3 intentos, BLOQUEAR completar
                 if (intentosGpsUsuario < MAX_INTENTOS_GPS_USUARIO) {
                     const intentosRestantes = MAX_INTENTOS_GPS_USUARIO - intentosGpsUsuario;
+                    console.error(`❌ [GPS BLOQUEADO] Precisión ${coordenadasCapturadas.accuracy.toFixed(2)}m > 9m con solo ${intentosGpsUsuario} intentos (faltan ${intentosRestantes})`);
                     mostrarAlerta(`❌ ERROR DE COORDENADAS: La precisión actual es de ${coordenadasCapturadas.accuracy.toFixed(2)} metros. Se requiere 9 metros o menos.<br><strong>⏳ Te quedan ${intentosRestantes} ${intentosRestantes === 1 ? 'intento' : 'intentos'}.</strong> Intenta capturar las coordenadas nuevamente en un lugar con mejor señal GPS.`, 'danger');
-                    return;
+                    return; // 🔧 BLOQUEAR completar
                 } else {
                     // Después de 3 intentos, permitir completar con advertencia
-                    console.log(`⚠️ [GPS] Permitiendo completar después de ${intentosGpsUsuario} intentos con precisión ${coordenadasCapturadas.accuracy.toFixed(2)}m`);
+                    console.warn(`⚠️ [GPS EXCEPCIÓN] Permitiendo completar después de ${intentosGpsUsuario} intentos con precisión ${coordenadasCapturadas.accuracy.toFixed(2)}m`);
                     formData.excepcion_gps = true; // Marcar como excepción
                     formData.observacion_gps = `Coordenadas capturadas con precisión de ${coordenadasCapturadas.accuracy.toFixed(2)}m después de ${intentosGpsUsuario} intentos (máximo permitido)`;
                     mostrarAlerta(`⚠️ EXCEPCIÓN GPS: Se completará la visita con precisión de ${coordenadasCapturadas.accuracy.toFixed(2)} metros (máximo de intentos alcanzado).`, 'warning');
                 }
+            } else {
+                console.log(`✅ [GPS OK] Precisión ${coordenadasCapturadas.accuracy.toFixed(2)}m <= 9m, permitiendo completar`);
             }
 
             // Agregar coordenadas al reporte
