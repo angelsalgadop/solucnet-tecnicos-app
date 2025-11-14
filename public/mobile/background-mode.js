@@ -45,16 +45,22 @@ class BackgroundModeManager {
                 visibility: 'public'
             });
 
-            // Habilitar el modo background
-            cordova.plugins.backgroundMode.enable();
-            this.isEnabled = true;
-            console.log('✅ [BACKGROUND] Modo background habilitado');
-
-            // Configurar eventos
+            // Configurar eventos primero (antes de habilitar)
             this.setupEvents();
 
-            // Desactivar optimización de batería (necesario para Android 6+)
-            this.disableBatteryOptimization();
+            // Habilitar el modo background después de un pequeño delay
+            // para evitar que se cierre la app al solicitar permisos
+            setTimeout(() => {
+                cordova.plugins.backgroundMode.enable();
+                this.isEnabled = true;
+                console.log('✅ [BACKGROUND] Modo background habilitado');
+
+                // Informar sobre optimización de batería después de 30 segundos
+                // NO forzar el diálogo automáticamente
+                setTimeout(() => {
+                    this.checkBatteryOptimization();
+                }, 30000);
+            }, 2000);
 
             return true;
         } catch (error) {
@@ -119,24 +125,39 @@ class BackgroundModeManager {
     }
 
     /**
-     * Desactivar optimización de batería
-     * Necesario para Android 6+ para evitar que el sistema mate la app
+     * Verificar optimización de batería (sin forzar diálogo)
+     * Solo informa al usuario, no abre diálogo automáticamente
      */
-    disableBatteryOptimization() {
+    checkBatteryOptimization() {
         if (!this.isEnabled) return;
 
         try {
-            // Verificar si está disponible (Android 6+)
+            // Solo verificar el estado, NO forzar el diálogo
             cordova.plugins.backgroundMode.isIgnoringBatteryOptimizations((isIgnoring) => {
                 if (!isIgnoring) {
-                    console.log('⚠️ [BACKGROUND] Solicitando desactivar optimización de batería...');
-                    cordova.plugins.backgroundMode.disableBatteryOptimizations();
+                    console.log('ℹ️ [BACKGROUND] Optimización de batería está activa');
+                    console.log('💡 [BACKGROUND] Para mejor rendimiento, desactívala manualmente en Configuración');
                 } else {
-                    console.log('✅ [BACKGROUND] Optimización de batería ya desactivada');
+                    console.log('✅ [BACKGROUND] Optimización de batería desactivada');
                 }
             });
         } catch (error) {
             console.log('ℹ️ [BACKGROUND] Optimización de batería no disponible en este dispositivo');
+        }
+    }
+
+    /**
+     * Solicitar manualmente desactivar optimización de batería
+     * Solo se llama si el usuario lo solicita explícitamente
+     */
+    requestBatteryOptimizationDisable() {
+        if (!this.isEnabled) return;
+
+        try {
+            cordova.plugins.backgroundMode.disableBatteryOptimizations();
+            console.log('🔋 [BACKGROUND] Solicitando desactivar optimización de batería...');
+        } catch (error) {
+            console.error('❌ [BACKGROUND] Error solicitando desactivación:', error);
         }
     }
 

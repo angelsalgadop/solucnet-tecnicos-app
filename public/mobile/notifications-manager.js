@@ -29,22 +29,39 @@ class NotificationsManager {
                 return false;
             }
 
-            // Solicitar permisos
+            // Primero verificar si ya tenemos permisos
+            const currentPermission = await Capacitor.Plugins.LocalNotifications.checkPermissions();
+
+            if (currentPermission.display === 'granted') {
+                // Ya tenemos permisos, no solicitar de nuevo
+                console.log('✅ [NOTIFICACIONES] Permisos ya concedidos');
+                this.isInitialized = true;
+                this.loadNotifiedIds();
+                this.setupNotificationListeners();
+                return true;
+            }
+
+            // Si no tenemos permisos, esperar 5 segundos antes de solicitarlos
+            // para no sobrecargar al usuario con múltiples solicitudes
+            console.log('⏳ [NOTIFICACIONES] Esperando para solicitar permisos...');
+
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            // Solicitar permisos después del delay
             const permission = await Capacitor.Plugins.LocalNotifications.requestPermissions();
 
             if (permission.display === 'granted') {
                 console.log('✅ [NOTIFICACIONES] Permisos concedidos');
                 this.isInitialized = true;
-
-                // Cargar IDs de visitas ya notificadas
                 this.loadNotifiedIds();
-
-                // Configurar listener para clicks en notificaciones
                 this.setupNotificationListeners();
-
                 return true;
             } else {
                 console.warn('⚠️ [NOTIFICACIONES] Permisos denegados');
+                // Aunque se denieguen, inicializar de todos modos
+                // para que funcione cuando el usuario los active manualmente
+                this.loadNotifiedIds();
+                this.setupNotificationListeners();
                 return false;
             }
         } catch (error) {
