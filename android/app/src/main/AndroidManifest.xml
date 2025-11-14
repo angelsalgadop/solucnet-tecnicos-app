@@ -36,9 +36,19 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- 🆕 v1.75.3: Receiver para auto-inicio al encender teléfono (como WhatsApp) -->
-        <receiver
+        <!-- 🔧 v1.75.4: SERVICIO de foreground para background mode (CRÍTICO) -->
+        <service
             android:name="de.appplant.cordova.plugin.background.ForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location"
+            android:stopWithTask="false">
+        </service>
+
+        <!-- 🔧 v1.75.4: RECEIVER para auto-inicio al encender teléfono (clase correcta) -->
+        <receiver
+            android:name="de.appplant.cordova.plugin.background.BootReceiver"
+            android:enabled="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
