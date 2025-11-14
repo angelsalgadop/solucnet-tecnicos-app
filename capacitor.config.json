@@ -32,6 +32,23 @@
     },
     "Network": {
       "notifyConnectionChanged": true
+    },
+    "BackgroundMode": {
+      "title": "SolucNet Técnicos",
+      "text": "App activa en segundo plano",
+      "icon": "icon",
+      "color": "28a745",
+      "resume": true,
+      "hidden": false,
+      "bigText": false,
+      "silent": false,
+      "sticky": true,
+      "enable": true
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#28a745",
+      "sound": "default"
     }
   }
 }

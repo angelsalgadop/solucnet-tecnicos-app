@@ -1,5 +1,5 @@
 {
-  "timestamp": 1763153475266,
+  "timestamp": 1763153955268,
   "estados": {
     "573226686256@c.us": {
       "enEsperaHumano": {
@@ -42,49 +42,6 @@
       "ultimoMenuEnviado": null,
       "primeraInteraccion": false,
       "ultimaInteraccion": 1763151519612
-    },
-    "573136189440@c.us": {
-      "enEsperaHumano": {
-        "contador": 0,
-        "ultimaRespuesta": 1763148548071
-      },
-      "clienteEncontrado": {
-        "cliente": {
-          "id": 92,
-          "nombre": "ANDERSON ROJAS SANCHEZ ",
-          "estado": "ACTIVO",
-          "cedula": "71943379",
-          "telefono": "",
-          "movil": "3136189440",
-          "direccion_principal": "V/ Salsipuedes - CONT:"
-        },
-        "facturas": [
-          {
-            "vencimiento": "15/11/2025",
-            "total": "76100.00",
-            "estado": "No pagado",
-            "situacion": "No pagado"
-          }
-        ],
-        "cuenta": {
-          "cuenta": "Nequi *3025961131*"
-        },
-        "bd": {
-          "host": "192.168.99.2",
-          "user": "root",
-          "password": "Y9T1Q6P39YI6TJ2",
-          "database": "Mikrowisp6"
-        }
-      },
-      "seguimiento": null,
-      "esperandoCedula": false,
-      "esperandoCedula2": false,
-      "erroresConsecutivos": 0,
-      "primerErrorTimestamp": null,
-      "mensajeSolEnviado": false,
-      "ultimoMenuEnviado": null,
-      "primeraInteraccion": false,
-      "ultimaInteraccion": 1763148548071
     },
     "573054861169@c.us": {
       "enEsperaHumano": {
@@ -145,14 +102,15 @@
     "573205185647@c.us",
     "573127631325@c.us",
     "573106782534@c.us",
-    "573145273932@c.us"
+    "573145273932@c.us",
+    "573136189440@c.us"
   ],
   "chatsActivos": {
     "573024019208@c.us": {
       "id": "573024019208@c.us",
       "phone": "573024019208",
       "name": "Amor",
-      "lastActivity": 1763145955000,
+      "lastActivity": 1763153682787,
       "mode": "bot",
       "pendiente": true
     },
@@ -258,14 +216,6 @@
       "name": "+57 310 3783930",
       "lastActivity": 1763143202000,
       "mode": "bot",
-      "pendiente": true
-    },
-    "573136189440@c.us": {
-      "id": "573136189440@c.us",
-      "phone": "573136189440",
-      "name": "+57 313 6189440",
-      "lastActivity": 1763148547000,
-      "mode": "human",
       "pendiente": true
     },
     "573117117811@c.us": {
@@ -739,7 +689,7 @@
     "573234660553@c.us": "bot",
     "573137648756@c.us": "bot",
     "573235042428@c.us": "bot",
-    "573136189440@c.us": "human",
+    "573136189440@c.us": "bot",
     "573215399052@c.us": "bot",
     "573046763287@c.us": "bot",
     "573206800094@c.us": "bot",

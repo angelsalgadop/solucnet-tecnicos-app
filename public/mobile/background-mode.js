@@ -55,11 +55,11 @@ class BackgroundModeManager {
                 this.isEnabled = true;
                 console.log('✅ [BACKGROUND] Modo background habilitado');
 
-                // Informar sobre optimización de batería después de 30 segundos
-                // NO forzar el diálogo automáticamente
+                // 🆕 v1.75.3: SÍ solicitar desactivar optimización de batería
+                // (necesario para funcionamiento tipo WhatsApp)
                 setTimeout(() => {
-                    this.checkBatteryOptimization();
-                }, 30000);
+                    this.requestBatteryOptimizationDisable();
+                }, 8000); // 8 segundos para no sobrecargar
             }, 2000);
 
             return true;
@@ -147,15 +147,24 @@ class BackgroundModeManager {
     }
 
     /**
-     * Solicitar manualmente desactivar optimización de batería
-     * Solo se llama si el usuario lo solicita explícitamente
+     * Solicitar desactivar optimización de batería
+     * v1.75.3: Ahora se solicita automáticamente para funcionamiento tipo WhatsApp
      */
     requestBatteryOptimizationDisable() {
         if (!this.isEnabled) return;
 
         try {
-            cordova.plugins.backgroundMode.disableBatteryOptimizations();
-            console.log('🔋 [BACKGROUND] Solicitando desactivar optimización de batería...');
+            // Primero verificar si ya está desactivada
+            cordova.plugins.backgroundMode.isIgnoringBatteryOptimizations((isIgnoring) => {
+                if (isIgnoring) {
+                    console.log('✅ [BACKGROUND] Optimización de batería ya desactivada');
+                } else {
+                    // Solo solicitar si NO está desactivada
+                    console.log('🔋 [BACKGROUND] Solicitando desactivar optimización de batería...');
+                    console.log('💡 [BACKGROUND] Esto permite que la app funcione como WhatsApp');
+                    cordova.plugins.backgroundMode.disableBatteryOptimizations();
+                }
+            });
         } catch (error) {
             console.error('❌ [BACKGROUND] Error solicitando desactivación:', error);
         }
