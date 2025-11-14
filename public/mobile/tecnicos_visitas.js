@@ -3793,7 +3793,171 @@ async function abrirPDFConFileOpener(fileUri) {
     }
 }
 
+// ==============================================
+// 🔧 v1.67: FUNCIONES DE MAPAS OFFLINE
+// ==============================================
+
+// Estado del selector de área offline
+let offlineMapSelectorActivo = false;
+
+/**
+ * Inicializar sistema de mapas offline
+ */
+async function inicializarSistemaMapasOffline() {
+    try {
+        if (window.offlineMapsManager) {
+            await window.offlineMapsManager.init();
+            console.log('✅ [OFFLINE MAPS] Sistema inicializado');
+        }
+    } catch (error) {
+        console.error('❌ [OFFLINE MAPS] Error inicializando:', error);
+    }
+}
+
+/**
+ * Activar/desactivar selector de área para descarga offline
+ */
+function toggleMapaOfflineSelector() {
+    if (!mapaClientes) {
+        alert('El mapa no está inicializado. Por favor abre el mapa primero.');
+        return;
+    }
+
+    if (!window.offlineMapsManager) {
+        alert('Sistema de mapas offline no disponible');
+        return;
+    }
+
+    const btnOffline = document.getElementById('btnMapaOffline');
+    const areaInfo = document.getElementById('areaSeleccionInfo');
+
+    if (!offlineMapSelectorActivo) {
+        // ACTIVAR SELECTOR
+        console.log('🟢 [OFFLINE MAPS] Activando selector de área...');
+
+        window.offlineMapsManager.activateAreaSelector(mapaClientes, (info) => {
+            // Actualizar UI con info del área en tiempo real
+            document.getElementById('areaTiles').textContent = info.totalTiles;
+            document.getElementById('areaTamano').textContent = info.estimatedSizeMB;
+        });
+
+        // Cambiar UI
+        btnOffline.innerHTML = '<i class="fas fa-times"></i> Cancelar';
+        btnOffline.classList.remove('btn-primary');
+        btnOffline.classList.add('btn-danger');
+        areaInfo.style.display = 'block';
+
+        // Mostrar botón de descarga
+        const botonesFooter = btnOffline.parentElement;
+        const btnDescargar = document.createElement('button');
+        btnDescargar.id = 'btnDescargarArea';
+        btnDescargar.className = 'btn btn-success';
+        btnDescargar.innerHTML = '<i class="fas fa-download"></i> Descargar Área';
+        btnDescargar.onclick = iniciarDescargaMapaOffline;
+        botonesFooter.insertBefore(btnDescargar, btnOffline);
+
+        offlineMapSelectorActivo = true;
+    } else {
+        // DESACTIVAR SELECTOR
+        console.log('🔴 [OFFLINE MAPS] Desactivando selector...');
+
+        window.offlineMapsManager.deactivateAreaSelector(mapaClientes);
+
+        // Restaurar UI
+        btnOffline.innerHTML = '<i class="fas fa-download"></i> Modo Offline';
+        btnOffline.classList.remove('btn-danger');
+        btnOffline.classList.add('btn-primary');
+        areaInfo.style.display = 'none';
+
+        // Remover botón de descarga
+        const btnDescargar = document.getElementById('btnDescargarArea');
+        if (btnDescargar) {
+            btnDescargar.remove();
+        }
+
+        offlineMapSelectorActivo = false;
+    }
+}
+
+/**
+ * Iniciar descarga del área seleccionada
+ */
+async function iniciarDescargaMapaOffline() {
+    if (!window.offlineMapsManager || !window.offlineMapsManager.selectedBounds) {
+        alert('Por favor selecciona un área en el mapa primero');
+        return;
+    }
+
+    const info = window.offlineMapsManager.calculateAreaInfo(window.offlineMapsManager.selectedBounds);
+
+    const confirmacion = confirm(
+        `¿Descargar ${info.totalTiles} tiles del mapa?\n\n` +
+        `Tamaño estimado: ${info.estimatedSizeMB} MB\n` +
+        `Niveles de zoom: ${info.zoomLevels}\n\n` +
+        `La descarga puede tardar varios minutos.`
+    );
+
+    if (!confirmacion) {
+        return;
+    }
+
+    // Ocultar botones y mostrar progreso
+    document.getElementById('areaSeleccionInfo').style.display = 'none';
+    document.getElementById('descargaOfflineProgress').style.display = 'block';
+    document.getElementById('btnDescargarArea').disabled = true;
+    document.getElementById('btnMapaOffline').disabled = true;
+
+    try {
+        console.log('🚀 [OFFLINE MAPS] Iniciando descarga...');
+
+        const resultado = await window.offlineMapsManager.downloadAllTiles((progress) => {
+            // Actualizar barra de progreso
+            const progressBar = document.getElementById('descargaOfflineProgressBar');
+            const progressText = document.getElementById('descargaOfflineProgressText');
+            const progressStats = document.getElementById('descargaOfflineStats');
+
+            progressBar.style.width = progress.percentage + '%';
+            progressText.textContent = progress.percentage + '%';
+            progressStats.textContent = `${progress.downloaded}/${progress.total} tiles descargados (${progress.failed} fallidos) - Zoom ${progress.currentZoom}`;
+
+            console.log(`📊 [OFFLINE MAPS] Progreso: ${progress.percentage}% (${progress.downloaded}/${progress.total})`);
+        });
+
+        // Descarga completada
+        console.log('✅ [OFFLINE MAPS] Descarga completada:', resultado);
+
+        alert(
+            `¡Descarga completada!\n\n` +
+            `Tiles descargados: ${resultado.downloaded}\n` +
+            `Fallidos: ${resultado.failed}\n` +
+            `Tiempo: ${resultado.duration}s\n\n` +
+            `El mapa ya está disponible en modo offline.`
+        );
+
+        // Desactivar selector
+        toggleMapaOfflineSelector();
+
+    } catch (error) {
+        console.error('❌ [OFFLINE MAPS] Error en descarga:', error);
+        alert(`Error descargando mapa: ${error.message}`);
+    } finally {
+        // Restaurar UI
+        document.getElementById('descargaOfflineProgress').style.display = 'none';
+        document.getElementById('btnDescargarArea').disabled = false;
+        document.getElementById('btnMapaOffline').disabled = false;
+    }
+}
+
+// Inicializar mapas offline al cargar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarSistemaMapasOffline);
+} else {
+    inicializarSistemaMapasOffline();
+}
+
 // Agregar funciones globales
 window.asignarEquipoAlCompletar = asignarEquipoAlCompletar;
 window.abrirPdfEnApp = abrirPdfEnApp;
 window.abrirPDFConFileOpener = abrirPDFConFileOpener;
+window.toggleMapaOfflineSelector = toggleMapaOfflineSelector;
+window.iniciarDescargaMapaOffline = iniciarDescargaMapaOffline;

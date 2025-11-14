@@ -795,11 +795,39 @@
                         </span>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btn-info" onclick="actualizarMapaClientes()">
-                        <i class="fas fa-sync"></i> Actualizar Mapa
-                    </button>
+                <div class="modal-footer d-flex justify-content-between align-items-center">
+                    <div>
+                        <!-- Info del área seleccionada -->
+                        <div id="areaSeleccionInfo" style="display: none;">
+                            <small class="text-muted">
+                                <strong>Área:</strong> <span id="areaTiles">0</span> tiles
+                                (<span id="areaTamano">0</span> MB)
+                            </small>
+                        </div>
+
+                        <!-- Progreso de descarga -->
+                        <div id="descargaOfflineProgress" style="display: none; min-width: 300px;">
+                            <div class="progress" style="height: 25px;">
+                                <div id="descargaOfflineProgressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                                     role="progressbar" style="width: 0%">
+                                    <span id="descargaOfflineProgressText">0%</span>
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                <span id="descargaOfflineStats">0/0 tiles descargados</span>
+                            </small>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="button" class="btn btn-info" onclick="actualizarMapaClientes()">
+                            <i class="fas fa-sync"></i> Actualizar Mapa
+                        </button>
+                        <button type="button" id="btnMapaOffline" class="btn btn-primary" onclick="toggleMapaOfflineSelector()">
+                            <i class="fas fa-download"></i> Modo Offline
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -915,6 +943,9 @@
     <!-- Sistema de Gestión Offline para App Móvil -->
     <script src="offline-manager.js?v=1763092042"></script>
 
+    <!-- 🔧 v1.67: Sistema de Mapas Offline -->
+    <script src="offline-maps.js?v=1763097000"></script>
+
     <!-- Script para captura de seriales con BarcodeDetector NATIVO (INSTANTÁNEO) -->
     <script src="serial_scanner_native.js?v=1763060000"></script>
     <script>
@@ -1015,6 +1046,6 @@
         })();
     </script>
 
-    <script src="tecnicos_visitas.js?v=1763092042"></script>
+    <script src="tecnicos_visitas.js?v=1763097000"></script>
 </body>
 </html>
