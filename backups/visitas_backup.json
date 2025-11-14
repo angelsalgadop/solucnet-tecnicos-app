@@ -1,6 +1,25 @@
 {
-  "timestamp": "2025-11-14T15:22:47.915Z",
+  "timestamp": "2025-11-14T17:59:14.659Z",
   "visitas": {
+    "426": {
+      "estado": "completada",
+      "fechaInicio": "2025-11-14T17:08:49.645Z",
+      "fechaCompletada": "2025-11-14T17:17:27.310Z",
+      "reporte": {
+        "visita_id": "426",
+        "tecnico_id": 21,
+        "problemas_encontrados": "Instalación ",
+        "solucion_aplicada": "Instalación ",
+        "materiales_utilizados": "Clavos fibras y conectores ",
+        "cliente_satisfecho": "si",
+        "requiere_seguimiento": false,
+        "notas": "",
+        "latitud": 7.880139,
+        "longitud": -76.6481752,
+        "precision_gps": 4.123000144958496
+      },
+      "backupId": "backup_1763140647278_rd763fh9x"
+    },
     "431": {
       "estado": "completada",
       "fechaInicio": "2025-11-14T15:03:36.775Z",
@@ -21,8 +40,23 @@
       "backupId": "backup_1763132754788_c3movvnt5"
     },
     "434": {
-      "estado": "en_progreso",
-      "fechaInicio": "2025-11-14T12:27:50.811Z"
+      "estado": "completada",
+      "fechaInicio": "2025-11-14T12:27:50.811Z",
+      "fechaCompletada": "2025-11-14T16:07:22.467Z",
+      "reporte": {
+        "visita_id": "434",
+        "tecnico_id": 21,
+        "problemas_encontrados": "Moden",
+        "solucion_aplicada": "Cambio",
+        "materiales_utilizados": "Moden",
+        "cliente_satisfecho": "si",
+        "requiere_seguimiento": false,
+        "notas": "",
+        "latitud": 7.8646454,
+        "longitud": -76.6668798,
+        "precision_gps": 4.249000072479248
+      },
+      "backupId": "backup_1763136442436_13mt450j4"
     },
     "439": {
       "estado": "completada",
@@ -93,6 +127,31 @@
       },
       "backupId": "backup_1763123014824_6q3whqef2"
     },
+    "446": {
+      "estado": "completada",
+      "fechaInicio": "2025-11-14T16:42:20.638Z",
+      "fechaCompletada": "2025-11-14T16:42:20.860Z",
+      "reporte": {
+        "visita_id": "446",
+        "tecnico_id": 25,
+        "problemas_encontrados": "Yrir",
+        "solucion_aplicada": "Hdkkr",
+        "materiales_utilizados": "",
+        "cliente_satisfecho": "si",
+        "requiere_seguimiento": false,
+        "notas": "",
+        "latitud": 7.9302823,
+        "longitud": -76.6259703,
+        "precision_gps": 6.373000144958496,
+        "serialEquipo": "849595JFL",
+        "tipoEquipo": "Onu CData",
+        "costoEquipo": 180000,
+        "sincronizado": false,
+        "timestamp": 1763135800016,
+        "localId": 2
+      },
+      "backupId": "backup_1763138540783_vnh5cc7bb"
+    },
     "447": {
       "estado": "completada",
       "fechaInicio": "2025-11-14T15:22:47.515Z",
@@ -114,6 +173,50 @@
         "localId": 1
       },
       "backupId": "backup_1763133767593_kyabillyo"
+    },
+    "448": {
+      "estado": "completada",
+      "fechaInicio": "2025-11-14T16:42:20.666Z",
+      "fechaCompletada": "2025-11-14T16:42:20.964Z",
+      "reporte": {
+        "visita_id": "448",
+        "tecnico_id": 25,
+        "problemas_encontrados": "Ydid",
+        "solucion_aplicada": "Hxkf",
+        "materiales_utilizados": "",
+        "cliente_satisfecho": "si",
+        "requiere_seguimiento": false,
+        "notas": "",
+        "serialEquipo": "8494HFK",
+        "tipoEquipo": "Onu CData",
+        "costoEquipo": 180000,
+        "sincronizado": false,
+        "timestamp": 1763135827077,
+        "localId": 3
+      },
+      "backupId": "backup_1763138540934_hqv0e8urq"
+    },
+    "449": {
+      "estado": "completada",
+      "fechaInicio": "2025-11-14T16:42:20.608Z",
+      "fechaCompletada": "2025-11-14T16:42:20.709Z",
+      "reporte": {
+        "visita_id": "449",
+        "tecnico_id": 25,
+        "problemas_encontrados": "Tr",
+        "solucion_aplicada": "Ty",
+        "materiales_utilizados": "",
+        "cliente_satisfecho": "si",
+        "requiere_seguimiento": false,
+        "notas": "",
+        "serialEquipo": "738495HJF",
+        "tipoEquipo": "Onu CData",
+        "costoEquipo": 180000,
+        "sincronizado": false,
+        "timestamp": 1763135757188,
+        "localId": 1
+      },
+      "backupId": "backup_1763138540692_07yjfbfk1"
     },
     "450": {
       "estado": "completada",

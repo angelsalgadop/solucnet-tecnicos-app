@@ -46,6 +46,11 @@ function configurarEventListeners() {
     window.addEventListener('offline-sync-completed', async () => {
         console.log('📢 [VISITAS] Sincronización completada, recargando visitas...');
         await cargarVisitasTecnico();
+
+        // 🆕 v1.74.3: Reverificar permisos NAP después de sincronizar
+        console.log('🔄 [NAP] Reverificando permisos después de sincronización...');
+        await verificarPermisoAgregarNaps();
+
         mostrarAlerta('✅ Datos sincronizados con el servidor', 'success');
     });
 
@@ -3237,8 +3242,8 @@ async function verificarPermisoAgregarNaps() {
             const permisoGuardado = localStorage.getItem('puede_agregar_naps');
             console.log('🔍 [NAP] Permiso guardado:', permisoGuardado);
 
+            const btnNap = document.getElementById('btnNuevaNap');
             if (permisoGuardado === '1') {
-                const btnNap = document.getElementById('btnNuevaNap');
                 if (btnNap) {
                     btnNap.style.display = 'inline-block';
                     console.log('✅ [NAP] Offline: Botón mostrado usando permiso guardado');
@@ -3253,7 +3258,11 @@ async function verificarPermisoAgregarNaps() {
                     }
                 }
             } else {
-                console.log('📴 [NAP] Offline: Sin permiso guardado o permiso denegado');
+                // 🆕 v1.74.3: Ocultar botón si no hay permiso
+                if (btnNap) {
+                    btnNap.style.display = 'none';
+                    console.log('🚫 [NAP] Offline: Botón ocultado - sin permiso');
+                }
             }
             return;
         }
@@ -3277,10 +3286,10 @@ async function verificarPermisoAgregarNaps() {
             console.log('💾 [NAP] Permiso guardado en localStorage:', permiso);
         }
 
-        if (resultado.success && resultado.usuario.puede_agregar_naps === 1) {
-            const btnNap = document.getElementById('btnNuevaNap');
-            console.log('🔍 [NAP] Botón encontrado:', btnNap ? 'Sí' : 'No');
+        const btnNap = document.getElementById('btnNuevaNap');
+        console.log('🔍 [NAP] Botón encontrado:', btnNap ? 'Sí' : 'No');
 
+        if (resultado.success && resultado.usuario.puede_agregar_naps === 1) {
             if (btnNap) {
                 btnNap.style.display = 'inline-block';
                 console.log('✅ [NAP] Técnico autorizado - Botón mostrado');
@@ -3323,6 +3332,11 @@ async function verificarPermisoAgregarNaps() {
                 });
             }
         } else {
+            // 🆕 v1.74.3: Ocultar botón si no hay permiso
+            if (btnNap) {
+                btnNap.style.display = 'none';
+                console.log('🚫 [NAP] Online: Botón ocultado - sin permiso');
+            }
             console.log('ℹ️ [NAP] Técnico NO autorizado para agregar cajas NAP');
             console.log('ℹ️ [NAP] Success:', resultado.success);
             console.log('ℹ️ [NAP] Permiso:', resultado.usuario?.puede_agregar_naps);
