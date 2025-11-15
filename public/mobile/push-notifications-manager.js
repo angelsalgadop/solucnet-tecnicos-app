@@ -39,26 +39,16 @@ class PushNotificationsManager {
             console.log('🔔 [PUSH] Permisos actuales:', permission);
 
             if (permission.receive === 'granted') {
-                console.log('✅ [PUSH] Permisos YA concedidos - Registrando con FCM...');
+                console.log('✅ [PUSH] Permisos YA concedidos');
+                console.log('⚠️ [PUSH] =============================================');
+                console.log('⚠️ [PUSH] FCM DESHABILITADO (v1.83.18)');
+                console.log('⚠️ [PUSH] register() causa crash en este dispositivo');
+                console.log('⚠️ [PUSH] La app usará notificaciones locales únicamente');
+                console.log('⚠️ [PUSH] =============================================');
 
-                // Registrar de forma NO-BLOQUEANTE con timeout
-                const registerPromise = Capacitor.Plugins.PushNotifications.register();
-                const registerTimeout = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Timeout en registro FCM')), 10000)
-                );
+                // NO registrar con FCM - causa crash
+                // La app funcionará con notificaciones LOCALES únicamente
 
-                // Intentar registrar, pero no bloquear la app si falla
-                Promise.race([registerPromise, registerTimeout])
-                    .then(() => {
-                        console.log('✅✅✅ [PUSH] Registro FCM completado exitosamente');
-                        this.isRegistered = true;
-                    })
-                    .catch((error) => {
-                        console.warn('⚠️ [PUSH] Registro FCM falló (no crítico):', error.message);
-                        console.log('ℹ️ [PUSH] La app funciona normalmente sin push notifications');
-                    });
-
-                console.log('✅ [PUSH] Push Notifications inicializadas (registro en background)');
                 return true;
             } else {
                 console.log('ℹ️ [PUSH] =============================================');
