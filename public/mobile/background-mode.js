@@ -20,16 +20,22 @@ class BackgroundModeManager {
     }
 
     /**
-     * 🔧 v1.78: Solo CONFIGURAR - NO habilitar automáticamente para evitar cierres
+     * 🔧 v1.82: HABILITAR AUTOMÁTICAMENTE - CRÍTICO para que funcione en background
      */
     async initialize() {
-        console.log('🔄 [BACKGROUND] Configurando modo background (NO habilitando aún)...');
+        console.log('🔄 [BACKGROUND] ============================================');
+        console.log('🔄 [BACKGROUND] INICIALIZANDO BACKGROUND MODE');
+        console.log('🔄 [BACKGROUND] ============================================');
 
         // Verificar si el plugin está disponible
         if (typeof cordova === 'undefined' || !cordova.plugins || !cordova.plugins.backgroundMode) {
-            console.warn('⚠️ [BACKGROUND] Plugin no disponible');
+            console.error('❌ [BACKGROUND] Plugin NO disponible - cordova o backgroundMode undefined');
+            console.log('📋 [BACKGROUND] typeof cordova:', typeof cordova);
+            console.log('📋 [BACKGROUND] cordova.plugins:', cordova?.plugins);
             return false;
         }
+
+        console.log('✅ [BACKGROUND] Plugin disponible - Configurando...');
 
         try {
             // 🆕 v1.81: Configuración MÁXIMA persistencia (como WhatsApp)
@@ -53,18 +59,29 @@ class BackgroundModeManager {
                 sticky: true // 🆕 Notificación sticky (no se puede deslizar)
             });
 
-            // 🆕 v1.81: Configurar para persistencia MÁXIMA
+            // 🆕 v1.82: HABILITAR INMEDIATAMENTE (CRÍTICO)
+            console.log('🔧 [BACKGROUND] Habilitando background mode AHORA...');
+
+            cordova.plugins.backgroundMode.enable();
+            this.isEnabled = true;
+
+            console.log('✅ [BACKGROUND] Background mode HABILITADO');
+
+            // Configurar para persistencia MÁXIMA
             cordova.plugins.backgroundMode.setEnabled(true);
             cordova.plugins.backgroundMode.overrideBackButton();
             cordova.plugins.backgroundMode.excludeFromTaskList();
 
             console.log('✅ [BACKGROUND] Configuración de persistencia máxima aplicada');
 
-
             // Configurar eventos
             this.setupEvents();
 
-            console.log('✅ [BACKGROUND] Configurado (esperando activación manual)');
+            console.log('✅ [BACKGROUND] ============================================');
+            console.log('✅ [BACKGROUND] BACKGROUND MODE COMPLETAMENTE INICIALIZADO');
+            console.log('✅ [BACKGROUND] isEnabled:', this.isEnabled);
+            console.log('✅ [BACKGROUND] ============================================');
+
             return true;
         } catch (error) {
             console.error('❌ [BACKGROUND] Error configurando:', error);
@@ -73,17 +90,26 @@ class BackgroundModeManager {
     }
 
     /**
-     * 🆕 v1.76: Habilitar background mode manualmente (cuando usuario acepta)
+     * 🆕 v1.82: Verificar y re-habilitar si es necesario (llamado desde permissions-manager)
      */
     async enableManually() {
         if (typeof cordova === 'undefined' || !cordova.plugins || !cordova.plugins.backgroundMode) {
+            console.warn('⚠️ [BACKGROUND] Plugin no disponible para enable manual');
             return false;
         }
 
         try {
-            cordova.plugins.backgroundMode.enable();
-            this.isEnabled = true;
-            console.log('✅ [BACKGROUND] Modo background HABILITADO manualmente');
+            // Ya debería estar habilitado desde initialize(), pero re-habilitar por si acaso
+            if (!this.isEnabled) {
+                console.log('🔧 [BACKGROUND] Re-habilitando background mode...');
+                cordova.plugins.backgroundMode.enable();
+                this.isEnabled = true;
+                console.log('✅ [BACKGROUND] Modo background RE-HABILITADO');
+            } else {
+                console.log('ℹ️ [BACKGROUND] Ya estaba habilitado, verificando estado...');
+                console.log('📋 [BACKGROUND] isEnabled:', this.isEnabled);
+                console.log('📋 [BACKGROUND] isActive:', this.isActive);
+            }
             return true;
         } catch (error) {
             console.error('❌ [BACKGROUND] Error habilitando:', error);
@@ -97,10 +123,16 @@ class BackgroundModeManager {
     setupEvents() {
         // Evento: App entra en segundo plano
         cordova.plugins.backgroundMode.on('activate', () => {
-            console.log('📱 [BACKGROUND] ============================================');
-            console.log('📱 [BACKGROUND] App EN SEGUNDO PLANO - INICIANDO SERVICIOS');
-            console.log('📱 [BACKGROUND] ============================================');
+            console.log('📱📱📱 [BACKGROUND] =========================================');
+            console.log('📱📱📱 [BACKGROUND] EVENTO ACTIVATE - App EN SEGUNDO PLANO');
+            console.log('📱📱📱 [BACKGROUND] =========================================');
+            console.log('📱 [BACKGROUND] Timestamp:', new Date().toISOString());
+            console.log('📱 [BACKGROUND] isEnabled:', this.isEnabled);
+            console.log('📱 [BACKGROUND] isActive antes:', this.isActive);
+
             this.isActive = true;
+
+            console.log('📱 [BACKGROUND] isActive ahora:', this.isActive);
 
             // Deshabilitar web view optimizations cuando está en background
             cordova.plugins.backgroundMode.disableWebViewOptimizations();
@@ -142,18 +174,30 @@ class BackgroundModeManager {
 
         // Evento: Habilitado
         cordova.plugins.backgroundMode.on('enable', () => {
-            console.log('✅ [BACKGROUND] Background mode HABILITADO');
+            console.log('✅✅✅ [BACKGROUND] ==================================');
+            console.log('✅✅✅ [BACKGROUND] EVENTO: Background mode HABILITADO');
+            console.log('✅✅✅ [BACKGROUND] La app puede funcionar en background');
+            console.log('✅✅✅ [BACKGROUND] ==================================');
+            this.isEnabled = true;
         });
 
         // Evento: Deshabilitado
         cordova.plugins.backgroundMode.on('disable', () => {
-            console.log('⚠️ [BACKGROUND] Background mode DESHABILITADO');
+            console.warn('⚠️⚠️⚠️ [BACKGROUND] ==================================');
+            console.warn('⚠️⚠️⚠️ [BACKGROUND] EVENTO: Background mode DESHABILITADO');
+            console.warn('⚠️⚠️⚠️ [BACKGROUND] ==================================');
+            this.isEnabled = false;
         });
 
         // Evento: Error
         cordova.plugins.backgroundMode.on('failure', (error) => {
-            console.error('❌ [BACKGROUND] Error:', error);
+            console.error('❌❌❌ [BACKGROUND] ==================================');
+            console.error('❌❌❌ [BACKGROUND] EVENTO: Error en background mode');
+            console.error('❌❌❌ [BACKGROUND] Error:', error);
+            console.error('❌❌❌ [BACKGROUND] ==================================');
         });
+
+        console.log('✅ [BACKGROUND] Eventos configurados correctamente');
     }
 
     /**
