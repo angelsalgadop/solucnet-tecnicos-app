@@ -228,14 +228,22 @@ class PushNotificationsManager {
 // Crear instancia global
 window.pushNotificationsManager = new PushNotificationsManager();
 
-// Inicializar cuando el dispositivo esté listo
+// 🔧 v1.83.16: DESHABILITADO TEMPORALMENTE - Diagnosticar crash
+// Push Notifications causa crash en requestPermissions()
+// Probando sin FCM para confirmar que la app funciona
 document.addEventListener('deviceready', async () => {
-    console.log('🔔 [PUSH] Cordova listo, inicializando Push Notifications...');
+    console.log('🔔 [PUSH] ============================================');
+    console.log('⚠️ [PUSH] TEMPORALMENTE DESHABILITADO (v1.83.16)');
+    console.log('🔔 [PUSH] Diagnosticando crash en requestPermissions()');
+    console.log('🔔 [PUSH] La app funcionará sin push notifications');
+    console.log('🔔 [PUSH] ============================================');
 
-    // Esperar 2 segundos para no interferir con otros permisos
-    setTimeout(async () => {
-        await window.pushNotificationsManager.initialize();
-    }, 2000);
+    // NO inicializar - dejar comentado para diagnóstico
+    // setTimeout(async () => {
+    //     await window.pushNotificationsManager.initialize();
+    // }, 2000);
 }, false);
+
+console.log('ℹ️ [PUSH] Módulo cargado - Push Notifications DESHABILITADAS para diagnóstico');
 
 console.log('🔔 [PUSH] Módulo cargado - Esperando deviceready...');
