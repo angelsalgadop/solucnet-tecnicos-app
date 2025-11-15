@@ -65,10 +65,9 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
     <!-- Almacenamiento (para guardar fotos y PDFs offline) -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-                     android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-                     android:maxSdkVersion="32" />
+    <!-- 🔧 v1.83.19: Removido maxSdkVersion para compatibilidad con Android 13+ -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <!-- 🔧 FIX v1.50: Permisos para descargar y abrir PDFs -->
