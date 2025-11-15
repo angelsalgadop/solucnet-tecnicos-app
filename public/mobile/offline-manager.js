@@ -119,12 +119,19 @@ class OfflineManager {
     // Registrar Service Worker
     async registerServiceWorker() {
         try {
-            // 🔧 FIX v1.46: Usar ruta absoluta para que funcione en app nativa
-            // El archivo sw-offline.js debe estar en public/mobile/ para incluirse en el bundle
+            // 🔧 v1.83.10: NO registrar SW en apps nativas - solo para web
+            // En apps nativas todos los assets ya están en local y el SW causa problemas
+            if (APP_CONFIG && APP_CONFIG.isNative && APP_CONFIG.isNative()) {
+                console.log('📱 [OFFLINE MANAGER] App nativa detectada - Service Worker NO necesario');
+                console.log('✅ [OFFLINE MANAGER] Todos los assets ya están en local');
+                return null;
+            }
+
+            // Solo para versión web
             const registration = await navigator.serviceWorker.register('/sw-offline.js', {
                 scope: '/'
             });
-            console.log('✅ [OFFLINE MANAGER] Service Worker registrado:', registration.scope);
+            console.log('✅ [OFFLINE MANAGER] Service Worker registrado (web):', registration.scope);
 
             // Escuchar mensajes del service worker
             navigator.serviceWorker.addEventListener('message', (event) => {
