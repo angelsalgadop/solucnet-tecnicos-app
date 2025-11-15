@@ -276,6 +276,9 @@ async function cargarVisitasTecnico(mostrarSpinner = true, esActualizacionBackgr
 
         console.log('📡 [VISITAS] Iniciando fetch a /api/mis-visitas...');
 
+        // 🔧 v1.83.14: Declarar resultado fuera del try para usarlo después
+        let resultado;
+
         // 🔧 v1.83.11: Timeout de 30 segundos para evitar que se quede colgado
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
@@ -294,7 +297,7 @@ async function cargarVisitasTecnico(mostrarSpinner = true, esActualizacionBackgr
             console.log('📡 [VISITAS] Fetch completado, status:', response.status);
 
             console.log('📦 [VISITAS] Parseando JSON...');
-            const resultado = await response.json();
+            resultado = await response.json();
             console.log('📦 [VISITAS] JSON parseado correctamente, visitas:', resultado.visitas?.length || 0);
 
             if (!response.ok || !resultado.success) {
