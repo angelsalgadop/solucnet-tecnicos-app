@@ -275,26 +275,44 @@ async function cargarVisitasTecnico(mostrarSpinner = true, esActualizacionBackgr
         }
 
         console.log('📡 [VISITAS] Iniciando fetch a /api/mis-visitas...');
-        const response = await fetch(APP_CONFIG.getApiUrl('/api/mis-visitas'), {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` },
-            cache: 'no-cache'
-        });
-        console.log('📡 [VISITAS] Fetch completado, status:', response.status);
 
-        console.log('📦 [VISITAS] Parseando JSON...');
-        const resultado = await response.json();
-        console.log('📦 [VISITAS] JSON parseado correctamente, visitas:', resultado.visitas?.length || 0);
+        // 🔧 v1.83.11: Timeout de 30 segundos para evitar que se quede colgado
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.error('⏱️ [VISITAS] Timeout de 30s - abortando fetch');
+            controller.abort();
+        }, 30000);
 
-        if (!response.ok || !resultado.success) {
-            if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('token_tecnico');
-                localStorage.removeItem('user_tecnico');
-                localStorage.removeItem('remember_tecnico');
-                APP_CONFIG.redirectTo('login_tecnicos.html');
-                return;
+        try {
+            const response = await fetch(APP_CONFIG.getApiUrl('/api/mis-visitas'), {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` },
+                cache: 'no-cache',
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            console.log('📡 [VISITAS] Fetch completado, status:', response.status);
+
+            console.log('📦 [VISITAS] Parseando JSON...');
+            const resultado = await response.json();
+            console.log('📦 [VISITAS] JSON parseado correctamente, visitas:', resultado.visitas?.length || 0);
+
+            if (!response.ok || !resultado.success) {
+                if (response.status === 401 || response.status === 403) {
+                    localStorage.removeItem('token_tecnico');
+                    localStorage.removeItem('user_tecnico');
+                    localStorage.removeItem('remember_tecnico');
+                    APP_CONFIG.redirectTo('login_tecnicos.html');
+                    return;
+                }
+                throw new Error(resultado.message || 'Error cargando visitas');
             }
-            throw new Error(resultado.message || 'Error cargando visitas');
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+                throw new Error('Timeout: El servidor tardó más de 30 segundos en responder');
+            }
+            throw fetchError;
         }
 
         // Actualizar información del técnico
