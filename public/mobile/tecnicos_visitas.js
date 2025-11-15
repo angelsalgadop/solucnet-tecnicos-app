@@ -274,13 +274,17 @@ async function cargarVisitasTecnico(mostrarSpinner = true, esActualizacionBackgr
             console.log('🔄 [BACKGROUND] Descargando visitas actualizadas silenciosamente...');
         }
 
+        console.log('📡 [VISITAS] Iniciando fetch a /api/mis-visitas...');
         const response = await fetch(APP_CONFIG.getApiUrl('/api/mis-visitas'), {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` },
             cache: 'no-cache'
         });
+        console.log('📡 [VISITAS] Fetch completado, status:', response.status);
 
+        console.log('📦 [VISITAS] Parseando JSON...');
         const resultado = await response.json();
+        console.log('📦 [VISITAS] JSON parseado correctamente, visitas:', resultado.visitas?.length || 0);
 
         if (!response.ok || !resultado.success) {
             if (response.status === 401 || response.status === 403) {
