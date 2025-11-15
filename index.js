@@ -30,6 +30,16 @@ const nodemailer = require('nodemailer');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const performanceMonitor = require('./monitor_performance');
 const { Server } = require('socket.io');
+
+// 🆕 v1.83: Firebase Admin SDK para Push Notifications
+const admin = require('firebase-admin');
+const serviceAccount = require('./firebase-admin-key.json');
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
+
+console.log('🔥 [FIREBASE] Firebase Admin SDK inicializado correctamente');
 const {
     consultarCliente,
     consultarClientePorTelefono,
@@ -6316,23 +6326,50 @@ async function enviarPushNotification(userId, titulo, mensaje, data = {}) {
             return { success: false, message: 'No hay tokens FCM' };
         }
 
-        console.log(`📤 [FCM] Encontrados ${tokens.length} tokens para enviar`);
+        console.log(`📤 [FCM] Encontrados ${tokens.length} tokens`);
 
-        // TODO: Aquí va la integración con Firebase Admin SDK
-        // Por ahora, solo logging
-        console.log('📤 [FCM] Push notification preparada:');
-        console.log('   Título:', titulo);
-        console.log('   Mensaje:', mensaje);
-        console.log('   Data:', data);
-        console.log('   Tokens:', tokens.length);
+        // Preparar mensaje para FCM
+        const message = {
+            notification: {
+                title: titulo,
+                body: mensaje
+            },
+            data: {
+                ...data,
+                timestamp: new Date().toISOString()
+            },
+            tokens: tokens.map(t => t.fcm_token)
+        };
 
-        // NOTA: Para enviar realmente, necesitas configurar Firebase
-        // Instrucciones en el README que se creará
+        // 🔥 Enviar via Firebase Admin SDK
+        const response = await admin.messaging().sendEachForMulticast(message);
+
+        console.log(`✅ [FCM] Push enviado: ${response.successCount} éxitos, ${response.failureCount} fallos`);
+
+        // Desactivar tokens que fallaron
+        if (response.failureCount > 0) {
+            const failedTokens = [];
+            response.responses.forEach((resp, idx) => {
+                if (!resp.success) {
+                    console.warn(`⚠️ [FCM] Token falló:`, resp.error?.message);
+                    failedTokens.push(tokens[idx].fcm_token);
+                }
+            });
+
+            if (failedTokens.length > 0) {
+                await poolAuth.query(`
+                    UPDATE fcm_tokens
+                    SET is_active = 0
+                    WHERE fcm_token IN (?)
+                `, [failedTokens]);
+                console.log(`🗑️ [FCM] ${failedTokens.length} tokens inválidos desactivados`);
+            }
+        }
 
         return {
             success: true,
-            message: 'Push notification preparada (pendiente configuración Firebase)',
-            tokens_count: tokens.length
+            sent: response.successCount,
+            failed: response.failureCount
         };
 
     } catch (error) {
