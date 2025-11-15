@@ -2,11 +2,13 @@ const mysql = require('mysql2/promise');
 const { actualizarCoordenadasCliente } = require('./db');
 
 // Importar configuraciones de base de datos
+// 🔧 v1.83.12: Timeout de 2 segundos para conexiones a BDs externas
+// Evita que requests lentos a BDs inalcanzables bloqueen la app móvil
 const basesDatos = [
-    { host: '192.168.99.50', user: 'root', password: 'Y9T1Q6P39YI6TJ2', database: 'Mikrowisp6' },
-    { host: '192.168.99.11', user: 'root', password: 'Y9T1Q6P39YI6TJ2', database: 'Mikrowisp6' },
-    { host: '192.168.99.2', user: 'root', password: 'Y9T1Q6P39YI6TJ2', database: 'Mikrowisp6' },
-    { host: '192.168.99.51', user: 'ADFZ2I', password: 'MOZ1BWZ86BRMXFW', database: 'Mikrowisp6' }
+    { host: '192.168.99.50', user: 'root', password: 'Y9T1Q6P39YI6TJ2', database: 'Mikrowisp6', connectTimeout: 2000 },
+    { host: '192.168.99.11', user: 'root', password: 'Y9T1Q6P39YI6TJ2', database: 'Mikrowisp6', connectTimeout: 2000 },
+    { host: '192.168.99.2', user: 'root', password: 'Y9T1Q6P39YI6TJ2', database: 'Mikrowisp6', connectTimeout: 2000 },
+    { host: '192.168.99.51', user: 'ADFZ2I', password: 'MOZ1BWZ86BRMXFW', database: 'Mikrowisp6', connectTimeout: 2000 }
 ];
 
 const dbSistema = {
