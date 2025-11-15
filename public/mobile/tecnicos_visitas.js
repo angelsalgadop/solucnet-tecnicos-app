@@ -6,6 +6,7 @@ let fotosSeleccionadas = [];
 let intervaloActualizacion = null; // Intervalo para actualización automática
 let ultimaActualizacion = null; // Timestamp de última actualización
 let hashVisitasAnterior = null; // Hash para detectar cambios
+let cargandoVisitas = false; // 🔧 v1.83.5: Prevenir descargas simultáneas
 let visitasConPdfsDescargados = new Set(); // 🔧 v1.62: IDs de visitas con PDFs ya descargados
 let intentosGpsUsuario = 0; // 🔧 v1.63: Contador de intentos del usuario para GPS (máximo 3)
 const MAX_INTENTOS_GPS_USUARIO = 3; // 🔧 v1.63: Máximo de intentos permitidos
@@ -155,7 +156,16 @@ function ocultarBarraProgresoInline() {
 
 // 🔧 v1.81: Cargar visitas - CACHE PRIMERO, actualización silenciosa DESPUÉS
 async function cargarVisitasTecnico(mostrarSpinner = true, esActualizacionBackground = false) {
+    // 🔧 v1.83.5: Prevenir múltiples descargas simultáneas
+    if (cargandoVisitas) {
+        console.log('⚠️ [VISITAS] Ya hay una descarga en progreso, ignorando llamada duplicada');
+        return;
+    }
+
     try {
+        cargandoVisitas = true; // Bloquear nuevas descargas
+        console.log('🔄 [VISITAS] Iniciando carga de visitas...');
+
         const token = localStorage.getItem('token_tecnico');
         if (!token) {
             APP_CONFIG.redirectTo('login_tecnicos.html');
@@ -659,6 +669,10 @@ async function cargarVisitasTecnico(mostrarSpinner = true, esActualizacionBackgr
             `;
         }
         actualizarIndicadorActualizacion();
+    } finally {
+        // 🔧 v1.83.5: Siempre liberar el bloqueo
+        cargandoVisitas = false;
+        console.log('✅ [VISITAS] Descarga finalizada, bloqueo liberado');
     }
 }
 
