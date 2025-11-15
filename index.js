@@ -9085,7 +9085,8 @@ app.get('/api/mis-visitas', async (req, res) => {
 
         await conexion.end();
 
-        // Actualizar estados desde memoria y obtener información de equipos
+        // 🔧 v1.83.13: Actualizar estados desde memoria (sin consultar BDs externas)
+        // La información de equipos YA está guardada en la tabla cuando se creó la visita
         const visitasConDatos = [];
         for (const visita of visitas) {
             const estadoMemoria = visitasEnMemoria[visita.id];
@@ -9099,26 +9100,10 @@ app.get('/api/mis-visitas', async (req, res) => {
                 continue;
             }
 
-            // Obtener información de equipos si está disponible
-            if (visita.cliente_cedula) {
-                try {
-                    console.log(`🔍 [MIS-VISITAS] Obteniendo equipos para cliente: ${visita.cliente_cedula} (visita ${visita.id})`);
-                    const serialInfo = await obtenerSerialEquipoCliente(visita.cliente_cedula);
-                    if (serialInfo) {
-                        console.log(`✅ [MIS-VISITAS] Equipos obtenidos: ${serialInfo.todos_los_equipos?.length || 0} equipos`);
-                        visita.serial_equipo_asignado = serialInfo.serial_equipo_asignado;
-                        visita.equipo_tipo = serialInfo.equipo_tipo;
-                        visita.equipo_estado = serialInfo.equipo_estado;
-                        visita.todos_los_equipos = serialInfo.todos_los_equipos;
-                        if (!visita.mikrotik_nombre) visita.mikrotik_nombre = serialInfo.mikrotik_nombre;
-                        if (!visita.usuario_ppp) visita.usuario_ppp = serialInfo.usuario_ppp;
-                    } else {
-                        console.log(`⚠️ [MIS-VISITAS] No se encontró información de equipos para ${visita.cliente_cedula}`);
-                    }
-                } catch (err) {
-                    console.log(`❌ [MIS-VISITAS] Error obteniendo seriales para cliente ${visita.cliente_cedula}: ${err.message}`);
-                }
-            }
+            // ✅ v1.83.13: Los datos de equipos ya están en la tabla (serial_equipo_asignado,
+            // equipo_tipo, equipo_estado, mikrotik_nombre, usuario_ppp)
+            // NO es necesario consultar las BDs externas cada vez que se cargan las visitas
+            console.log(`✅ [MIS-VISITAS] Visita ${visita.id} procesada (equipo: ${visita.serial_equipo_asignado || 'N/A'})`);
 
             visitasConDatos.push(visita);
         }
