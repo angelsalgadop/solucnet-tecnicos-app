@@ -3,7 +3,7 @@
  * Usa Firebase Cloud Messaging (FCM) para notificaciones REALES
  * Funciona incluso cuando la app está CERRADA
  *
- * v1.83.0 - 2025-01-14
+ * v1.83.2 - 2025-01-14 - Fix: SERVER_URL sin puerto :3000
  */
 
 class PushNotificationsManager {
@@ -133,7 +133,7 @@ class PushNotificationsManager {
                     user_id: user.id,
                     device_info: {
                         platform: 'android',
-                        app_version: '1.83.0'
+                        app_version: '1.83.2'
                     }
                 })
             });

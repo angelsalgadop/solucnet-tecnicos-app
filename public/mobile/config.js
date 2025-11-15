@@ -16,8 +16,8 @@ const APP_CONFIG = {
 
     // URL del servidor (IMPORTANTE: Solo la base, sin rutas)
     // Para desarrollo local: 'http://localhost:3000'
-    // Para producción: 'https://tu-servidor.com:puerto'
-    SERVER_URL: 'https://cliente.solucnet.com:3000',
+    // Para producción: 'https://tu-servidor.com' (puerto 443 por defecto para HTTPS)
+    SERVER_URL: 'https://cliente.solucnet.com',
 
     // Función helper para construir URLs de API
     getApiUrl: function(endpoint) {
