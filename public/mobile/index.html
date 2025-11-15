@@ -4,9 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SolucNet Técnicos</title>
+
+    <!-- 🔧 v1.83.4: Cargar Capacitor/Cordova ANTES de redirigir -->
+    <script src="cordova.js"></script>
+
     <script>
-        // Redirigir inmediatamente a login de técnicos
-        window.location.replace('login_tecnicos.html');
+        // Esperar a que Cordova esté listo antes de redirigir
+        function redirectToLogin() {
+            window.location.replace('login_tecnicos.html');
+        }
+
+        // Si es app nativa, esperar deviceready. Si es web, redirigir inmediatamente
+        if (window.location.protocol === 'capacitor:' || window.location.protocol === 'file:') {
+            document.addEventListener('deviceready', redirectToLogin, false);
+            // Timeout de seguridad por si deviceready no se dispara
+            setTimeout(redirectToLogin, 3000);
+        } else {
+            redirectToLogin();
+        }
     </script>
 </head>
 <body>
