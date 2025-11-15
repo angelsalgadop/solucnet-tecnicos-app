@@ -14,7 +14,8 @@ class PushNotificationsManager {
 
     /**
      * Inicializar push notifications
-     * 🔧 v1.83.15: Registro no-bloqueante con timeout para evitar crashes
+     * 🔧 v1.83.17: NUNCA solicitar permisos - Solo verificar
+     * SOLUCIÓN: NO pedir permisos (causa crash), solo verificar si ya están concedidos
      */
     async initialize() {
         console.log('🔔 [PUSH] ============================================');
@@ -28,25 +29,19 @@ class PushNotificationsManager {
                 return false;
             }
 
-            // 🔧 v1.83.15: Configurar listeners ANTES de registrar
+            // 🔧 v1.83.17: Configurar listeners ANTES de verificar
             console.log('🔔 [PUSH] Configurando listeners...');
             this.setupListeners();
 
-            // Solicitar permisos con timeout
-            console.log('🔔 [PUSH] Solicitando permisos...');
-            const permissionPromise = Capacitor.Plugins.PushNotifications.requestPermissions();
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Timeout solicitando permisos')), 5000)
-            );
-
-            const permission = await Promise.race([permissionPromise, timeoutPromise]);
-            console.log('🔔 [PUSH] Permisos:', permission);
+            // 🔧 v1.83.17: SOLO VERIFICAR permisos, NUNCA solicitar (causa crash)
+            console.log('🔔 [PUSH] Verificando permisos (sin solicitar)...');
+            const permission = await Capacitor.Plugins.PushNotifications.checkPermissions();
+            console.log('🔔 [PUSH] Permisos actuales:', permission);
 
             if (permission.receive === 'granted') {
-                console.log('✅ [PUSH] Permisos concedidos - Registrando...');
+                console.log('✅ [PUSH] Permisos YA concedidos - Registrando con FCM...');
 
-                // 🔧 v1.83.15: Registrar de forma NO-BLOQUEANTE con timeout
-                // Si el registro tarda mucho o falla, la app continúa normalmente
+                // Registrar de forma NO-BLOQUEANTE con timeout
                 const registerPromise = Capacitor.Plugins.PushNotifications.register();
                 const registerTimeout = new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('Timeout en registro FCM')), 10000)
@@ -55,7 +50,7 @@ class PushNotificationsManager {
                 // Intentar registrar, pero no bloquear la app si falla
                 Promise.race([registerPromise, registerTimeout])
                     .then(() => {
-                        console.log('✅ [PUSH] Registro FCM completado');
+                        console.log('✅✅✅ [PUSH] Registro FCM completado exitosamente');
                         this.isRegistered = true;
                     })
                     .catch((error) => {
@@ -66,7 +61,14 @@ class PushNotificationsManager {
                 console.log('✅ [PUSH] Push Notifications inicializadas (registro en background)');
                 return true;
             } else {
-                console.warn('⚠️ [PUSH] Permisos denegados');
+                console.log('ℹ️ [PUSH] =============================================');
+                console.log('ℹ️ [PUSH] Permisos de notificaciones NO concedidos');
+                console.log('ℹ️ [PUSH] Para recibir notificaciones push:');
+                console.log('ℹ️ [PUSH] 1. Ve a Configuración > Apps > SolucNet');
+                console.log('ℹ️ [PUSH] 2. Toca "Permisos"');
+                console.log('ℹ️ [PUSH] 3. Activa "Notificaciones"');
+                console.log('ℹ️ [PUSH] La app funciona normalmente sin push notifications');
+                console.log('ℹ️ [PUSH] =============================================');
                 return false;
             }
         } catch (error) {
@@ -228,22 +230,15 @@ class PushNotificationsManager {
 // Crear instancia global
 window.pushNotificationsManager = new PushNotificationsManager();
 
-// 🔧 v1.83.16: DESHABILITADO TEMPORALMENTE - Diagnosticar crash
-// Push Notifications causa crash en requestPermissions()
-// Probando sin FCM para confirmar que la app funciona
+// 🔧 v1.83.17: HABILITADO - Solo verifica permisos, NO los solicita
+// Inicializar cuando el dispositivo esté listo
 document.addEventListener('deviceready', async () => {
-    console.log('🔔 [PUSH] ============================================');
-    console.log('⚠️ [PUSH] TEMPORALMENTE DESHABILITADO (v1.83.16)');
-    console.log('🔔 [PUSH] Diagnosticando crash en requestPermissions()');
-    console.log('🔔 [PUSH] La app funcionará sin push notifications');
-    console.log('🔔 [PUSH] ============================================');
+    console.log('🔔 [PUSH] Cordova listo, inicializando Push Notifications...');
 
-    // NO inicializar - dejar comentado para diagnóstico
-    // setTimeout(async () => {
-    //     await window.pushNotificationsManager.initialize();
-    // }, 2000);
+    // Esperar 2 segundos para no interferir con otros componentes
+    setTimeout(async () => {
+        await window.pushNotificationsManager.initialize();
+    }, 2000);
 }, false);
-
-console.log('ℹ️ [PUSH] Módulo cargado - Push Notifications DESHABILITADAS para diagnóstico');
 
 console.log('🔔 [PUSH] Módulo cargado - Esperando deviceready...');

@@ -1,8 +1,205 @@
 {
-  "timestamp": 1763224787437,
-  "estados": {},
-  "chatsFinalizados": [],
-  "chatsActivos": {},
+  "timestamp": 1763225699891,
+  "estados": {
+    "573175450730@c.us": {
+      "enEsperaHumano": {
+        "contador": 0,
+        "ultimaRespuesta": 1763223591468,
+        "iniciado": 1763223591468,
+        "motivo": "Modo restaurado desde persistencia"
+      },
+      "clienteEncontrado": null,
+      "seguimiento": null,
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": true,
+      "ultimaInteraccion": 1763223591468
+    },
+    "573226542187@c.us": {
+      "enEsperaHumano": null,
+      "clienteEncontrado": {
+        "cliente": {
+          "id": 515,
+          "nombre": "DANIELA RESTREPO GONZALEZ\t",
+          "estado": "ACTIVO",
+          "cedula": "1040354799",
+          "telefono": "3103753175",
+          "movil": "3226542187",
+          "direccion_principal": "CHURIDO Por la cancha de tejo churido pueblo"
+        },
+        "facturas": [],
+        "cuenta": {
+          "cuenta": "Nequi *3025961131*"
+        },
+        "bd": {
+          "host": "192.168.99.11",
+          "user": "root",
+          "password": "Y9T1Q6P39YI6TJ2",
+          "database": "Mikrowisp6"
+        }
+      },
+      "seguimiento": {
+        "paso": "menu_usuario"
+      },
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": false,
+      "ultimaInteraccion": 1763223655190
+    },
+    "573004610493@c.us": {
+      "enEsperaHumano": {
+        "contador": 0,
+        "ultimaRespuesta": 1763224052692
+      },
+      "clienteEncontrado": {
+        "cliente": {
+          "id": 377,
+          "nombre": "LESLY TATIANA HERNÁNDEZ ASPRILLA ",
+          "estado": "SUSPENDIDO",
+          "cedula": "1028034104",
+          "telefono": "",
+          "movil": "3004610493",
+          "direccion_principal": "Salvador calle 114a #20 - CONT: 480910"
+        },
+        "facturas": [
+          {
+            "vencimiento": "01/11/2025",
+            "total": "85100.00",
+            "estado": "No pagado",
+            "situacion": "Vencida"
+          }
+        ],
+        "cuenta": {
+          "cuenta": "Bancolombia Ahorros *549-000016-75*.   *Recuerda que no aceptamos pago por nequi*"
+        },
+        "bd": {
+          "host": "192.168.99.50",
+          "user": "root",
+          "password": "Y9T1Q6P39YI6TJ2",
+          "database": "Mikrowisp6"
+        }
+      },
+      "seguimiento": null,
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "primerErrorTimestamp": null,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": false,
+      "ultimaInteraccion": 1763224052692
+    },
+    "573024084230@c.us": {
+      "enEsperaHumano": null,
+      "clienteEncontrado": {
+        "cliente": {
+          "id": 493,
+          "nombre": "DEISY KATERINE SERRANO PINILLA",
+          "estado": "ACTIVO",
+          "cedula": "1001026906",
+          "telefono": "",
+          "movil": "3024084230",
+          "direccion_principal": "CHURIDO - CONT: "
+        },
+        "facturas": [
+          {
+            "vencimiento": "15/11/2025",
+            "total": "84850.00",
+            "estado": "No pagado",
+            "situacion": "No pagado"
+          }
+        ],
+        "cuenta": {
+          "cuenta": "Nequi *3025961131*"
+        },
+        "bd": {
+          "host": "192.168.99.11",
+          "user": "root",
+          "password": "Y9T1Q6P39YI6TJ2",
+          "database": "Mikrowisp6"
+        }
+      },
+      "seguimiento": {
+        "paso": "menu_usuario"
+      },
+      "esperandoCedula": false,
+      "esperandoCedula2": false,
+      "erroresConsecutivos": 0,
+      "mensajeSolEnviado": false,
+      "ultimoMenuEnviado": null,
+      "primeraInteraccion": false,
+      "ultimaInteraccion": 1763225694884
+    }
+  },
+  "chatsFinalizados": [
+    "573242473111@c.us",
+    "573212348310@c.us",
+    "573136267417@c.us",
+    "573116339365@c.us",
+    "573133320967@c.us",
+    "573208179459@c.us",
+    "573143051187@c.us",
+    "573103820952@c.us",
+    "573226132384@c.us",
+    "573203638170@c.us",
+    "573148855336@c.us",
+    "573233625505@c.us",
+    "573217280119@c.us",
+    "573148881295@c.us",
+    "573205185647@c.us",
+    "573127631325@c.us",
+    "573106782534@c.us",
+    "573145273932@c.us",
+    "573136901663@c.us"
+  ],
+  "chatsActivos": {
+    "573175450730@c.us": {
+      "id": "573175450730@c.us",
+      "phone": "573175450730",
+      "name": "+573175450730",
+      "lastActivity": 1763223591467,
+      "mode": "human",
+      "pendiente": true
+    },
+    "573226542187@c.us": {
+      "id": "573226542187@c.us",
+      "phone": "573226542187",
+      "name": "+573226542187",
+      "lastActivity": 1763223655189,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573004610493@c.us": {
+      "id": "573004610493@c.us",
+      "phone": "573004610493",
+      "name": "+573004610493",
+      "lastActivity": 1763224052691,
+      "mode": "human",
+      "pendiente": true
+    },
+    "573024019208@c.us": {
+      "id": "573024019208@c.us",
+      "phone": "573024019208",
+      "name": "+573024019208",
+      "lastActivity": 1763225390127,
+      "mode": "bot",
+      "pendiente": true
+    },
+    "573024084230@c.us": {
+      "id": "573024084230@c.us",
+      "phone": "573024084230",
+      "name": "+573024084230",
+      "lastActivity": 1763225694883,
+      "mode": "bot",
+      "pendiente": true
+    }
+  },
   "modosChat": {
     "573234893832@c.us": "bot",
     "573226541288@c.us": "bot",
@@ -31,7 +228,7 @@
     "573147538382@c.us": "bot",
     "573224939732@c.us": "bot",
     "573136394892@c.us": "bot",
-    "573175450730@c.us": "bot",
+    "573175450730@c.us": "human",
     "573206459931@c.us": "bot",
     "573218175671@c.us": "bot",
     "573218442007@c.us": "bot",
@@ -535,7 +732,7 @@
     "573118012123@c.us": "bot",
     "573148290044@c.us": "bot",
     "573127315251@c.us": "bot",
-    "573004610493@c.us": "bot",
+    "573004610493@c.us": "human",
     "573216142883@c.us": "bot",
     "573122194513@c.us": "bot",
     "573126038531@c.us": "bot",
@@ -707,6 +904,17 @@
     "573144337683@c.us": "bot",
     "573104588673@c.us": "bot",
     "573148833911@c.us": "bot",
-    "573218941272@c.us": "bot"
+    "573218941272@c.us": "bot",
+    "573203638170@c.us": "bot",
+    "573148855336@c.us": "bot",
+    "573233625505@c.us": "bot",
+    "573217280119@c.us": "bot",
+    "573148881295@c.us": "bot",
+    "573205185647@c.us": "bot",
+    "573127631325@c.us": "bot",
+    "573106782534@c.us": "bot",
+    "573145273932@c.us": "bot",
+    "573136901663@c.us": "bot",
+    "573133320967@c.us": "human"
   }
 }
