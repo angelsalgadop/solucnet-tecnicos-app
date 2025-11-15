@@ -1,5 +1,5 @@
 // Service Worker para SolucNet Técnicos - Modo Offline Completo
-const CACHE_NAME = 'solucnet-tecnicos-v1.42.0';
+const CACHE_NAME = 'solucnet-tecnicos-v1.83.8';
 const OFFLINE_DATA_STORE = 'solucnet-offline-data';
 const SYNC_TAG = 'sync-visitas';
 
@@ -58,6 +58,13 @@ self.addEventListener('fetch', (event) => {
     // Solo interceptar requests HTTP/HTTPS
     if (!request.url.startsWith('http')) {
         return;
+    }
+
+    // 🔧 v1.83.8: NO interceptar requests a /api/* - dejar que pasen directo
+    // Esto evita problemas cuando SW y API están en puertos diferentes
+    if (url.pathname.startsWith('/api/')) {
+        console.log('[SW] 🔓 Permitiendo request directo a API:', url.pathname);
+        return; // No interceptar - fetch normal
     }
 
     // Estrategia diferente según el tipo de recurso
