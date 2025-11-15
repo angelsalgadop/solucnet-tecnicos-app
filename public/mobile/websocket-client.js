@@ -31,8 +31,8 @@ class WebSocketClient {
                 return false;
             }
 
-            // Conectar al servidor
-            const serverUrl = window.location.origin;
+            // Conectar al servidor - Usar APP_CONFIG para obtener la URL correcta con puerto
+            const serverUrl = APP_CONFIG.SERVER_URL || window.location.origin;
             console.log(`🔌 [WEBSOCKET] Conectando a: ${serverUrl}`);
 
             this.socket = io(serverUrl, {
