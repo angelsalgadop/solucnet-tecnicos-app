@@ -75,3 +75,7 @@ temp/
 .DS_Store
 Thumbs.db
 core
+
+# Firebase
+firebase-admin-key.json
+android/app/google-services.json

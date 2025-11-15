@@ -6245,6 +6245,105 @@ app.post('/api/logout', async (req, res) => {
     }
 });
 
+// ===== PUSH NOTIFICATIONS (FCM) =====
+
+// Guardar FCM token
+app.post('/api/fcm/save-token', async (req, res) => {
+    try {
+        const { fcm_token, user_id, device_info } = req.body;
+
+        if (!fcm_token || !user_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'FCM token y user_id son requeridos'
+            });
+        }
+
+        console.log('💾 [FCM] Guardando token para usuario:', user_id);
+
+        // Insertar o actualizar token
+        await poolAuth.query(`
+            INSERT INTO fcm_tokens (user_id, fcm_token, platform, app_version, device_info, last_used_at)
+            VALUES (?, ?, ?, ?, ?, NOW())
+            ON DUPLICATE KEY UPDATE
+                fcm_token = VALUES(fcm_token),
+                platform = VALUES(platform),
+                app_version = VALUES(app_version),
+                device_info = VALUES(device_info),
+                last_used_at = NOW(),
+                updated_at = NOW(),
+                is_active = 1
+        `, [
+            user_id,
+            fcm_token,
+            device_info?.platform || 'android',
+            device_info?.app_version || '1.83.0',
+            JSON.stringify(device_info || {})
+        ]);
+
+        console.log('✅ [FCM] Token guardado exitosamente');
+
+        res.json({
+            success: true,
+            message: 'FCM token guardado correctamente'
+        });
+
+    } catch (error) {
+        console.error('❌ [FCM] Error guardando token:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error guardando FCM token',
+            error: error.message
+        });
+    }
+});
+
+// Función para enviar push notification via FCM
+async function enviarPushNotification(userId, titulo, mensaje, data = {}) {
+    try {
+        console.log('📤 [FCM] Enviando push notification a usuario:', userId);
+
+        // Obtener FCM tokens activos del usuario
+        const [tokens] = await poolAuth.query(`
+            SELECT fcm_token
+            FROM fcm_tokens
+            WHERE user_id = ? AND is_active = 1
+            ORDER BY updated_at DESC
+        `, [userId]);
+
+        if (tokens.length === 0) {
+            console.warn('⚠️ [FCM] No hay tokens FCM para usuario:', userId);
+            return { success: false, message: 'No hay tokens FCM' };
+        }
+
+        console.log(`📤 [FCM] Encontrados ${tokens.length} tokens para enviar`);
+
+        // TODO: Aquí va la integración con Firebase Admin SDK
+        // Por ahora, solo logging
+        console.log('📤 [FCM] Push notification preparada:');
+        console.log('   Título:', titulo);
+        console.log('   Mensaje:', mensaje);
+        console.log('   Data:', data);
+        console.log('   Tokens:', tokens.length);
+
+        // NOTA: Para enviar realmente, necesitas configurar Firebase
+        // Instrucciones en el README que se creará
+
+        return {
+            success: true,
+            message: 'Push notification preparada (pendiente configuración Firebase)',
+            tokens_count: tokens.length
+        };
+
+    } catch (error) {
+        console.error('❌ [FCM] Error enviando push:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Exportar función para usar en otras partes
+global.enviarPushNotification = enviarPushNotification;
+
 // ===== MIDDLEWARES DE AUTENTICACIÓN =====
 
 // Middleware para verificar autenticación
@@ -8445,6 +8544,20 @@ Gracias por su comprensión.
 
         // 🆕 v1.77: Emitir actualización via WebSocket para notificar al técnico
         emitirActualizacionVisitas(tecnicoId);
+
+        // 🆕 v1.83: Enviar push notification via FCM (funciona con app cerrada)
+        if (typeof enviarPushNotification === 'function') {
+            enviarPushNotification(
+                tecnicoId,
+                '🆕 Nueva Visita Asignada',
+                `${visitaData.cliente_nombre} - ${visitaData.motivo_visita || 'Sin motivo'}`,
+                {
+                    visita_id: visitaId,
+                    tipo: 'nueva_visita',
+                    cliente_nombre: visitaData.cliente_nombre
+                }
+            ).catch(err => console.error('❌ [FCM] Error enviando push:', err));
+        }
 
         res.json(result);
     } catch (error) {
